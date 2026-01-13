@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Allow read/write to broadcast messages (Global)
+    match /broadcasts/{document} {
+      allow read, write: if true;
+    }
+
+    // New Structure: Per-Station Isolation
+    // Path: /competition/{stationId}/entries/{entryId}
+    match /competition/{stationId}/entries/{entryId} {
+       // Judges/Station View can read/write significantly if they know the stationId
+       allow read, write: if true;
+    }
+    
+    // Results (Speed) - Isolated by Station? 
+    // Ideally results should also be subcollections: /competition/{stationId}/results_speed/{id}
+    // But for now, let's keep results global or migrate them too. 
+    // The prompt specifically mentioned "entries", implying the participants list.
+    
+    // To allow Admin Group Queries (fetching all entries across all stations):
+    match /{path=**}/entries/{entryId} {
+      allow read, write: if true;
+    }
+
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -1,0 +1,360 @@
+<template>
+  <div class="layout">
+    <header class="header">
+      <div class="brand">
+        <div class="brand-text">
+          <h1>System Importer</h1>
+        </div>
+      </div>
+      <div class="system-status-container">
+        <div class="system-status">
+            <div class="pulse-dot"></div>
+            <span>Ready for Data</span>
+        </div>
+        <router-link to="/admin" class="admin-link">← Back to Admin</router-link>
+      </div>
+    </header>
+
+    <div class="panel">
+        <div class="alert-box">
+            <h2>Data Importer</h2>
+            <p class="text-muted text-sm mb-4">Upload your Participants CSV to populate Firebase.</p>
+            
+            <div class="drop-zone" @click="$refs.fileInput.click()">
+                <input type="file" ref="fileInput" @change="handleFile" accept=".csv" style="display:none;" />
+                <div class="icon-cloud">☁️</div>
+                <p class="drop-text">Drag & Drop or <span class="highlight">Click to Select CSV</span></p>
+            </div>
+
+            <div v-if="parsedData.length > 0" class="actions-row">
+                <p class="info-text">Ready: {{ parsedData.length }} Participants</p>
+                <div class="btn-group">
+                    <button class="btn btn-primary" @click="performUpload" :disabled="isUploading">
+                        {{ isUploading ? 'Uploading...' : `Confirm Upload` }}
+                    </button>
+                    <button class="btn btn-outline" @click="parsedData = []">Clear</button>
+                </div>
+            </div>
+
+            <div v-if="status" class="status-msg" :class="{ error: status.includes('Error'), success: status.includes('Success') }">
+                {{ status }}
+            </div>
+        </div>
+
+        <!-- CONFIGURATION IMPORTER -->
+        <div class="alert-box config-box">
+            <h2>Competition Config</h2>
+            <p class="text-muted text-sm mb-4">Upload <b>Config.csv</b> to update Title, Events, and Divisions.</p>
+            
+            <div class="drop-zone" @click="$refs.configFile.click()">
+                <input type="file" ref="configFile" @change="handleConfigFile" accept=".csv" style="display:none;" />
+                <div class="icon-cloud">⚙️</div>
+                <p class="drop-text">Upload <span class="highlight">Config.csv</span></p>
+            </div>
+
+            <div v-if="parsedConfig" class="actions-row">
+                <p class="info-text">Ready: {{ parsedConfig.title }}</p>
+                <div class="btn-group">
+                    <button class="btn btn-primary" @click="uploadConfig" :disabled="isUploading">
+                        {{ isUploading ? 'Saving...' : `Update Config` }}
+                    </button>
+                    <button class="btn btn-outline" @click="parsedConfig = null">Cancel</button>
+                </div>
+            </div>
+
+            <div v-if="configStatus" class="status-msg" :class="{ error: configStatus.includes('Error') || configStatus.includes('Warning'), success: configStatus.includes('Success') || configStatus.includes('Parsed') }">
+                {{ configStatus }}
+            </div>
+        </div>
+
+        <div class="alert-box danger-box">
+            <h2 class="text-red-500">Danger Zone</h2>
+            <p class="text-muted text-sm mb-4">Clear all participant records from the database.</p>
+            <button class="btn btn-danger" @click="wipeDatabase" :disabled="isUploading">🔥 WIPE ALL PARTICIPANTS</button>
+        </div>
+    </div>
+    
+    <footer class="footer">
+        © 2026 GBRSA
+    </footer>
+  </div>
+</template>
+
+<script setup>
+import { ref } from 'vue'
+import Papa from 'papaparse'
+import { db } from '../firebase'
+import { collection, writeBatch, doc, getDocs, collectionGroup, setDoc } from 'firebase/firestore'
+
+const status = ref('')
+const parsedData = ref([])
+const isUploading = ref(false)
+
+// CONFIG STATE
+const configStatus = ref('')
+const parsedConfig = ref(null)
+
+// --- CONFIG HANDLER ---
+const handleConfigFile = (event) => {
+    const file = event.target.files[0]
+    if (!file) return
+    configStatus.value = "Parsing Config..."
+    
+    Papa.parse(file, {
+        header: true,
+        skipEmptyLines: true,
+        complete: (results) => {
+            console.log("Config Raw:", results.data)
+            processConfig(results.data)
+        }
+    })
+}
+
+const processConfig = (rows) => {
+    // Schema: Type, Key, Label, Category
+    const newConfig = {
+        title: '',
+        speedEvents: [],
+        freestyleEvents: [],
+        divisions: [],
+        eventLabels: {}
+    }
+
+    let foundTitle = false
+
+    rows.forEach(row => {
+        const type = (row.Type || row.type || '').trim().toLowerCase()
+        const key = (row.Key || row.key || '').trim()
+        const label = (row.Label || row.label || '').trim()
+        const cat = (row.Category || row.category || '').trim().toLowerCase()
+
+        if (!type || !key) return
+
+        if (type === 'title') {
+            newConfig.title = label // Key is ignored for title usually, or 'main'
+            foundTitle = true
+        }
+        else if (type === 'event') {
+            if (cat.includes('speed')) {
+                newConfig.speedEvents.push(key)
+            } else {
+                newConfig.freestyleEvents.push(key)
+            }
+            newConfig.eventLabels[key] = label
+        }
+        else if (type === 'division') {
+            newConfig.divisions.push(key) // We store keys. Label could be used for display if we have a map.
+            // If we want labels for divisions later, we'd need a map. For now just list.
+        }
+    })
+
+    if (!foundTitle) configStatus.value = "⚠️ Warning: No 'Title' row found."
+    else configStatus.value = `✅ Parsed: ${newConfig.speedEvents.length + newConfig.freestyleEvents.length} Events, ${newConfig.divisions.length} Divisions.`
+    
+    parsedConfig.value = newConfig
+}
+
+const uploadConfig = async () => {
+    if (!parsedConfig.value) return
+    isUploading.value = true
+    configStatus.value = "Saving Configuration..."
+
+    try {
+        await setDoc(doc(db, 'system', 'config'), parsedConfig.value)
+        configStatus.value = "✅ Configuration Updated Successfully!"
+        setTimeout(() => { parsedConfig.value = null; configStatus.value = '' }, 3000)
+    } catch (err) {
+        configStatus.value = "Error: " + err.message
+    } finally {
+        isUploading.value = false
+    }
+}
+
+const handleFile = (event) => {
+  const file = event.target.files[0]
+  if (!file) return
+
+  status.value = "Parsing CSV..."
+  
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+    complete: (results) => {
+      console.log("Parsed raw:", results.data)
+      // Map to schema
+      parsedData.value = results.data.map(mapParticipant).filter(p => p.entry_code)
+      status.value = `Parsed ${parsedData.value.length} participants. Ready to upload.`
+    }
+  })
+}
+
+// Logic from old importer.html
+const mapParticipant = (item) => {
+    return {
+        entry_code: String(item.entry || item.ENTRY || item.entry_code || item.id || item.ID || "").trim(),
+        name1: item.name1 || item.NAME1 || "",
+        name2: item.name2 || item.NAME2 || "",
+        name3: item.name3 || item.NAME3 || "",
+        name4: item.name4 || item.NAME4 || "",
+        team: item.team || item.TEAM || "",
+        state: item.state || item.STATE || "",
+        station: String(item.station || item.STATION || "1"),
+        event: item.event || item.EVENT || "",
+        heat: String(item.heat || item.HEAT || "1"),
+        division: item.division || item.DIVISION || "",
+        status: item.status || item.STATUS || "normal"
+    }
+}
+
+const performUpload = async () => {
+  if (parsedData.value.length === 0) return
+  isUploading.value = true
+  status.value = "Starting Upload..."
+
+  const batchSize = 400 // Firestore batch limit is 500
+  const chunks = []
+  for (let i = 0; i < parsedData.value.length; i += batchSize) {
+    chunks.push(parsedData.value.slice(i, i + batchSize))
+  }
+
+  try {
+    let count = 0
+    for (const chunk of chunks) {
+      const batch = writeBatch(db)
+      chunk.forEach(p => {
+        // Use entry_code as Document ID for easy lookup
+        // MIGRATE: competition/{station}/entries
+        const sId = p.station || "1"
+        const ref = doc(db, "competition", sId, "entries", p.entry_code)
+        batch.set(ref, p)
+      })
+      await batch.commit()
+      count += chunk.length
+      status.value = `Uploaded ${count} / ${parsedData.value.length} records...`
+    }
+    status.value = `✅ Success! Uploaded ${count} participants to Firebase.`
+    parsedData.value = [] // Reset
+  } catch (err) {
+    console.error(err)
+    status.value = "Error: " + err.message
+  } finally {
+    isUploading.value = false
+  }
+}
+
+const wipeDatabase = async () => {
+  if (!confirm("DANGER: This will delete ALL participants from Firebase. Are you sure?")) return
+  isUploading.value = true
+  status.value = "Wiping database..."
+  
+  try {
+    // Note: This is client-side wiping, slower than server-side but fine for <1000 records
+    // MIGRATE: Wipe from collectionGroup('entries')
+    const querySnapshot = await getDocs(collectionGroup(db, "entries"))
+    const batch = writeBatch(db)
+    let count = 0
+    querySnapshot.forEach((doc) => {
+      batch.delete(doc.ref)
+      count++
+    })
+    
+    if (count > 0) await batch.commit()
+    
+    status.value = `✅ Wiped ${count} records.`
+  } catch (err) {
+    status.value = "Wipe Error: " + err.message
+  } finally {
+    isUploading.value = false
+  }
+}
+</script>
+
+<style scoped>
+/* LEGACY DESIGN SYSTEM */
+.layout {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: #f8fafc;
+  color: #0f172a;
+  font-family: 'Outfit', sans-serif;
+}
+
+/* Header */
+.header {
+  height: 64px;
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+}
+.brand h1 { font-size: 1.25rem; font-weight: 700; margin: 0; color: #0f172a; }
+
+.system-status-container { display: flex; flex-direction: column; align-items: flex-end; }
+.system-status { display: flex; align-items: center; gap: 8px; color: #10b981; font-weight: 700; font-size: 0.75rem; text-transform: uppercase; }
+.pulse-dot { width: 8px; height: 8px; background: #10b981; border-radius: 50%; box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2); animation: pulse 2s infinite; }
+@keyframes pulse { 0% { opacity: 1; transform: scale(1); } 50% { opacity: 0.6; transform: scale(1.1); } 100% { opacity: 1; transform: scale(1); } }
+.admin-link { color: #64748b; font-size: 0.75rem; font-weight: 600; text-decoration: none; margin-top: 4px; }
+.admin-link:hover { color: #0f172a; }
+
+.panel {
+  flex: 1;
+  padding: 40px;
+  max-width: 800px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.alert-box {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  padding: 32px;
+  border: 1px solid #e2e8f0;
+  margin-bottom: 24px;
+}
+.alert-box h2 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; color: #0f172a; }
+
+.drop-zone {
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 40px;
+  text-align: center;
+  transition: all 0.2s;
+  cursor: pointer;
+  background: #f8fafc;
+  margin-bottom: 1.5rem;
+}
+.drop-zone:hover { border-color: #94a3b8; background: #f1f5f9; }
+.icon-cloud { font-size: 48px; display: block; margin-bottom: 8px; }
+.drop-text { font-size: 1.1rem; font-weight: 600; color: #334155; }
+.highlight { color: #3b82f6; }
+
+.actions-row { display: flex; flex-direction: column; gap: 1rem; padding: 1.5rem; background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0; }
+.info-text { font-weight: 700; color: #10b981; margin: 0; }
+.btn-group { display: flex; gap: 1rem; }
+
+.status-msg { margin-top: 1rem; padding: 1rem; border-radius: 8px; font-weight: 600; font-size: 0.9rem; }
+.status-msg.success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+.status-msg.error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+
+.danger-box { border-color: #fecaca; background: #fef2f2; }
+.text-red-500 { color: #dc2626; }
+
+.btn { padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; font-size: 0.9rem; transition: background 0.2s; }
+.btn-primary { background: #3b82f6; color: white; }
+.btn-primary:hover { background: #2563eb; }
+.btn-outline { background: white; border: 1px solid #e2e8f0; color: #475569; }
+.btn-outline:hover { background: #f8fafc; color: #0f172a; }
+.btn-danger { background: #dc2626; color: white; width: 100%; font-weight: 700; }
+.btn-danger:hover { background: #b91c1c; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.footer { text-align: center; padding: 1.5rem; color: #94a3b8; font-size: 0.8rem; }
+
+.text-muted { color: #64748b; }
+.text-sm { font-size: 0.9rem; }
+.mb-4 { margin-bottom: 1rem; }
+</style>
