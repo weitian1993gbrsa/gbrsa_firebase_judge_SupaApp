@@ -16,14 +16,14 @@ graph TD
     Host([Event Host])
     
     %% Judges
-    SpeedJudge[Speed Judge <br/> (Clicker)]
-    FreeDiff[Freestyle Judge <br/> (Difficulty)]
-    FreePres[Freestyle Judge <br/> (Presentation)]
-    FreeTech[Freestyle Judge <br/> (Technical)]
+    SpeedJudge["Speed Judge <br/> (Clicker)"]
+    FreeDiff["Freestyle Judge <br/> (Difficulty)"]
+    FreePres["Freestyle Judge <br/> (Presentation)"]
+    FreeTech["Freestyle Judge <br/> (Technical)"]
     
     %% System
-    DB[(Firebase Firestore <br/> Real-time DB)]
-    LiveBoard{{Live Scoreboard <br/> (Big Screen)}}
+    DB[("Firebase Firestore <br/> Real-time DB")]
+    LiveBoard{{"Live Scoreboard <br/> (Big Screen)"}}
     Cert[Certificate Generator]
 
     %% Flow
@@ -52,7 +52,7 @@ graph TD
 The app provides custom interfaces tailored to each judging role:
 -   **Speed Judging**: A large touch-optimized "Clicker" interface for counting jumps.
 -   **Freestyle Judging**: Complex scoring forms for Difficulty, Presentation, Required Elements, and Technical judging.
--   **Station Logic**: Judges login with a specific "Station Key" (e.g., `ss1`) and are automatically routed to their assigned lane and role.
+-   **Station Logic**: Judges login with a unique **Station Key** and are automatically routed to their assigned lane and role.
 
 ### 3. Live Audience Experience
 -   **Live Scoreboard**: A dedicated view for projectors/big screens that updates instantly as judges tap their screens. Show the audience the scores *as they happen*.
@@ -64,16 +64,16 @@ The app provides custom interfaces tailored to each judging role:
 
 ---
 
-##  Login Access Keys
+## 🔑 Login Access Keys
 
-The system uses a **Key-Based Authentication** system. Users enter a simple code to access their specific role.
+The system uses a **Key-Based Authentication** system. Authorized personnel are issued unique access codes to enter their specific workspace.
 
-| Role | Key Prefix | Description |
-| :--- | :--- | :--- |
-| **Speed Judge** | `ss` (1-12) | E.g., `ss1` = Speed Station 1. Counts jumps. |
-| **Difficulty** | `fd` (1-3) | Freestyle Difficulty judge. |
-| **Technical** | `ft` (1-3) | Freestyle Technical judge. |
-| **Presentation** | `fp` (1-3) | Freestyle Presentation judge. |
-| **Required Elements** | `fr` (1-3) | Freestyle Required Elements judge. |
-| **Admin** | *secret* | Full system access. |
-| **Live Board** | *secret* | Read-only view for the big screen. |
+| Role | Function |
+| :--- | :--- |
+| **Speed Judge** | Counts jumps using a digital clicker. |
+| **Difficulty Judge** | Scores the level of difficulty for freestyle routines. |
+| **Technical Judge** | Monitors technical execution and violations. |
+| **Presentation Judge** | Scores the artistic presentation and performance. |
+| **Required Elements** | Checks for mandatory routine components. |
+| **Admin** | Full system access to manage event data. |
+| **Live Board** | Read-only view for the big screen. |
