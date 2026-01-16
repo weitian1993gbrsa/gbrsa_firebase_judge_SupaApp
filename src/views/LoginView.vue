@@ -53,7 +53,6 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { JUDGE_KEYS, ADMIN_KEY, IMPORTER_KEY, TESTER_KEY, LIVE_BOARD_KEY } from '../authConfig'
 import { db } from '../firebase'
 import { doc, getDoc } from 'firebase/firestore'
 // import { useConfig } from '../composables/useConfig'
@@ -83,103 +82,79 @@ onUnmounted(() => {
     if(unsubLock) unsubLock()
 })
 
-const handleLogin = () => {
-  errorMsg.value = ''
-  const key = accessKey.value.trim()
-  
-  if (!key) return
+const handleLogin = async () => {
+    errorMsg.value = ''
+    const key = accessKey.value.trim()
+    if (!key) return
 
-  loading.value = true
-  
-  // Simulate network delay for effect (optional)
-  setTimeout(async () => {
-    // ⭐ CHECK SYSTEM LOCK
-    try {
-        console.log("Checking System Lock...")
-        const sysRef = doc(db, 'participants', '0')
-        // Force server fetch to bypass any stale cache
-        const sysSnap = await getDoc(sysRef)
-        
-        if (sysSnap.exists()) {
-            const sys = sysSnap.data()
-            console.log("Lock Status:", sys.station)
-            
-            // Allow Admin & Importer to bypass
-            if (key === ADMIN_KEY || key === IMPORTER_KEY) {
-                // Bypass
-            } else if (sys.station === 'LOCKED') {
-                console.log("System is LOCKED. Blocking access.")
-                // Should be handled by UI already, but double check
-                errorMsg.value = "System is LOCKED by Host."
-                loading.value = false
-                if (navigator.vibrate) navigator.vibrate(200)
-                return
-            }
-        } else {
-            console.log("SYSTEM doc does not exist.")
-        }
-    } catch (e) {
-        console.error("Lock check critical failure:", e)
-        // Optionally fail-closed here if security is paramount, 
-        // but for now we proceed to allow login in case of network issues.
-        // To be safe, let's ALERT if it fails so we know.
-        // alert("Warning: Could not verify system lock status.")
-    }
-
-    // loading.value = false // Removed: Leave loading true until navigation happens
+    loading.value = true
     
-    // 1. Admin
-    if (key === ADMIN_KEY) {
-        localStorage.setItem('gbrsa_access_key', 'admin') 
-        localStorage.setItem('admin_authorized', 'true')
-        router.push('/admin').catch(handleNavError)
-        return
-    }
+    try {
+        // 1. Check System Lock
+        const sysRef = doc(db, 'participants', '0')
+        const sysSnap = await getDoc(sysRef)
+        const isSystemLocked = sysSnap.exists() && sysSnap.data().station === 'LOCKED'
 
-    // 2. Importer (Special Short-cut)
-    if (key === IMPORTER_KEY) {
-        router.push('/importer').catch(handleNavError)
-        return
-    }
+        // 2. Initial Local Check (Optimization)
+        // Access keys are documents in 'access_keys' collection where ID = the key
+        const keyRef = doc(db, 'access_keys', key)
+        const keySnap = await getDoc(keyRef)
 
-    // 3. Tester (New)
-    if (key === TESTER_KEY) {
-        localStorage.setItem('tester_authorized', 'true')
-        router.push('/tester').catch(handleNavError)
-        return
-    }
+        if (!keySnap.exists()) {
+             throw new Error("Invalid Access Code")
+        }
 
-    // 4. Live Board Key
-    if (key === LIVE_BOARD_KEY) {
-        // Pre-authorize for the live board view
-        localStorage.setItem('gbrsa_live_key', LIVE_BOARD_KEY)
-        router.push({ path: '/live' }).catch(handleNavError)
-        return
-    }
+        const data = keySnap.data()
+        const role = data.role
 
-    // 5. Judge Keys
-    const judge = JUDGE_KEYS[key]
-    if (judge) {
-        // Save session
-        localStorage.setItem('gbrsa_access_key', key)
-        localStorage.setItem('gbrsa_allowed_station', judge.station)
-        
-        // Redirect based on event
-        // NO QUERY PARAMS - Security Hardening
-        router.push({ 
-            path: '/station', 
-            query: { 
-                // station: judge.station, // REMOVED
-                event: judge.event, // Keep context
-                judgeType: judge.judgeType // Keep context
-            } 
-        }).catch(handleNavError)
-    } else {
-        errorMsg.value = "Invalid Access Code"
+        // 3. Enforce Lock (Except Admin/Importer)
+        if (isSystemLocked && role !== 'admin' && role !== 'importer') {
+             errorMsg.value = "System is LOCKED by Host"
+             loading.value = false
+             if (navigator.vibrate) navigator.vibrate(200)
+             return
+        }
+
+        // 4. Role Routing
+        if (role === 'admin') {
+            localStorage.setItem('gbrsa_access_key', 'admin') 
+            localStorage.setItem('admin_authorized', 'true')
+            router.push('/admin').catch(handleNavError)
+        } 
+        else if (role === 'importer') {
+            router.push('/importer').catch(handleNavError)
+        }
+        else if (role === 'tester') {
+            localStorage.setItem('tester_authorized', 'true')
+            router.push('/tester').catch(handleNavError)
+        }
+        else if (role === 'live_board') {
+            localStorage.setItem('gbrsa_live_key', key)
+            router.push({ path: '/live' }).catch(handleNavError)
+        }
+        else if (role === 'judge') {
+            // JUDGE
+            localStorage.setItem('gbrsa_access_key', key)
+            localStorage.setItem('gbrsa_allowed_station', data.station)
+            
+            router.push({ 
+                path: '/station', 
+                query: { 
+                    event: data.event,
+                    judgeType: data.judgeType 
+                } 
+            }).catch(handleNavError)
+        }
+        else {
+             throw new Error("Unknown Role")
+        }
+
+    } catch (e) {
+        console.error("Login Check Failed", e)
+        errorMsg.value = e.message === "Invalid Access Code" ? "Invalid Access Code" : "Login Failed (Network)"
         loading.value = false
         if (navigator.vibrate) navigator.vibrate(200)
     }
-  }, 300)
 }
 
 const handleNavError = (err) => {

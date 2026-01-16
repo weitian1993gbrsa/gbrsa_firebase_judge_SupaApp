@@ -313,12 +313,12 @@
                             </button>
 
                             <!-- 3. LOGOUT -->
-                             <button @click="sendForceLogout" class="ops-card-base action-card orange">
-                                <div class="icon-circle">
-                                    <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-                                </div>
-                                <span>Force Logout</span>
-                            </button>
+                <div class="action-card red" @click="sendForceLogout">
+                    <div class="icon-circle">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                    </div>
+                    <span>Force Logout</span>
+                </div>
 
                             <!-- 4. WIPE -->
                              <button @click="wipeAllData" class="ops-card-base action-card red">
@@ -451,7 +451,7 @@ html, body {
 <script setup>
 import { ref, computed, onMounted, onUnmounted, reactive, nextTick, watch, defineAsyncComponent } from 'vue'
 import { db } from '../firebase'
-import { collection, collectionGroup, onSnapshot, doc, updateDoc, deleteDoc, query, where, addDoc, serverTimestamp, getDocs, writeBatch, limit, setDoc } from 'firebase/firestore'
+import { collection, onSnapshot, doc, updateDoc, deleteDoc, addDoc, query, where, orderBy, getDocs, setDoc, serverTimestamp, writeBatch } from 'firebase/firestore'
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
 import { COMPETITION_LOGO, SPEED_EVENTS, FREESTYLE_EVENTS } from '../constants'
@@ -1676,21 +1676,8 @@ const sendForceLogout = async () => {
     })
 }
 
-const toggleSystemLock = async () => {
-    const newState = !isSystemLocked.value
-    const sysRef = doc(db, 'participants', '0')
-    try {
-        await setDoc(sysRef, { 
-            entry_code: 'SYSTEM', 
-            station: newState ? 'LOCKED' : 'UNLOCKED',
-            event: 'SYSTEM',
-            name1: 'SYSTEM CONTROLLER',
-            heat: 0
-        }, { merge: true })
-    } catch (e) {
-        alert("Lock toggle failed: " + e.message)
-    }
-}
+
+
 
 </script>
 
