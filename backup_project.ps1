@@ -1,5 +1,5 @@
 $sourceDir = "C:\Users\nagas\Documents\GitHub"
-$folderToZip = "gbrsa-vue"
+$folderToZip = "gbrsa_firebase_judge_SupaApp"
 $fullSourcePath = Join-Path $sourceDir $folderToZip
 
 $backupRoot = "C:\Users\nagas\Documents\GitHub\backup"

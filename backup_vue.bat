@@ -9,7 +9,7 @@ set "BACKUP_DIR=C:\Users\nagas\Documents\GitHub\backup"
 :: Generate Timestamp (YYYYMMDD_HHMMSS)
 for /f "tokens=2 delims==" %%I in ('wmic os get localdatetime /value') do set "dt=%%I"
 set "TIMESTAMP=%dt:~0,4%%dt:~4,2%%dt:~6,2%_%dt:~8,6%"
-set "ZIP_NAME=gbrsa-vue_backup_%TIMESTAMP%.zip"
+set "ZIP_NAME=gbrsa-supa-app_backup_%TIMESTAMP%.zip"
 
 echo ========================================
 echo GBRSA Vue Project Backup
