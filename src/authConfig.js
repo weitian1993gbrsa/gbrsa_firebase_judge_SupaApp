@@ -39,3 +39,5 @@ export const JUDGE_KEYS = {
 export const ADMIN_KEY = "admin123";
 export const IMPORTER_KEY = "import123"; // Valid key for importer access
 export const TESTER_KEY = "88888888"; // Valid key for tester access
+export const LIVE_BOARD_KEY = "live1234"; // Key for Live Scoreboard
+

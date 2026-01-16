@@ -1,7 +1,17 @@
 <template>
   <div class="page scoreboard">
+    <!-- AUTH OVERLAY -->
+    <div v-if="!isAuthenticated" class="auth-container">
+        <div class="auth-box">
+            <h2>LIVESCORE ACCESS</h2>
+            <input type="password" v-model="inputKey" placeholder="Enter Key" @keydown.enter="handleAuth" autofocus>
+            <button @click="handleAuth">GO</button>
+            <p v-if="authError" class="error">{{ authError }}</p>
+        </div>
+    </div>
+
     <!-- MAIN GRID CONTAINER WRAPPER FOR ZOOM -->
-    <div class="zoom-wrapper" :class="{ 'cursor-hidden': cursorHidden }" :style="containerStyle" @dblclick="isProjectorMode ? toggleFullScreen() : null">
+    <div v-if="isAuthenticated" class="zoom-wrapper" :class="{ 'cursor-hidden': cursorHidden }" :style="containerStyle" @dblclick="isProjectorMode ? toggleFullScreen() : null">
         <header class="sb-header">
              <div class="brand">
                 <img class="logo" :src="COMPETITION_LOGO" alt="Logo">
@@ -79,7 +89,7 @@
     </div>
 
     <!-- SAFE AREA GUIDE -->
-    <div v-if="showSafeArea" class="safe-area-border"></div>
+    <div v-if="showSafeArea && isAuthenticated" class="safe-area-border"></div>
   </div>
 </template>
 
@@ -89,6 +99,7 @@ import { useRoute } from 'vue-router'
 import { db } from '../firebase'
 import { collection, onSnapshot } from 'firebase/firestore'
 import { COMPETITION_LOGO } from '../constants'
+import { LIVE_BOARD_KEY } from '../authConfig'
 
 const route = useRoute()
 
@@ -114,6 +125,11 @@ const liveData = reactive({})
 const displayScores = reactive({}) // Visual state (tweened)
 const activeTweens = {} // Animation frames
 
+// AUTH STATE
+const isAuthenticated = ref(false)
+const inputKey = ref('')
+const authError = ref('')
+
 // LISTENERS
 let unsub = null
 
@@ -128,6 +144,24 @@ let wakeLockSentinel = null
 
 onMounted(async () => {
     console.log("Starting Live Scoreboard Listener...")
+    
+    // AUTH CHECK
+    const qKey = route.query.key
+    const localKey = localStorage.getItem('gbrsa_live_key')
+
+    if (qKey === LIVE_BOARD_KEY || localKey === LIVE_BOARD_KEY) {
+        isAuthenticated.value = true
+        if (qKey) {
+            // Remove key from URL for cleanliness (optional but nice)
+            const url = new URL(window.location)
+            url.searchParams.delete('key')
+            window.history.replaceState({}, '', url)
+            
+            // Save to local
+            localStorage.setItem('gbrsa_live_key', LIVE_BOARD_KEY)
+        }
+    }
+
     
     // Projector Mode Logic
     if (isProjectorMode.value) {
@@ -307,7 +341,17 @@ const updateStatus = async (status) => {
 
 
 
+const handleAuth = () => {
+    if (inputKey.value === LIVE_BOARD_KEY) {
+        isAuthenticated.value = true
+        localStorage.setItem('gbrsa_live_key', LIVE_BOARD_KEY)
+        authError.value = ''
+    } else {
+        authError.value = 'Invalid Key'
+    }
+}
 </script>
+
 
 <style scoped>
 /* GLOBAL CURSOR OVERRIDE */
@@ -454,7 +498,7 @@ h1 { font-weight: 900; letter-spacing: 0.1em; color: white; font-size: 3rem; mar
 
 /* 2 STATIONS */
 .grid-2 { grid-template-columns: 1fr 1fr; }
-.grid-2 .score-val { font-size: 25rem; }
+.grid-2 .score-val { font-size: 18rem; }
 
 /* 4 STATIONS (2x2) */
 .grid-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
@@ -522,4 +566,22 @@ h1 { font-weight: 900; letter-spacing: 0.1em; color: white; font-size: 3rem; mar
 .zoom-wrapper {
     display: flex; flex-direction: column; height: 100%; width: 100%; transition: transform 0.1s;
 }
+
+.auth-container {
+    display: flex; align-items: center; justify-content: center; height: 100%;
+}
+.auth-box {
+    background: #1e293b; padding: 2rem; border-radius: 16px; text-align: center;
+    border: 1px solid #334155;
+    display: flex; flex-direction: column; gap: 1rem;
+}
+.auth-box input {
+    padding: 0.8rem; border-radius: 8px; border: none; text-align: center;
+    font-size: 1.2rem;
+}
+.auth-box button {
+    padding: 0.8rem; background: #facc15; border: none; border-radius: 8px;
+    font-weight: 800; cursor: pointer; color: #0f172a;
+}
+.error { color: #ef4444; font-weight: bold; }
 </style>

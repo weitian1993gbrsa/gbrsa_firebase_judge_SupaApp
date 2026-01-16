@@ -79,7 +79,7 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-    const publicPages = ['/'];
+    const publicPages = ['/', '/live/board', '/live'];
     const authRequired = !publicPages.includes(to.path);
     const loggedIn = localStorage.getItem('gbrsa_access_key');
     const allowedStation = localStorage.getItem('gbrsa_allowed_station');

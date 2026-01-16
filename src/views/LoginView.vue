@@ -53,7 +53,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { JUDGE_KEYS, ADMIN_KEY, IMPORTER_KEY, TESTER_KEY } from '../authConfig'
+import { JUDGE_KEYS, ADMIN_KEY, IMPORTER_KEY, TESTER_KEY, LIVE_BOARD_KEY } from '../authConfig'
 import { db } from '../firebase'
 import { doc, getDoc } from 'firebase/firestore'
 // import { useConfig } from '../composables/useConfig'
@@ -149,7 +149,15 @@ const handleLogin = () => {
         return
     }
 
-    // 4. Judge Keys
+    // 4. Live Board Key
+    if (key === LIVE_BOARD_KEY) {
+        // Pre-authorize for the live board view
+        localStorage.setItem('gbrsa_live_key', LIVE_BOARD_KEY)
+        router.push({ path: '/live' }).catch(handleNavError)
+        return
+    }
+
+    // 5. Judge Keys
     const judge = JUDGE_KEYS[key]
     if (judge) {
         // Save session
