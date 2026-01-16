@@ -91,6 +91,10 @@
                  </button>
             </div>
         </div>
+        <!-- KEY MANAGER CARD (Full Width) -->
+        <div class="glass-card" style="grid-column: 1 / -1;">
+             <KeyManager />
+        </div>
     </div>
 </template>
 
@@ -99,6 +103,7 @@ import { ref } from 'vue'
 import Papa from 'papaparse'
 import { db } from '../firebase'
 import { collection, writeBatch, doc, getDocs, collectionGroup, setDoc } from 'firebase/firestore'
+import KeyManager from './KeyManager.vue'
 
 const status = ref('')
 const parsedData = ref([])

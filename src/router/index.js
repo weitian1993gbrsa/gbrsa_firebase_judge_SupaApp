@@ -60,11 +60,7 @@ const router = createRouter({
             name: 'tester',
             component: () => import('../views/TesterView.vue')
         },
-        {
-            path: '/admin/certificates',
-            name: 'certificates',
-            component: () => import('../views/CertificatesView.vue')
-        },
+
         {
             path: '/live',
             name: 'live-setup',
