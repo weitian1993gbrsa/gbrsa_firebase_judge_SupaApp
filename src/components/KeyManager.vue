@@ -37,6 +37,11 @@
                         <td>{{ k.event || '-' }}</td>
                         <td>{{ k.judgeType || '-' }}</td>
                         <td class="text-center">
+                            <button @click="openQR(k.id)" class="btn-xs" style="color: #cbd5e1; margin-right: 8px;" title="Show QR">
+                                <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4h-4v-2h4v-2h2m0-4h2m-6-11h2m-6 0H8m4 11v2m-6 0h2m-6-11h2m-6 0H4m8 11v2M4 4h16v16H4V4z" />
+                                </svg>
+                            </button>
                             <button @click="editKey(k)" class="btn-xs" style="color: #3b82f6; margin-right: 8px;" title="Edit">
                                 <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -108,6 +113,24 @@
                 </div>
             </div>
         </div>
+
+        <!-- GENERATED QR MODAL -->
+        <div class="modal-overlay" v-if="qrModal.open" @click.self="qrModal.open = false">
+            <div class="modal-card" style="text-align: center;">
+                <h3>Login QR Code</h3>
+                <p class="text-muted" style="margin-bottom: 1.5rem;">For: <span class="text-blue-400 font-bold font-mono">{{ qrModal.keyId }}</span></p>
+                
+                <div class="qr-display-box">
+                    <img :src="qrModal.img" v-if="qrModal.img" style="width: 250px; height: 250px; border-radius: 8px;">
+                </div>
+                
+                <p class="text-muted" style="margin-top: 1rem; font-size: 0.8rem;">To use: Scan with the Login Page Scanner.</p>
+
+                <div class="modal-actions" style="justify-content: center; margin-top: 1.5rem;">
+                    <button @click="qrModal.open = false" class="btn-outline full-width">Close</button>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
 
@@ -115,9 +138,12 @@
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { db } from '../firebase'
 import { collection, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
+import QRCode from 'qrcode'
 
 const keysList = ref([])
 const keyModal = reactive({ open: false, isEdit: false, id: '', originalId: '', role: 'judge', station: 1, event: 'speed', judgeType: 'difficulty' })
+const qrModal = reactive({ open: false, keyId: '', img: '' })
+
 let unsub = null
 
 onMounted(() => {
@@ -129,6 +155,42 @@ onMounted(() => {
 onUnmounted(() => {
     if (unsub) unsub()
 })
+
+// QR LOGIC
+const openQR = async (keyId) => {
+    qrModal.keyId = keyId
+    qrModal.img = ''
+    qrModal.open = true
+    
+    // 1. Encode Key (Base64)
+    // We use btoa() for simple Base64. 
+    // Format: "MTIz"
+    let encoded = ''
+    try {
+        encoded = btoa(keyId)
+    } catch(e) { 
+        console.error("Encoding failed", e) 
+        encoded = keyId // Fallback to raw if logic fails
+    }
+
+    // 2. Generate QR
+    try {
+        const url = await QRCode.toDataURL(encoded, { 
+            width: 300,
+            margin: 2,
+            color: {
+                dark: '#000000',
+                light: '#ffffff'
+            }
+        })
+        qrModal.img = url
+    } catch (err) {
+        console.error(err)
+        alert("QR Generation Failed")
+        qrModal.open = false
+    }
+}
+
 
 const openKeyModal = () => {
     Object.assign(keyModal, { open: true, isEdit: false, id: '', originalId: '', role: 'judge', station: 1, event: 'speed', judgeType: 'difficulty' })
@@ -223,6 +285,14 @@ const deleteKey = async (id) => {
 .form-group label { font-size: 0.85rem; color: #94a3b8; }
 .modal-actions { display: flex; justify-content: flex-end; gap: 1rem; }
 .btn-outline { background: transparent; border: 1px solid #475569; color: #cbd5e1; border-radius: 8px; padding: 8px 16px; cursor: pointer; }
+
+.qr-display-box {
+    background: white; padding: 1rem; border-radius: 12px; display: inline-block;
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.3);
+}
+.text-blue-400 { color: #60a5fa; }
+.font-mono { font-family: monospace; }
+.full-width { width: 100%; }
 
 .table-scroll-container {
     max-height: 400px; overflow-y: auto;
