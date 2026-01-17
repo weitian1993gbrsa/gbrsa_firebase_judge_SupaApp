@@ -90,6 +90,20 @@ const withTimeout = (promise, ms = 8000) => {
     })
 }
 
+const safeNavigate = async (routeParams) => {
+    // Wrap router.push in a promise that rejects after timeout
+    // This fixes the "Stuck at Verifying" issue if chunk loading hangs
+    const navPromise = router.push(routeParams)
+    
+    // Create a timeout promise (5 seconds)
+    const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error("Navigation Timeout")), 5000)
+    )
+
+    // Race them
+    await Promise.race([navPromise, timeoutPromise])
+}
+
 const handleLogin = async () => {
     errorMsg.value = ''
     const key = accessKey.value.trim()
@@ -125,34 +139,35 @@ const handleLogin = async () => {
         }
 
         // 4. Role Routing
+        // We use safeNavigate to ensure we don't hang if chunk fails to load
         if (role === 'admin') {
             localStorage.setItem('gbrsa_access_key', 'admin') 
             localStorage.setItem('admin_authorized', 'true')
-            router.push('/admin').catch(handleNavError)
+            await safeNavigate('/admin')
         } 
         else if (role === 'importer') {
-            router.push('/importer').catch(handleNavError)
+            await safeNavigate('/importer')
         }
         else if (role === 'tester') {
             localStorage.setItem('tester_authorized', 'true')
-            router.push('/tester').catch(handleNavError)
+            await safeNavigate('/tester')
         }
         else if (role === 'live_board') {
             localStorage.setItem('gbrsa_live_key', key)
-            router.push({ path: '/live' }).catch(handleNavError)
+            await safeNavigate({ path: '/live' })
         }
         else if (role === 'judge') {
             // JUDGE
             localStorage.setItem('gbrsa_access_key', key)
             localStorage.setItem('gbrsa_allowed_station', data.station)
             
-            router.push({ 
+            await safeNavigate({ 
                 path: '/station', 
                 query: { 
                     event: data.event,
                     judgeType: data.judgeType 
                 } 
-            }).catch(handleNavError)
+            })
         }
         else {
              throw new Error("Unknown Role")
@@ -164,7 +179,15 @@ const handleLogin = async () => {
             errorMsg.value = "Invalid Access Code"
         } else if (e.message === "Network Timeout") {
             errorMsg.value = "Slow Connection. Retry?"
+        } else if (e.message === "Navigation Timeout") {
+            errorMsg.value = "Loading Stuck. Refresh App?"
         } else {
+            // Check for chunk errors
+            if (e.message && (e.message.includes("Failed to fetch") || e.message.includes("Importing"))) {
+                errorMsg.value = "Update Required. Refreshing..."
+                setTimeout(() => window.location.reload(), 1000)
+                return
+            }
             errorMsg.value = "Login Failed (Network)"
         }
         
