@@ -62,7 +62,14 @@
     <div v-if="showScanner" class="qr-modal-overlay">
         <div class="qr-card">
             <h3 class="qr-title">Scan Login QR</h3>
-            <div id="reader" style="width: 100%; min-height: 250px; background: black;"></div>
+            
+            <div class="scanner-wrapper">
+                <div id="reader" class="qr-reader-box"></div>
+                <div class="scan-overlay">
+                    <div class="scan-line"></div>
+                </div>
+            </div>
+
             <button class="btn-close" @click="stopScan">Close Scanner</button>
         </div>
     </div>
@@ -551,5 +558,45 @@ const handleNavError = (err) => {
 @keyframes modalPop {
     from { opacity: 0; transform: scale(0.95); }
     to { opacity: 1; transform: scale(1); }
+}
+
+/* SCANNER ANIMATION */
+.scanner-wrapper {
+    position: relative;
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000;
+}
+
+.qr-reader-box {
+    width: 100%;
+    min-height: 250px;
+}
+
+.scan-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none; /* Let clicks pass through */
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 12px;
+}
+
+.scan-line {
+    position: absolute;
+    width: 100%;
+    height: 3px;
+    background: #3b82f6; /* Blue-500 */
+    box-shadow: 0 0 10px #3b82f6, 0 0 20px #2563eb;
+    top: 10%;
+    animation: scanMove 2.5s ease-in-out infinite;
+    opacity: 0.8;
+}
+
+@keyframes scanMove {
+    0% { top: 10%; opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { top: 90%; opacity: 0; }
 }
 </style>
