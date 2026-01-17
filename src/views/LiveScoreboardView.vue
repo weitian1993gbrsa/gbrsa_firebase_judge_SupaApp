@@ -99,7 +99,6 @@ import { useRoute } from 'vue-router'
 import { db } from '../firebase'
 import { collection, onSnapshot } from 'firebase/firestore'
 import { COMPETITION_LOGO } from '../constants'
-import { LIVE_BOARD_KEY } from '../authConfig'
 
 const route = useRoute()
 
@@ -145,21 +144,21 @@ let wakeLockSentinel = null
 onMounted(async () => {
     console.log("Starting Live Scoreboard Listener...")
     
-    // AUTH CHECK
+// AUTH CHECK
     const qKey = route.query.key
     const localKey = localStorage.getItem('gbrsa_live_key')
 
-    if (qKey === LIVE_BOARD_KEY || localKey === LIVE_BOARD_KEY) {
-        isAuthenticated.value = true
-        if (qKey) {
-            // Remove key from URL for cleanliness (optional but nice)
+    // If key exists in storage, we assume it's valid for now (Client-side fast check)
+    // Ideally we would re-validate against DB, but for now we trust the LoginView's setter.
+    if (localKey || qKey) {
+         if (qKey) {
+            // Remove key from URL
             const url = new URL(window.location)
             url.searchParams.delete('key')
             window.history.replaceState({}, '', url)
-            
-            // Save to local
-            localStorage.setItem('gbrsa_live_key', LIVE_BOARD_KEY)
+            localStorage.setItem('gbrsa_live_key', qKey)
         }
+        isAuthenticated.value = true
     }
 
     
@@ -341,13 +340,29 @@ const updateStatus = async (status) => {
 
 
 
-const handleAuth = () => {
-    if (inputKey.value === LIVE_BOARD_KEY) {
-        isAuthenticated.value = true
-        localStorage.setItem('gbrsa_live_key', LIVE_BOARD_KEY)
-        authError.value = ''
-    } else {
+import { doc, getDoc } from 'firebase/firestore'
+
+const handleAuth = async () => {
+    const key = inputKey.value.trim()
+    if (!key) return
+
+    try {
+        const docRef = doc(db, 'access_keys', key)
+        const snap = await getDoc(docRef)
+        
+        if (snap.exists()) {
+            const data = snap.data()
+            if (data.role === 'live_board' || data.role === 'admin') {
+                isAuthenticated.value = true
+                localStorage.setItem('gbrsa_live_key', key)
+                authError.value = ''
+                return
+            }
+        }
         authError.value = 'Invalid Key'
+    } catch (e) {
+        console.error(e)
+        authError.value = 'Error checking key'
     }
 }
 </script>

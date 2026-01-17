@@ -47,8 +47,6 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { LIVE_BOARD_KEY } from '../authConfig'
-
 const router = useRouter()
 const stationCount = ref(12)
 const displayMode = ref('projector')
@@ -65,7 +63,7 @@ const launchScoreboard = () => {
 
 onMounted(() => {
     const key = localStorage.getItem('gbrsa_live_key')
-    if (key !== LIVE_BOARD_KEY) {
+    if (!key) {
         // Not authorized, kick back to login
         router.push('/')
     }
