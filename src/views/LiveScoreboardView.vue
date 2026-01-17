@@ -97,7 +97,7 @@
 import { ref, computed, onMounted, onUnmounted, reactive } from 'vue'
 import { useRoute } from 'vue-router'
 import { db } from '../firebase'
-import { collection, onSnapshot } from 'firebase/firestore'
+import { collection, onSnapshot, doc, getDoc, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { COMPETITION_LOGO } from '../constants'
 
 const route = useRoute()
@@ -296,51 +296,7 @@ const getStatusClass = (s) => {
     return `is-${st}`
 }
 
-// MODAL CONTROLS
-import { updateDoc, doc, setDoc, serverTimestamp } from 'firebase/firestore'
 
-const selectedStation = ref(null)
-
-const openModal = (s) => {
-    selectedStation.value = s
-}
-const closeModal = () => {
-    selectedStation.value = null
-}
-
-const updateStatus = async (status) => {
-    const s = selectedStation.value
-    if (!s) return
-
-    try {
-        const entryCode = liveData[s]?.entry_code
-        
-        // 1. Update Live Board (Immediate Visual Feedback)
-        const newStatus = status === 'reset' ? 'waiting' : status
-        
-        await setDoc(doc(db, 'live_scores', String(s)), {
-            station: Number(s),
-            status: newStatus,
-            updated_at: serverTimestamp(),
-            ...(status === 'reset' ? { score: 0, heat: '-', entry_code: '' } : {}) 
-        }, { merge: true })
-
-        // 2. Update Main DB (Persist)
-        if (entryCode) {
-            const dbStatus = status === 'reset' ? 'pending' : status
-            const pRef = doc(db, "competition", String(s), "entries", entryCode)
-            await updateDoc(pRef, { status: dbStatus })
-        }
-    } catch (e) {
-        console.error("Error updating status:", e)
-        alert("Failed to update status")
-    }
-    closeModal()
-}
-
-
-
-import { doc, getDoc } from 'firebase/firestore'
 
 const handleAuth = async () => {
     const key = inputKey.value.trim()
