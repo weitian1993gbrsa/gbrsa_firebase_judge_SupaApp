@@ -51,20 +51,10 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { db } from '../firebase'
-import { doc, getDoc } from 'firebase/firestore'
-// import { useConfig } from '../composables/useConfig'
-// const { config } = useConfig()
-const router = useRouter()
-const accessKey = ref('')
-const errorMsg = ref('')
-
-const loading = ref(false)
-const isLocked = ref(false)
-import { onMounted, onUnmounted } from 'vue'
-import { onSnapshot } from 'firebase/firestore'
+import { doc, getDoc, onSnapshot } from 'firebase/firestore'
 
 let unsubLock = null
 
