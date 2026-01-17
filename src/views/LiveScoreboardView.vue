@@ -298,6 +298,45 @@ const getStatusClass = (s) => {
 
 
 
+const selectedStation = ref(null)
+
+const openModal = (s) => {
+    selectedStation.value = s
+}
+const closeModal = () => {
+    selectedStation.value = null
+}
+
+const updateStatus = async (status) => {
+    const s = selectedStation.value
+    if (!s) return
+
+    try {
+        const entryCode = liveData[s]?.entry_code
+        
+        // 1. Update Live Board (Immediate Visual Feedback)
+        const newStatus = status === 'reset' ? 'waiting' : status
+        
+        await setDoc(doc(db, 'live_scores', String(s)), {
+            station: Number(s),
+            status: newStatus,
+            updated_at: serverTimestamp(),
+            ...(status === 'reset' ? { score: 0, heat: '-', entry_code: '' } : {}) 
+        }, { merge: true })
+
+        // 2. Update Main DB (Persist)
+        if (entryCode) {
+            const dbStatus = status === 'reset' ? 'pending' : status
+            const pRef = doc(db, "competition", String(s), "entries", entryCode)
+            await updateDoc(pRef, { status: dbStatus })
+        }
+    } catch (e) {
+        console.error("Error updating status:", e)
+        alert("Failed to update status")
+    }
+    closeModal()
+}
+
 const handleAuth = async () => {
     const key = inputKey.value.trim()
     if (!key) return
