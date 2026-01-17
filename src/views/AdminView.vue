@@ -1660,6 +1660,20 @@ const sendAlert = async () => {
     broadcastMsg.value = ''
 }
 
+// --- SYSTEM OPS ---
+const toggleSystemLock = async () => {
+    try {
+        const newState = !isSystemLocked.value ? 'LOCKED' : 'OPEN'
+        // '0' is the special ID for System Status / Broadcast
+        await updateDoc(doc(db, 'participants', '0'), {
+            station: newState
+        })
+    } catch (e) {
+        console.error(e)
+        alert("Failed to toggle system lock: " + e.message)
+    }
+}
+
 const forceRefresh = async () => {
     if(!confirm("Force reload all stations?")) return
     await setDoc(doc(db, 'broadcasts', 'latest'), {
