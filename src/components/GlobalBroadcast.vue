@@ -36,16 +36,22 @@ onMounted(() => {
             location.reload()
         },
         onForceLogout: () => {
-            const currentPath = router.currentRoute.value.path || window.location.pathname
+            const currentRoute = router.currentRoute.value
+            const currentPath = currentRoute.path || window.location.pathname
             const isJudgeForm = currentPath.includes('/judge/') || currentPath.includes('freestyle-') || currentPath.includes('speed-')
             
             // Exempt Admin and Host from Force Logout
             if (currentPath.includes('/admin') || currentPath.includes('/host')) return
 
-            if (isJudgeForm) {
+            // Check if Test Mode (Immediate Logout)
+            const isTestMode = currentRoute.query.test === 'true' || currentRoute.query.entry === 'PRACTICE'
+
+            if (isJudgeForm && !isTestMode) {
+                // Real Live Judge: Wait (Pend)
                 isPendingLogout.value = true
                 localStorage.setItem('gbrsa_pending_logout', 'true')
             } else {
+                // Not a judge form OR it is a Test Mode judge: Immediate Logout
                 doLogout()
             }
         },

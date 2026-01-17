@@ -105,6 +105,7 @@ const showBroadcast = computed(() => {
   
   // Show only on judge-related routes
   return path.startsWith('/station') || 
+         path.startsWith('/tester') ||
          path.startsWith('/judge/') ||
          path.includes('freestyle-') || 
          path.includes('speed-')
