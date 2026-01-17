@@ -589,14 +589,12 @@ const handleNavError = (err) => {
     background: #3b82f6; /* Blue-500 */
     box-shadow: 0 0 10px #3b82f6, 0 0 20px #2563eb;
     top: 10%;
-    animation: scanMove 2.5s ease-in-out infinite;
+    animation: scanMove 3s ease-in-out infinite alternate;
     opacity: 0.8;
 }
 
 @keyframes scanMove {
-    0% { top: 10%; opacity: 0; }
-    10% { opacity: 1; }
-    90% { opacity: 1; }
-    100% { top: 90%; opacity: 0; }
+    0% { top: 5%; opacity: 0.8; }
+    100% { top: 95%; opacity: 0.8; }
 }
 </style>
