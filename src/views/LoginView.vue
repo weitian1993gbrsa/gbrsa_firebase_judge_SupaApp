@@ -527,17 +527,19 @@ const handleNavError = (err) => {
 
 .icon-btn-qr {
     position: absolute;
-    right: 8px;
+    right: 12px;
     top: 50%;
     transform: translateY(-50%);
     background: transparent;
     border: none;
+    color: #64748b; /* Slate-500 */
     font-size: 1.25rem;
     cursor: pointer;
     padding: 8px;
     border-radius: 8px;
     transition: all 0.2s;
-    opacity: 0.6;
+    opacity: 0.8;
+    z-index: 10; /* Ensure on top of input */
 }
 
 .icon-btn-qr:hover {
