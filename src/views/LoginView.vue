@@ -55,6 +55,12 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { db } from '../firebase'
 import { doc, getDoc, onSnapshot } from 'firebase/firestore'
+const router = useRouter()
+
+const accessKey = ref('')
+const errorMsg = ref('')
+const loading = ref(false)
+const isLocked = ref(false)
 
 let unsubLock = null
 
