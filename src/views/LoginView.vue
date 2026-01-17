@@ -15,19 +15,29 @@
 
       <div class="login-stack">
 
-        <input 
-          v-if="!isLocked"
-          v-model="accessKey" 
-          class="input" 
-          placeholder="Access Code" 
-          type="password"
-          :disabled="loading" 
-          autocomplete="off"
-          name="gs_auth_key_v1"
-          spellcheck="false"
-          data-form-type="other"
-          @keydown.enter="handleLogin"
-        >
+        <div class="input-wrapper">
+            <input 
+              v-if="!isLocked"
+              v-model="accessKey" 
+              class="input has-icon" 
+              placeholder="Access Code" 
+              type="password"
+              :disabled="loading" 
+              autocomplete="off"
+              name="gs_auth_key_v1"
+              spellcheck="false"
+              data-form-type="other"
+              @keydown.enter="handleLogin"
+            >
+            <button 
+                v-if="!isLocked && !loading"
+                class="icon-btn-qr" 
+                title="Scan QR Login"
+                @click="startScan"
+            >
+                <FontAwesomeIcon icon="qrcode" />
+            </button>
+        </div>
         
         <button 
           class="btn-primary" 
@@ -47,20 +57,39 @@
     <footer class="foot anim-up" style="animation-delay: 0.2s;">
       © 2026 GB ROPE SKIPPING ACADEMY, MALAYSIA
     </footer>
+
+    <!-- QR MODAL -->
+    <div v-if="showScanner" class="qr-modal-overlay">
+        <div class="qr-card">
+            <h3 class="qr-title">Scan Login QR</h3>
+            <div id="reader" style="width: 100%; min-height: 250px; background: black;"></div>
+            <button class="btn-close" @click="stopScan">Close Scanner</button>
+        </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { db } from '../firebase'
 import { doc, getDoc, onSnapshot } from 'firebase/firestore'
+import { Html5Qrcode } from 'html5-qrcode'
+
+/* FontAwesome */
+import { library } from '@fortawesome/fontawesome-svg-core'
+import { faQrcode } from '@fortawesome/free-solid-svg-icons'
+import { FontAwesomeIcon } from '@fortawesome/vue-fontawesome'
+library.add(faQrcode)
+
 const router = useRouter()
 
 const accessKey = ref('')
 const errorMsg = ref('')
 const loading = ref(false)
 const isLocked = ref(false)
+const showScanner = ref(false)
+let html5QrCode = null
 
 let unsubLock = null
 
@@ -76,7 +105,69 @@ onMounted(() => {
 
 onUnmounted(() => {
     if(unsubLock) unsubLock()
+    if(html5QrCode && html5QrCode.isScanning) {
+        html5QrCode.stop().then(() => html5QrCode.clear())
+    }
 })
+
+const startScan = () => {
+    showScanner.value = true
+    nextTick(() => {
+        html5QrCode = new Html5Qrcode("reader")
+        html5QrCode.start(
+            { facingMode: "environment" },
+            {
+                fps: 10,
+                qrbox: { width: 250, height: 250 }
+            },
+            onScanSuccess,
+            (errorMessage) => { /* ignore failures */ }
+        ).catch(err => {
+             console.error(err)
+             alert("Camera Eror: " + err)
+             showScanner.value = false
+        })
+    })
+}
+
+const stopScan = () => {
+    if(html5QrCode) {
+        html5QrCode.stop().then(() => {
+            html5QrCode.clear()
+            showScanner.value = false
+        }).catch(err => {
+            console.error(err)
+            showScanner.value = false
+        })
+    } else {
+        showScanner.value = false
+    }
+}
+
+const onScanSuccess = (decodedText, decodedResult) => {
+    // Stop scanning
+    if(html5QrCode) {
+        html5QrCode.stop().then(() => {
+            html5QrCode.clear()
+            showScanner.value = false
+        }).catch(console.error)
+    } else {
+        showScanner.value = false
+    }
+    
+    // Decode Base64 if possible
+    let key = decodedText
+    try {
+        // Attempt decode
+        const decoded = atob(decodedText)
+        if(decoded) key = decoded
+    } catch(e) {
+        console.log("QR is not base64, using raw")
+    }
+
+    accessKey.value = key
+    handleLogin()
+}
 
 const withTimeout = (promise, ms = 8000) => {
     return new Promise((resolve, reject) => {
@@ -365,5 +456,98 @@ const handleNavError = (err) => {
 
 @media (max-height: 600px) {
   .foot { display: none; }
+}
+
+.btn-secondary {
+  width: 100%;
+  height: 48px;
+  border: 1px solid #cbd5e1;
+  border-radius: 14px;
+  background: white;
+  color: #64748b;
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+.btn-secondary:hover { background: #f1f5f9; color: #334155; border-color: #94a3b8; }
+
+/* QR MODAL */
+.qr-modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(0,0,0,0.8);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+}
+
+.qr-card {
+    background: white;
+    width: 100%;
+    max-width: 360px;
+    border-radius: 20px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+    animation: modalPop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.qr-title { margin: 0; text-align: center; color: #1e293b; font-weight: 800; }
+
+.btn-close {
+    width: 100%;
+    padding: 12px;
+    background: #ef4444;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+/* INPUT ICON STYLES */
+.input-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.input.has-icon {
+    padding-right: 3rem; /* Space for icon */
+}
+
+.icon-btn-qr {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    padding: 8px;
+    border-radius: 8px;
+    transition: all 0.2s;
+    opacity: 0.6;
+}
+
+.icon-btn-qr:hover {
+    background: rgba(0,0,0,0.05);
+    opacity: 1;
+    transform: translateY(-50%) scale(1.1);
+}
+
+@keyframes modalPop {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
 }
 </style>
