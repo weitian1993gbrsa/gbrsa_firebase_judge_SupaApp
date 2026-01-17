@@ -244,9 +244,11 @@ const handleLogin = async () => {
             await safeNavigate('/admin')
         } 
         else if (role === 'importer') {
+            localStorage.setItem('gbrsa_access_key', 'importer')
             await safeNavigate('/importer')
         }
         else if (role === 'tester') {
+            localStorage.setItem('gbrsa_access_key', 'tester')
             localStorage.setItem('tester_authorized', 'true')
             await safeNavigate('/tester')
         }
@@ -291,6 +293,12 @@ const handleLogin = async () => {
         
         loading.value = false
         if (navigator.vibrate) navigator.vibrate(200)
+    } finally {
+        // If we are still here (e.g. navigation failed or redirected back), stop loading
+        // We use a small timeout to allow unmount to happen first if successful
+        setTimeout(() => {
+            if(loading.value) loading.value = false
+        }, 2000)
     }
 }
 
