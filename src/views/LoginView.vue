@@ -78,6 +78,18 @@ onUnmounted(() => {
     if(unsubLock) unsubLock()
 })
 
+const withTimeout = (promise, ms = 8000) => {
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => {
+            reject(new Error("Network Timeout"))
+        }, ms)
+        promise.then(
+            (res) => { clearTimeout(timer); resolve(res) },
+            (err) => { clearTimeout(timer); reject(err) }
+        )
+    })
+}
+
 const handleLogin = async () => {
     errorMsg.value = ''
     const key = accessKey.value.trim()
@@ -86,15 +98,16 @@ const handleLogin = async () => {
     loading.value = true
     
     try {
-        // 1. Check System Lock
+        // 1. Check System Lock (Timeout: 5s)
         const sysRef = doc(db, 'participants', '0')
-        const sysSnap = await getDoc(sysRef)
+        // Use timeout to prevent hanging on weak connections
+        const sysSnap = await withTimeout(getDoc(sysRef), 5000)
         const isSystemLocked = sysSnap.exists() && sysSnap.data().station === 'LOCKED'
 
         // 2. Initial Local Check (Optimization)
         // Access keys are documents in 'access_keys' collection where ID = the key
         const keyRef = doc(db, 'access_keys', key)
-        const keySnap = await getDoc(keyRef)
+        const keySnap = await withTimeout(getDoc(keyRef), 8000)
 
         if (!keySnap.exists()) {
              throw new Error("Invalid Access Code")
@@ -147,7 +160,14 @@ const handleLogin = async () => {
 
     } catch (e) {
         console.error("Login Check Failed", e)
-        errorMsg.value = e.message === "Invalid Access Code" ? "Invalid Access Code" : "Login Failed (Network)"
+        if (e.message === "Invalid Access Code") {
+            errorMsg.value = "Invalid Access Code"
+        } else if (e.message === "Network Timeout") {
+            errorMsg.value = "Slow Connection. Retry?"
+        } else {
+            errorMsg.value = "Login Failed (Network)"
+        }
+        
         loading.value = false
         if (navigator.vibrate) navigator.vibrate(200)
     }
