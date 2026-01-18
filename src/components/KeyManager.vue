@@ -126,8 +126,11 @@
                 
                 <p class="text-muted" style="margin-top: 1rem; font-size: 0.8rem;">To use: Scan with the Login Page Scanner.</p>
 
-                <div class="modal-actions" style="justify-content: center; margin-top: 1.5rem;">
-                    <button @click="qrModal.open = false" class="btn-outline full-width">Close</button>
+                <div class="modal-actions" style="justify-content: center; margin-top: 1.5rem; gap: 1rem;">
+                    <button @click="qrModal.open = false" class="btn-outline">Close</button>
+                    <button @click="renewKey" class="btn-outline text-red" style="border-color: #ef4444; color: #f87171;">
+                        <span style="margin-right:0.5rem">↻</span> Renew Code
+                    </button>
                 </div>
             </div>
         </div>
@@ -137,7 +140,7 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { db } from '../firebase'
-import { collection, onSnapshot, doc, setDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
+import { collection, onSnapshot, doc, setDoc, deleteDoc, getDoc, serverTimestamp } from 'firebase/firestore'
 import QRCode from 'qrcode'
 
 const keysList = ref([])
@@ -194,6 +197,80 @@ const openQR = async (keyId) => {
 
 const openKeyModal = () => {
     Object.assign(keyModal, { open: true, isEdit: false, id: '', originalId: '', role: 'judge', station: 1, event: 'speed', judgeType: 'difficulty' })
+}
+
+const generateRandomKey = (length = 6) => {
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789'
+    let result = ''
+    for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length))
+    }
+    return result
+}
+
+const renewKey = async () => {
+    const oldId = qrModal.keyId
+    if (!oldId) return
+
+    if (!confirm(`Are you sure you want to INVALIDATE the key "${oldId}" and generate a NEW one?\n\nThe old QR code will stop working immediately.`)) return
+
+    // 1. Find the current key data
+    const keyData = keysList.value.find(k => k.id === oldId)
+    if (!keyData) {
+        alert("Error: Could not find key data.")
+        return
+    }
+
+    // 2. Generate New ID (With Collision Check)
+    let newId = generateRandomKey()
+    let attempts = 0
+    let isUnique = false
+    
+    while (!isUnique && attempts < 5) {
+        const checkRef = doc(db, 'access_keys', newId)
+        const snap = await getDoc(checkRef)
+        if (!snap.exists()) {
+            isUnique = true
+        } else {
+            console.warn(`Collision detected for generated key ${newId}. Retrying...`)
+            newId = generateRandomKey()
+            attempts++
+        }
+    }
+
+    if (!isUnique) {
+        alert("Error: Could not generate a unique key after multiple attempts. Please try again.")
+        return
+    }
+    
+    // 3. Prepare Data (Copy existing fields)
+    const newHeaderData = {
+        role: keyData.role,
+        updated_at: serverTimestamp(),
+        // Optional properties depending on role
+        ...(keyData.station && { station: keyData.station }),
+        ...(keyData.event && { event: keyData.event }),
+        ...(keyData.judgeType && { judgeType: keyData.judgeType })
+    }
+
+    try {
+        // 4. Create New & Delete Old
+        // We do this sequentially. Ideally a batch or transaction, but this is simple enough.
+        await setDoc(doc(db, 'access_keys', newId), newHeaderData)
+        await deleteDoc(doc(db, 'access_keys', oldId))
+
+        // 5. Update UI
+        // keyModal is for the Edit form, we are in qrModal. 
+        // We just need to refresh the QR view with the new ID.
+        await openQR(newId)
+        
+        // Show success toast or small alert? Maybe just the visual update is enough.
+        // The openQR call will update the modal title and image.
+        
+    } catch(e) {
+        console.error(e)
+        alert("Failed to renew key: " + e.message)
+    }
 }
 
 const editKey = (k) => {
