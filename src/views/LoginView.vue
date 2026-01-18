@@ -637,7 +637,7 @@ const handleNavError = (err) => {
     background: #3b82f6; /* Blue-500 */
     box-shadow: 0 0 10px #3b82f6, 0 0 20px #2563eb;
     top: 10%;
-    animation: scanMove 3s ease-in-out infinite alternate;
+    animation: scanMove 1.5s ease-in-out infinite alternate;
     opacity: 0.8;
 }
 
