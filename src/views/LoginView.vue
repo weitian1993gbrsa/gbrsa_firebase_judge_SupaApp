@@ -117,24 +117,64 @@ onUnmounted(() => {
     }
 })
 
-const startScan = () => {
+const startScan = async () => {
     showScanner.value = true
-    nextTick(() => {
-        html5QrCode = new Html5Qrcode("reader")
-        html5QrCode.start(
-            { facingMode: "environment" },
-            {
-                fps: 10,
-                qrbox: { width: 250, height: 250 }
-            },
-            onScanSuccess,
-            (errorMessage) => { /* ignore failures */ }
-        ).catch(err => {
-             console.error(err)
-             alert("Camera Eror: " + err)
-             showScanner.value = false
+    await nextTick()
+
+    // Clean up existing instance if any
+    if (html5QrCode && html5QrCode.isScanning) {
+        await html5QrCode.stop().catch(console.error)
+        html5QrCode.clear()
+    }
+
+    html5QrCode = new Html5Qrcode("reader")
+
+    try {
+        // 1. Explicitly ask for permissions and list cameras
+        // This fixes iOS issues where "facingMode: environment" fails blindly
+        const devices = await Html5Qrcode.getCameras().catch(err => {
+            console.warn("Could not list cameras, using fallback", err)
+            return []
         })
-    })
+
+        let cameraId = null
+        
+        if (devices && devices.length > 0) {
+            // Try to find the back camera
+            const backCam = devices.find(device => {
+                const label = device.label.toLowerCase()
+                return label.includes('back') || 
+                       label.includes('rear') || 
+                       label.includes('environment')
+            })
+            
+            if (backCam) {
+                cameraId = backCam.id
+                console.log("Selected specific back camera:", backCam.label)
+            }
+        }
+
+        const config = {
+            fps: 10,
+            qrbox: { width: 250, height: 250 },
+            aspectRatio: 1.0
+        }
+
+        if (cameraId) {
+            await html5QrCode.start(cameraId, config, onScanSuccess, (err) => {})
+        } else {
+            // Fallback for devices where enumeration failed or no clear back camera found
+            console.log("No specific back camera found, using facingMode fallback")
+            await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, (err) => {})
+        }
+
+    } catch (err) {
+        console.error("Critical Scanner Error", err)
+        alert("Camera Error: " + (err.message || "Unknown error"))
+        showScanner.value = false
+        // Cleanup UI if failed
+        if (html5QrCode) html5QrCode.clear()
+    }
 }
 
 const stopScan = () => {
