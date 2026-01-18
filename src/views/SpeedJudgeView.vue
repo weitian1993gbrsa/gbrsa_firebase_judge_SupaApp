@@ -195,72 +195,73 @@ const showKeypadModal = ref(false)
 const tempNumpadScore = ref("0")
 
 // Fetch Participant Meta
+// Fetch Participant Meta
+// Fetch Participant Meta
 onMounted(async () => {
-    const sId = station || '1'
-    
-    // Acquire Lock Immediately (For both Competition AND Practice)
-    await checkAndAcquireLock(sId)
-
-    if(!entryCode) return 
-
-    // TESTER MODE
-    if (route.query.test === 'true') {
-        participant.value = {
-            name: "TEST JUMPER",
-            team: "MOCK TEAM",
-            id: "TEST-001",
-            heat: "TEST"
-        }
-        heat.value = "TEST"
-        return 
-    }
-
-    const docRef = doc(db, "competition", sId, "entries", entryCode)
-    const snap = await getDoc(docRef)
-    if (snap.exists()) {
-        participant.value = snap.data()
-        heat.value = participant.value.heat
+    // Monitor Locks
+    if (station !== 'TEST') {
+        const sId = station || '1'
         
-        // Locking Logic
-        if (participant.value.status === 'done') {
-            isLocked.value = true
-            await restoreScore()
+        // Acquire Lock Immediately (For both Competition AND Practice)
+        await checkAndAcquireLock(sId)
+
+        if(!entryCode) return 
+
+        const isPractice = route.query.test === 'true'
+
+        if (isPractice) {
+            // PRACTICE MODE: Mock Data but ENABLE Broadcast
+            participant.value = {
+                name: "TEST JUMPER",
+                team: "MOCK TEAM",
+                id: "TEST-001",
+                heat: "TEST"
+            }
+            heat.value = "TEST"
+            // Intentional fall-through to BROADCAST INIT
         } else {
-             // BROADCAST INIT (Live Board)
-             const sId = station || '0' // fallback
-             setDoc(doc(db, "live_scores", String(sId)), {
-                station: Number(sId),
-                heat: heat.value,
-                entry_code: entryCode,
-                score: 0,
-                status: 'judging',
-                updated_at: serverTimestamp()
-            }).catch(e => console.error("Init broadcast failed", e))
+            // COMPETITION MODE: Real Data
+            const docRef = doc(db, "competition", sId, "entries", entryCode)
+            const snap = await getDoc(docRef)
+            
+            if (snap.exists()) {
+                 participant.value = snap.data()
+                 heat.value = participant.value.heat
+                 
+                 // Locking Logic
+                 if (participant.value.status === 'done') {
+                     isLocked.value = true
+                     await restoreScore()
+                     return // Don't broadcast if already done
+                 }
+             } else {
+                 return // Entry not found
+             }
         }
-    }
-})
 
-onUnmounted(() => {
-    // If we are leaving (back button, etc), disconnect the heat
-    // But if we just submitted successfully, that logic already handled the reset.
-    // We can redundantly clear it to be safe, or check isSuccess.
-    // User wants "always reset" when closed.
-    
-    if (!isSubmitting.value) { // If submitting, let submit function handle the final state (it sets 'waiting')
-        const sId = station || '0'
-        setDoc(doc(db, "live_scores", String(sId)), {
-            station: Number(sId),
-            score: 0,
-            status: 'waiting',
-            heat: '-',
-            entry_code: '',
-            updated_at: serverTimestamp()
-        }).catch(e => console.error("Cleanup broadcast failed", e))
-    }
+        // BROADCAST INIT (Live Board) - For both Practice & Active Competition
+        const broadcastId = station || '0' 
+        setDoc(doc(db, "live_scores", String(broadcastId)), {
+             station: Number(broadcastId),
+             heat: heat.value,
+             entry_code: entryCode,
+             score: 0,
+             status: 'judging',
+             updated_at: serverTimestamp()
+         }).catch(e => console.error("Init broadcast failed", e))
 
-    // RELEASE STATION LOCK
-    if (hasLock.value && station) {
-        deleteDoc(doc(db, 'station_locks', String(station))).catch(e => console.error("Unlock failed", e))
+    } else {
+        // PURE TEST MODE (Speed Judge Button)
+        // No Lock, No Broadcast
+        if (route.query.test === 'true') {
+            participant.value = {
+                name: "TEST JUMPER",
+                team: "MOCK TEAM",
+                id: "TEST-001",
+                heat: "TEST"
+            }
+            heat.value = "TEST"
+        }
     }
 })
 
@@ -289,6 +290,27 @@ const restoreScore = async () => {
     }
 }
 
+onUnmounted(() => {
+    // If we are leaving (back button, etc), disconnect the heat
+    if (!isSubmitting.value && station !== 'TEST') { 
+        const sId = station || '0'
+        setDoc(doc(db, "live_scores", String(sId)), {
+            station: Number(sId),
+            score: 0,
+            status: 'waiting',
+            heat: '-',
+            entry_code: '',
+            updated_at: serverTimestamp()
+        }).catch(e => console.error("Cleanup broadcast failed", e))
+    }
+
+    // RELEASE STATION LOCK
+    if (hasLock.value && station && station !== 'TEST') {
+        deleteDoc(doc(db, 'station_locks', String(station))).catch(e => console.error("Unlock failed", e))
+    }
+})
+
+// ...
 
 // --- STATION LOCKING ---
 const hasLock = ref(false)
@@ -296,7 +318,7 @@ const isStationBusy = ref(false)
 const mySessionId = crypto.randomUUID()
 
 const checkAndAcquireLock = async (sId) => {
-    if (!sId) return
+    if (!sId || sId === 'TEST') return // SKIP LOCK FOR TEST
     const lockRef = doc(db, 'station_locks', String(sId))
     
     try {
@@ -317,6 +339,7 @@ const checkAndAcquireLock = async (sId) => {
 }
 
 const acquireLock = async (sId) => {
+    if (sId === 'TEST') return // Double safety
     try {
         await setDoc(doc(db, 'station_locks', String(sId)), {
             session_id: mySessionId,
@@ -332,12 +355,13 @@ const acquireLock = async (sId) => {
 }
 
 const forceUnlock = async () => {
+    if (station === 'TEST') return
     if (!confirm("Are you sure? Only do this if the other judge device is dead.")) return
     const sId = station || localStorage.getItem('gbrsa_allowed_station')
     await acquireLock(sId) // Overwrite existing lock
 }
 
-
+// ...
 
 // Logic
 const goBack = () => router.back()
@@ -464,49 +488,22 @@ const submitScore = async () => {
     }
 }
 
-// --- LIVE SCORE BROADCASTING ---
-// --- LIVE SCORE BROADCASTING ---
-let isThrottled = false
-let pendingUpdate = false
-
 const updateLiveScore = async (newScore) => {
-    // THROTTLE STRATEGY: 
-    // Fire immediately on first tap.
-    // If blocked, flag pending.
-    // On unlock, if pending, fire again.
-    
-    if (isThrottled) {
-        pendingUpdate = true
-        return
+    if (station === 'TEST') return // SKIP LIVE UPDATE FOR TEST
+
+    try {
+        const sId = station || '0'
+        await setDoc(doc(db, "live_scores", String(sId)), {
+            station: Number(sId),
+            score: Number(newScore),
+            entry_code: entryCode || '',
+            heat: heat.value || '',
+            status: 'judging',
+            updated_at: serverTimestamp()
+        })
+    } catch (e) {
+        console.error("Live update failed", e)
     }
-
-    isThrottled = true
-
-    const doPush = async () => {
-        try {
-            const sId = station || '0'
-            await setDoc(doc(db, "live_scores", String(sId)), {
-                station: Number(sId),
-                score: Number(currentScore.value), // Always use latest currentScore
-                entry_code: entryCode || '',
-                heat: heat.value || '',
-                status: 'judging',
-                updated_at: serverTimestamp()
-            })
-        } catch (e) {
-            console.error("Live update failed", e)
-        }
-    }
-
-    await doPush()
-
-    setTimeout(() => {
-        isThrottled = false
-        if (pendingUpdate) {
-            pendingUpdate = false
-            updateLiveScore(currentScore.value) // Recurse to flush pending changes
-        }
-    }, 150) // 150ms limit (approx 6-7 updates per sec max)
 }
 
 // Watch Score Changes
