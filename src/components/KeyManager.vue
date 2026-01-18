@@ -25,7 +25,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    <tr v-for="k in keysList" :key="k.id">
+                    <tr v-for="k in sortedKeys" :key="k.id">
                         <td class="font-mono font-bold text-white">{{ k.id }}</td>
                         <td>
                             <span :class="{
@@ -138,7 +138,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { db } from '../firebase'
 import { collection, onSnapshot, doc, setDoc, deleteDoc, getDoc, serverTimestamp } from 'firebase/firestore'
 import QRCode from 'qrcode'
@@ -146,6 +146,37 @@ import QRCode from 'qrcode'
 const keysList = ref([])
 const keyModal = reactive({ open: false, isEdit: false, id: '', originalId: '', role: 'judge', station: 1, event: 'speed', judgeType: 'difficulty' })
 const qrModal = reactive({ open: false, keyId: '', img: '' })
+
+// SORT LOGIC
+const sortedKeys = computed(() => {
+    return [...keysList.value].sort((a, b) => {
+        const getRank = (k) => {
+            if (k.role === 'tester') return 1
+            if (k.role === 'admin') return 2
+            if (k.role === 'live_board') return 3
+            if (k.role === 'judge' && k.event === 'speed') return 4
+            if (k.role === 'judge' && k.event === 'freestyle') return 5
+            if (k.role === 'importer') return 6
+            return 99 // Catch all
+        }
+
+        const rankA = getRank(a)
+        const rankB = getRank(b)
+
+        if (rankA !== rankB) return rankA - rankB
+
+        // Tie-breakers
+        // 1. By Station (if judge)
+        if (a.role === 'judge' && b.role === 'judge') {
+            const staA = Number(a.station) || 0
+            const staB = Number(b.station) || 0
+            if (staA !== staB) return staA - staB
+        }
+        
+        // 2. By ID (Alphabetical)
+        return a.id.localeCompare(b.id)
+    })
+})
 
 let unsub = null
 
