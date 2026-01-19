@@ -1,12 +1,28 @@
-
-// ⚡ Cache Buster: Force reload ONLY when version changes (after a new deploy)
-const BUILD_ID = '20260118_2216'; // Increment this string every time you deploy
+// ⚡ Cache Buster & Safe Reload Logic
+const BUILD_ID = '20260119_0900'; // Updated Build ID
 const lastBuild = localStorage.getItem('gbrsa_build_id');
+
 if (lastBuild && lastBuild !== BUILD_ID) {
-    console.log("New version detected. Refreshing for latest assets...");
-    localStorage.setItem('gbrsa_build_id', BUILD_ID);
-    window.location.reload(true);
+    // Check if we JUST tried to reload for this (prevention of infinite loop)
+    const isReloading = sessionStorage.getItem('gbrsa_update_reload');
+
+    if (isReloading) {
+        console.warn("Update reload attempted but old version persists. Stopping loop.");
+        // Clear flag so next clean load works
+        sessionStorage.removeItem('gbrsa_update_reload');
+        // Update local storage to satisfy the check, even if we are potentially on old code
+        localStorage.setItem('gbrsa_build_id', BUILD_ID);
+    } else {
+        console.log("New version detected. Refreshing...");
+        sessionStorage.setItem('gbrsa_update_reload', 'true');
+        localStorage.setItem('gbrsa_build_id', BUILD_ID);
+        window.location.reload(true);
+    }
 } else {
+    // Build matches, ensure clean state
+    if (sessionStorage.getItem('gbrsa_update_reload')) {
+        sessionStorage.removeItem('gbrsa_update_reload');
+    }
     localStorage.setItem('gbrsa_build_id', BUILD_ID);
 }
 

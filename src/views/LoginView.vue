@@ -9,48 +9,50 @@
     </div>
 
     <!-- Glass Login Card -->
-    <div class="glass-card anim-up">
-      <h3 class="card-title">System Access</h3>
-      <p class="card-desc">Enter the assigned access code to begin.</p>
+    <div class="glass-card-wrapper">
+      <div class="glass-card anim-up">
+        <h3 class="card-title">System Access</h3>
+        <p class="card-desc">Enter the assigned access code to begin.</p>
 
-      <div class="login-stack">
+        <div class="login-stack">
 
-        <div class="input-wrapper">
-            <input 
-              v-if="!isLocked"
-              v-model="accessKey" 
-              class="input has-icon" 
-              placeholder="Access Code" 
-              type="password"
-              :disabled="loading" 
-              autocomplete="off"
-              name="gs_auth_key_v1"
-              spellcheck="false"
-              data-form-type="other"
-              @keydown.enter="handleLogin"
-            >
-            <button 
-                v-if="!isLocked && !loading"
-                class="icon-btn-qr" 
-                title="Scan QR Login"
-                @click="startScan"
-            >
-                <FontAwesomeIcon icon="qrcode" />
-            </button>
+          <div class="input-wrapper">
+              <input 
+                v-if="!isLocked"
+                v-model="accessKey" 
+                class="input has-icon" 
+                placeholder="Access Code" 
+                type="password"
+                :disabled="loading" 
+                autocomplete="off"
+                name="gs_auth_key_v1"
+                spellcheck="false"
+                data-form-type="other"
+                @keydown.enter="handleLogin"
+              >
+              <button 
+                  v-if="!isLocked && !loading"
+                  class="icon-btn-qr" 
+                  title="Scan QR Login"
+                  @click="startScan"
+              >
+                  <FontAwesomeIcon icon="qrcode" />
+              </button>
+          </div>
+          
+          <button 
+            class="btn-primary" 
+            :class="{ 'btn-locked': isLocked }"
+            :disabled="loading || isLocked"
+            @click="handleLogin"
+          >
+            {{ isLocked ? '⚠ SYSTEM LOCKED' : (loading ? 'Verifying...' : 'Login') }}
+          </button>
         </div>
-        
-        <button 
-          class="btn-primary" 
-          :class="{ 'btn-locked': isLocked }"
-          :disabled="loading || isLocked"
-          @click="handleLogin"
-        >
-          {{ isLocked ? '⚠ SYSTEM LOCKED' : (loading ? 'Verifying...' : 'Login') }}
-        </button>
-      </div>
 
-      <div class="judge-error" :style="{ opacity: errorMsg ? 1 : 0 }">
-        {{ errorMsg || 'Wrong Key Code' }}
+        <div class="judge-error" :style="{ opacity: errorMsg ? 1 : 0 }">
+          {{ errorMsg || 'Wrong Key Code' }}
+        </div>
       </div>
     </div>
 
@@ -353,15 +355,17 @@ const handleNavError = (err) => {
 
 <style scoped>
 .page-wrapper {
-  height: 100%;
+  min-height: 100dvh; /* Use dynamic viewport height */
   width: 100%;
-  overflow: hidden; /* Prevent body scroll */
+  overflow-x: hidden;
+  overflow-y: auto; /* Allow scroll if content is too tall */
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
+  /* Space between: Branding (top/natural), Card (center), Footer (bottom) */
+  justify-content: space-between; 
   padding: 2rem;
-  padding-bottom: 12vh; /* Shift content upwards from the center */
+  
   /* Modern Flow Background (Blue -> Gold) */
   background-color: #f8fafc;
   background-image: linear-gradient(135deg,
@@ -373,6 +377,17 @@ const handleNavError = (err) => {
   background-attachment: fixed;
   background-size: cover;
   position: relative;
+}
+
+/* Helper to center the card vertically if there's space */
+.glass-card-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 100%;
+    align-items: center;
+    padding: 2rem 0; /* Add breathing room */
 }
 
 /* Animation */
