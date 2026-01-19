@@ -1,15 +1,16 @@
 <template>
   <div class="page-wrapper">
-    <!-- Hero Branding -->
-    <div class="branding anim-down">
-      <div class="titles">
-        <img src="/logo.svg" alt="Logo" style="height: 90px; width: auto; object-fit: contain; margin-bottom: 0.75rem; display: block; margin-left: auto; margin-right: auto;">
-        <h1 class="logo-text">GBRSA SupaApp</h1>
-      </div>
-    </div>
-
-    <!-- Glass Login Card -->
+    <!-- Main Content Wrapper (Centers Logo + Card) -->
     <div class="glass-card-wrapper">
+      <!-- Hero Branding -->
+      <div class="branding anim-down">
+        <div class="titles">
+          <img src="/logo.svg" alt="Logo" style="height: 90px; width: auto; object-fit: contain; margin-bottom: 0.75rem; display: block; margin-left: auto; margin-right: auto;">
+          <h1 class="logo-text">GBRSA SupaApp</h1>
+        </div>
+      </div>
+
+      <!-- Glass Login Card -->
       <div class="glass-card anim-up">
         <h3 class="card-title">System Access</h3>
         <p class="card-desc">Enter the assigned access code to begin.</p>
