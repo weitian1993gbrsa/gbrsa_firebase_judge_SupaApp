@@ -451,7 +451,7 @@ html, body {
 <script setup>
 import { ref, computed, onMounted, onUnmounted, reactive, nextTick, watch, defineAsyncComponent } from 'vue'
 import { db } from '../firebase'
-import { collection, onSnapshot, doc, updateDoc, deleteDoc, addDoc, query, where, orderBy, getDocs, setDoc, serverTimestamp, writeBatch } from 'firebase/firestore'
+import { collection, collectionGroup, onSnapshot, doc, updateDoc, deleteDoc, addDoc, query, where, orderBy, getDocs, setDoc, serverTimestamp, writeBatch } from 'firebase/firestore'
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
 import { COMPETITION_LOGO, SPEED_EVENTS, FREESTYLE_EVENTS } from '../constants'
