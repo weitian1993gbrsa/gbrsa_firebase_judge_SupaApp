@@ -71,6 +71,11 @@
                 <div class="scan-overlay">
                     <div class="scan-line"></div>
                 </div>
+                <!-- Loading State Triggered by isScannerInit -->
+                <div v-if="isScannerInit" class="scanner-loader">
+                    <div class="spinner"></div>
+                    <span>Starting Camera...</span>
+                </div>
             </div>
 
             <button class="btn-close" @click="stopScan">Close Scanner</button>
@@ -99,6 +104,7 @@ const errorMsg = ref('')
 const loading = ref(false)
 const isLocked = ref(false)
 const showScanner = ref(false)
+const isScannerInit = ref(true) // Start true to show loader immediately
 let html5QrCode = null
 
 let unsubLock = null
@@ -122,61 +128,62 @@ onUnmounted(() => {
 
 const startScan = async () => {
     showScanner.value = true
+    isScannerInit.value = true // Show loader
     await nextTick()
 
     // Clean up existing instance if any
-    if (html5QrCode && html5QrCode.isScanning) {
-        await html5QrCode.stop().catch(console.error)
-        html5QrCode.clear()
+    if (html5QrCode) {
+        try {
+            if (html5QrCode.isScanning) await html5QrCode.stop()
+            html5QrCode.clear()
+        } catch (e) { console.warn("Cleanup warning", e) }
     }
 
     html5QrCode = new Html5Qrcode("reader")
 
+    const config = {
+        fps: 20, // Increased FPS for smoother feel
+        qrbox: { width: 250, height: 250 },
+        aspectRatio: 1.0,
+        // Experimental: Try to load faster
+        videoConstraints: {
+            facingMode: "environment",
+            focusMode: "continuous"
+        }
+    }
+
+    const onStartSuccess = () => {
+             isScannerInit.value = false // Hide loader when camera is LIVE
+    }
+
     try {
-        // 1. Explicitly ask for permissions and list cameras
-        // This fixes iOS issues where "facingMode: environment" fails blindly
-        const devices = await Html5Qrcode.getCameras().catch(err => {
-            console.warn("Could not list cameras, using fallback", err)
-            return []
-        })
-
-        let cameraId = null
-        
-        if (devices && devices.length > 0) {
-            // Try to find the back camera
-            const backCam = devices.find(device => {
-                const label = device.label.toLowerCase()
-                return label.includes('back') || 
-                       label.includes('rear') || 
-                       label.includes('environment')
-            })
-            
-            if (backCam) {
-                cameraId = backCam.id
-                console.log("Selected specific back camera:", backCam.label)
-            }
-        }
-
-        const config = {
-            fps: 10,
-            qrbox: { width: 250, height: 250 },
-            aspectRatio: 1.0
-        }
-
-        if (cameraId) {
-            await html5QrCode.start(cameraId, config, onScanSuccess, (err) => {})
-        } else {
-            // Fallback for devices where enumeration failed or no clear back camera found
-            console.log("No specific back camera found, using facingMode fallback")
-            await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, (err) => {})
-        }
+        // FAST PATH: Direct start without listing cameras
+        // This simulates "Native App" feel by skipping the "Checking what cameras you have" step
+        await html5QrCode.start(
+            { facingMode: "environment" }, 
+            config, 
+            onScanSuccess, 
+            (err) => {}
+        ).then(onStartSuccess)
 
     } catch (err) {
-        console.error("Critical Scanner Error", err)
-        alert("Camera Error: " + (err.message || "Unknown error"))
-        showScanner.value = false
-        // Cleanup UI if failed
-        if (html5QrCode) html5QrCode.clear()
+        console.warn("Fast start failed, retrying with extensive lookup", err)
+        // Fallback: If direct "environment" fails, try listing cameras (legacy robust method)
+        try {
+             const devices = await Html5Qrcode.getCameras()
+             if (devices && devices.length) {
+                 const backCam = devices.find(d => d.label.toLowerCase().includes('back')) || devices[0]
+                 await html5QrCode.start(backCam.id, config, onScanSuccess, (err)=>{})
+                 onStartSuccess()
+             } else {
+                 throw new Error("No camera found")
+             }
+        } catch (finalErr) {
+             console.error("Critical Scanner Error", finalErr)
+             alert("Camera Error: " + (finalErr.message || "Unknown error"))
+             showScanner.value = false
+             if (html5QrCode) html5QrCode.clear()
+        }
     }
 }
 
@@ -660,5 +667,31 @@ const handleNavError = (err) => {
 @keyframes scanMove {
     0% { top: 5%; opacity: 0.8; }
     100% { top: 95%; opacity: 0.8; }
+}
+
+.scanner-loader {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #000;
+    color: white;
+    z-index: 10;
+    gap: 1rem;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid rgba(255,255,255,0.3);
+    border-radius: 50%;
+    border-top-color: #3b82f6;
+    animation: spin 1s ease-in-out infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }
 </style>
