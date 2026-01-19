@@ -11,7 +11,7 @@
             <nav class="nav-links">
                 <button class="nav-link" :class="{ active: activeMainView === 'results' }" @click="activeMainView = 'results'">MC</button>
                 <button class="nav-link" :class="{ active: activeMainView === 'monitor' }" @click="activeMainView = 'monitor'">Live Monitor</button>
-
+                <a href="/live" target="_blank" class="nav-link">Live Board</a>
                 <router-link to="/admin/certificates" class="nav-link">Print</router-link>
                 <router-link to="/admin" class="nav-link">Admin Dashboard</router-link>
             </nav>
