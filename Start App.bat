@@ -39,7 +39,10 @@ if not exist node_modules (
 
 echo ---------------------------------------------------
 echo  This will start the server on your LOCAL NETWORK.
-echo  You can connect other phones/laptops to the IP shown below.
+echo  You can connect other phones/laptops using:
+echo.
+echo  Option 1: http://%COMPUTERNAME%:5174  (Easiest)
+echo  Option 2: The IP Address shown below
 echo ---------------------------------------------------
 
 :: 3. Launch Browser in Background (Delayed)

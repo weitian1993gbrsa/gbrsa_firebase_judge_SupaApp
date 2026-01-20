@@ -227,9 +227,9 @@ onMounted(async () => {
     // }
 
     // 2. Global System Listener (Small Doc, fine for onSnapshot)
-    systemUnsub = onSnapshot(doc(db, 'participants', '0'), s => {
+    systemUnsub = onSnapshot(doc(db, 'system', 'status'), s => {
         if (s.exists()) {
-            isSystemLocked.value = s.data().station === 'LOCKED'
+            isSystemLocked.value = s.data().locked === true
         }
     })
 

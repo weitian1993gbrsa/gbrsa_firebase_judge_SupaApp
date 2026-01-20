@@ -557,9 +557,9 @@ onMounted(() => {
     setInterval(updateClock, 1000)
 
     // System Lock Listener
-    systemUnsub = onSnapshot(doc(db, 'participants', '0'), s => {
+    systemUnsub = onSnapshot(doc(db, 'system', 'status'), s => {
         if (s.exists()) {
-            isSystemLocked.value = s.data().station === 'LOCKED'
+            isSystemLocked.value = s.data().locked === true
         }
     })
 })
@@ -1663,11 +1663,12 @@ const sendAlert = async () => {
 // --- SYSTEM OPS ---
 const toggleSystemLock = async () => {
     try {
-        const newState = !isSystemLocked.value ? 'LOCKED' : 'OPEN'
-        // '0' is the special ID for System Status / Broadcast
-        await updateDoc(doc(db, 'participants', '0'), {
-            station: newState
-        })
+        const newState = !isSystemLocked.value
+        // Use 'system/status' for global system flags
+        // setDoc with merge: true ensures we don't overwrite other status fields if they exist
+        await setDoc(doc(db, 'system', 'status'), {
+            locked: newState
+        }, { merge: true })
     } catch (e) {
         console.error(e)
         alert("Failed to toggle system lock: " + e.message)

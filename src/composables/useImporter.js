@@ -108,20 +108,39 @@ export function useImporter() {
     const wipeDatabase = async () => {
         if (!confirm("DANGER: This will delete ALL participants from Firebase. Are you sure?")) return
         isUploading.value = true
-        status.value = "Wiping database..."
+        status.value = "Scanning database..."
 
         try {
+            // 1. Get all entries
             const querySnapshot = await getDocs(collectionGroup(db, "entries"))
-            const batch = writeBatch(db)
-            let count = 0
-            querySnapshot.forEach((doc) => {
-                batch.delete(doc.ref)
-                count++
-            })
+            const total = querySnapshot.size
 
-            if (count > 0) await batch.commit()
-            status.value = `✅ Wiped ${count} records.`
+            if (total === 0) {
+                status.value = "Database is already empty."
+                isUploading.value = false
+                return
+            }
+
+            status.value = `Found ${total} records. Deleting...`
+
+            // 2. Batch Deletes (Max 500 per batch)
+            const batchSize = 400
+            const docs = querySnapshot.docs
+            const batches = []
+
+            for (let i = 0; i < total; i += batchSize) {
+                const chunk = docs.slice(i, i + batchSize)
+                const batch = writeBatch(db)
+                chunk.forEach(doc => batch.delete(doc.ref))
+                batches.push(batch.commit())
+            }
+
+            // 3. Wait for all batches
+            await Promise.all(batches)
+
+            status.value = `✅ Successfully wiped ${total} records.`
         } catch (err) {
+            console.error(err)
             status.value = "Wipe Error: " + err.message
         } finally {
             isUploading.value = false

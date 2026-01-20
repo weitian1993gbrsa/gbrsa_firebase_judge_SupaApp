@@ -110,9 +110,9 @@ let html5QrCode = null
 let unsubLock = null
 
 onMounted(() => {
-    unsubLock = onSnapshot(doc(db, 'participants', '0'), (doc) => {
+    unsubLock = onSnapshot(doc(db, 'system', 'status'), (doc) => {
         if (doc.exists()) {
-             const locked = doc.data().station === 'LOCKED'
+             const locked = doc.data().locked === true
              isLocked.value = locked
              if(locked) accessKey.value = '' // Clear input so placeholder shows
         }
@@ -261,10 +261,10 @@ const handleLogin = async () => {
     
     try {
         // 1. Check System Lock (Timeout: 5s)
-        const sysRef = doc(db, 'participants', '0')
+        const sysRef = doc(db, 'system', 'status')
         // Use timeout to prevent hanging on weak connections
         const sysSnap = await withTimeout(getDoc(sysRef), 5000)
-        const isSystemLocked = sysSnap.exists() && sysSnap.data().station === 'LOCKED'
+        const isSystemLocked = sysSnap.exists() && sysSnap.data().locked === true
 
         // 2. Initial Local Check (Optimization)
         // Access keys are documents in 'access_keys' collection where ID = the key
