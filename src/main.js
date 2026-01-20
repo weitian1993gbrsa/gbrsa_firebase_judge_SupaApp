@@ -1,5 +1,5 @@
 // ⚡ Cache Buster & Safe Reload Logic
-const BUILD_ID = '20260119_1207'; // Updated Build ID
+const BUILD_ID = '20260120_2207'; // Updated Build ID
 const lastBuild = localStorage.getItem('gbrsa_build_id');
 
 if (lastBuild && lastBuild !== BUILD_ID) {

@@ -104,83 +104,25 @@ import Papa from 'papaparse'
 import { db } from '../firebase'
 import { collection, writeBatch, doc, getDocs, collectionGroup, setDoc } from 'firebase/firestore'
 import KeyManager from './KeyManager.vue'
+import { useImporter } from '../composables/useImporter'
 
-const status = ref('')
-const parsedData = ref([])
-const isUploading = ref(false)
+const { 
+    status, 
+    isUploading, 
+    parsedData, 
+    handleFile: processFile, 
+    performUpload, 
+    wipeDatabase 
+} = useImporter()
+
+const handleFile = (event) => {
+    const file = event.target.files[0]
+    if (file) processFile(file)
+}
 
 // CONFIG STATE
 const configStatus = ref('')
 const parsedConfig = ref(null)
-
-const handleFile = (event) => {
-  const file = event.target.files[0]
-  if (!file) return
-
-  status.value = "Parsing CSV..."
-  
-  Papa.parse(file, {
-    header: true,
-    skipEmptyLines: true,
-    complete: (results) => {
-      console.log("Parsed raw:", results.data)
-      parsedData.value = results.data.map(mapParticipant).filter(p => p.entry_code)
-      status.value = `Parsed ${parsedData.value.length} participants. Ready to upload.`
-    }
-  })
-}
-
-// Logic from old importer.html
-const mapParticipant = (item) => {
-    return {
-        entry_code: String(item.entry || item.ENTRY || item.entry_code || item.id || item.ID || "").trim(),
-        name1: item.name1 || item.NAME1 || "",
-        name2: item.name2 || item.NAME2 || "",
-        name3: item.name3 || item.NAME3 || "",
-        name4: item.name4 || item.NAME4 || "",
-        team: item.team || item.TEAM || "",
-        state: item.state || item.STATE || "",
-        station: String(item.station || item.STATION || "1"),
-        event: item.event || item.EVENT || "",
-        heat: String(item.heat || item.HEAT || "1"),
-        division: item.division || item.DIVISION || "",
-        status: item.status || item.STATUS || "normal"
-    }
-}
-
-const performUpload = async () => {
-  if (parsedData.value.length === 0) return
-  isUploading.value = true
-  status.value = "Starting Upload..."
-
-  const batchSize = 400 
-  const chunks = []
-  for (let i = 0; i < parsedData.value.length; i += batchSize) {
-    chunks.push(parsedData.value.slice(i, i + batchSize))
-  }
-
-  try {
-    let count = 0
-    for (const chunk of chunks) {
-      const batch = writeBatch(db)
-      chunk.forEach(p => {
-        const sId = p.station || "1"
-        const ref = doc(db, "competition", sId, "entries", p.entry_code)
-        batch.set(ref, p)
-      })
-      await batch.commit()
-      count += chunk.length
-      status.value = `Uploaded ${count} / ${parsedData.value.length} records...`
-    }
-    status.value = `✅ Success! Uploaded ${count} participants to Firebase.`
-    parsedData.value = [] // Reset
-  } catch (err) {
-    console.error(err)
-    status.value = "Error: " + err.message
-  } finally {
-    isUploading.value = false
-  }
-}
 
 // --- CONFIG HANDLER ---
 const handleConfigFile = (event) => {
@@ -254,30 +196,6 @@ const uploadConfig = async () => {
     } finally {
         isUploading.value = false
     }
-}
-
-const wipeDatabase = async () => {
-  if (!confirm("DANGER: This will delete ALL participants from Firebase. Are you sure?")) return
-  isUploading.value = true
-  status.value = "Wiping database..."
-  
-  try {
-    const querySnapshot = await getDocs(collectionGroup(db, "entries"))
-    const batch = writeBatch(db)
-    let count = 0
-    querySnapshot.forEach((doc) => {
-      batch.delete(doc.ref)
-      count++
-    })
-    
-    if (count > 0) await batch.commit()
-    
-    status.value = `✅ Wiped ${count} records.`
-  } catch (err) {
-    status.value = "Wipe Error: " + err.message
-  } finally {
-    isUploading.value = false
-  }
 }
 </script>
 

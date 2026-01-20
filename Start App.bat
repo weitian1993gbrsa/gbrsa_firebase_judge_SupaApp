@@ -1,8 +1,10 @@
 @echo off
 setlocal
+cd /d "%~dp0"
 title GBRSA SupaApp Launcher
 
 echo Starting GBRSA SupaApp...
+echo Current Directory: %CD%
 echo.
 
 :: 1. Check if Node.js/NPM is available
@@ -41,11 +43,12 @@ echo  You can connect other phones/laptops to the IP shown below.
 echo ---------------------------------------------------
 
 :: 3. Launch Browser in Background (Delayed)
-start "" /b cmd /c "timeout /t 5 /nobreak >nul & start http://localhost:5173"
+:: We use port 5174 for this project to avoid conflicts with other apps on 5173
+start "" /b cmd /c "timeout /t 5 /nobreak >nul & start http://localhost:5174"
 
 :: 4. Start Server (Using CALL to prevent script exit)
-echo Starting Vite Server...
-call npm run dev -- --host
+echo Starting Vite Server on Port 5174...
+call npm run dev -- --host --port 5174 --strictPort
 
 :: 5. If Server stops, Pause so user can see error
 echo.
