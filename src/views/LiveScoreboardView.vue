@@ -505,27 +505,27 @@ h1 { font-weight: 900; letter-spacing: 0.1em; color: white; font-size: 3rem; mar
 
 /* 1 STATION */
 .grid-1 { grid-template-columns: 1fr; padding: 2rem; }
-.grid-1 .score-val { font-size: 40rem; }
+.grid-1 .score-val { font-size: 55rem; }
 
 /* 2 STATIONS */
 .grid-2 { grid-template-columns: 1fr 1fr; }
-.grid-2 .score-val { font-size: 18rem; }
+.grid-2 .score-val { font-size: 30rem; }
 
 /* 4 STATIONS (2x2) */
 .grid-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
-.grid-4 .score-val { font-size: 15rem; }
+.grid-4 .score-val { font-size: 20rem; }
 
 /* 6 STATIONS (3x2) */
 .grid-6 { grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr; }
-.grid-6 .score-val { font-size: 13rem; }
+.grid-6 .score-val { font-size: 18rem; }
 
 /* 8 STATIONS (4x2) */
 .grid-8 { grid-template-columns: repeat(4, 1fr); grid-template-rows: 1fr 1fr; }
-.grid-8 .score-val { font-size: 10rem; }
+.grid-8 .score-val { font-size: 15rem; }
 
 /* 12 STATIONS (4x3) */
 .grid-12 { grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(3, 1fr); }
-.grid-12 .score-val { font-size: 8rem; }
+.grid-12 .score-val { font-size: 10rem; }
 
 /* MODAL STYLES */
 .modal-backdrop {
