@@ -11,7 +11,7 @@
                 <label>Number of Stations</label>
                 <div class="grid-selector">
                     <button 
-                        v-for="n in [1, 2, 4, 8, 12]" 
+                        v-for="n in [1, 2, 4, 6, 8, 12]" 
                         :key="n"
                         class="sel-btn"
                         :class="{ active: stationCount === n }"

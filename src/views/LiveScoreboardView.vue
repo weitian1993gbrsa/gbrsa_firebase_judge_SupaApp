@@ -115,7 +115,8 @@ const gridClass = computed(() => {
     if (n === 2) return 'grid-2'
     if (n === 3) return 'grid-3' // Just in case
     if (n === 4) return 'grid-4'
-    if (n > 4 && n <= 8) return 'grid-8'
+    if (n === 5 || n === 6) return 'grid-6'
+    if (n > 6 && n <= 8) return 'grid-8'
     return 'grid-12'
 })
 
@@ -513,6 +514,10 @@ h1 { font-weight: 900; letter-spacing: 0.1em; color: white; font-size: 3rem; mar
 /* 4 STATIONS (2x2) */
 .grid-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
 .grid-4 .score-val { font-size: 15rem; }
+
+/* 6 STATIONS (3x2) */
+.grid-6 { grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr; }
+.grid-6 .score-val { font-size: 13rem; }
 
 /* 8 STATIONS (4x2) */
 .grid-8 { grid-template-columns: repeat(4, 1fr); grid-template-rows: 1fr 1fr; }
