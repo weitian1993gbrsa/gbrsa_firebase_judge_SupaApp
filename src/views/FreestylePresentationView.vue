@@ -553,6 +553,8 @@ const submitScore = async () => {
 .btn-undo:active, .btn-reset:active { transform: scale(0.95); filter: brightness(1.3) saturate(1.1); transition: none; }
 .hidden { visibility: hidden !important; pointer-events: none !important; }
 
+
+/* REVERTED: Restored to original full-width grid */
 .pres-grid {
   flex: 1;
   display: grid;
@@ -618,6 +620,7 @@ const submitScore = async () => {
   flex-shrink: 0;
 }
 
+/* REVERTED: Restored original summary scroll */
 #summaryScroll {
   flex: 1;
   overflow-y: auto;
@@ -730,4 +733,5 @@ const submitScore = async () => {
     from { opacity: 0; transform: translate(-50%, -50%) rotate(-12deg) scale(2); }
     to { opacity: 1; transform: translate(-50%, -50%) rotate(-12deg) scale(1); }
 }
+/* ANIMATION REMOVED */
 </style>

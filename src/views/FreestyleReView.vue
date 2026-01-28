@@ -450,6 +450,7 @@ const submitScore = async () => {
   min-height: 0;
 }
 
+/* REVERTED: Restored original flex column layout */
 #reContainer {
   flex: 1;
   display: flex;
