@@ -519,7 +519,7 @@ const submitScore = async () => {
   grid-template-rows: repeat(3, 1fr);
   gap: 8px; /* Reduced from 12px */
   padding: 10px; /* Reduced from 16px */
-  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
   min-height: 0;
   overflow-y: auto;
   max-width: 600px;
