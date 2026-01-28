@@ -84,7 +84,7 @@
 import { useRouter } from 'vue-router'
 import { onMounted, ref, onUnmounted } from 'vue'
 import { db } from '../firebase'
-import { collection, onSnapshot } from 'firebase/firestore'
+import { collection, onSnapshot, deleteDoc, doc } from 'firebase/firestore'
 
 const router = useRouter()
 
@@ -96,19 +96,35 @@ let unsubLocks = null
 const openPracticeModal = () => showStationModal.value = true
 const closePracticeModal = () => showStationModal.value = false
 
-const goPractice = (station) => {
-    // Optional: Prevent clicking if locked? 
-    // User requested "show used", didn't strictly say "disable".
-    // But logically, if it's used, we should probably warn or let the SpeedJudgeView handle the block.
-    // SpeedJudgeView ALREADY handles the block (showing "Occupied").
-    // So here we just allow them to click, but they will see the block screen.
-    // Making it clear visually is enough.
+const goPractice = async (station) => {
+    const sId = String(station)
+
+    // CHECK: Is it locked?
+    if (lockedStations.value[sId]) {
+        // PROMPT: Ask user to confirm force entry
+        const proceed = confirm(
+            `⚠️ Station ${sId} shows as "USED".\n\n` +
+            `This happens if the previous judge didn't exit properly.\n` +
+            `Click OK to FORCE UNLOCK and enter.`
+        )
+        
+        if (!proceed) return
+
+        // ACTION: Clear the stale lock from database
+        try {
+            await deleteDoc(doc(db, 'station_locks', sId))
+        } catch (e) {
+            console.error("Failed to clear lock:", e)
+            // Continue anyway, the judge view will overwrite it
+        }
+    }
     
+    // Proceed to navigation
     router.push({ 
         path: `/judge/speed`, 
         query: { 
             test: 'true',
-            station: String(station),
+            station: sId,
             entry: `PRACTICE`
         }
     })
@@ -331,8 +347,17 @@ const exitTester = () => {
 
 .st-btn.is-locked {
     background: #fee2e2;
-    border-color: #fecaca;
+    border-color: #ef4444;
     color: #ef4444;
+    /* Ensure it still looks clickable */
+    cursor: pointer; 
+    opacity: 1;
+}
+
+/* Add hover effect to hint it's interactive */
+.st-btn.is-locked:hover {
+    background: #fecaca;
+    box-shadow: 0 0 0 2px #ef4444;
 }
 .used-tag {
     font-size: 0.6rem;
