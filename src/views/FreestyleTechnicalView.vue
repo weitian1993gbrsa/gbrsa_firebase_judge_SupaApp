@@ -72,7 +72,8 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db } from '../firebase'
-import { doc, getDoc, collection, addDoc, setDoc, serverTimestamp, updateDoc, query, where, getDocs, orderBy, limit } from 'firebase/firestore'
+// [CLEANUP] Removed unused imports
+import { doc, getDoc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore'
 
 const route = useRoute()
 const router = useRouter()

@@ -120,7 +120,8 @@
 import { ref, computed, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db } from '../firebase'
-import { doc, getDoc, updateDoc, setDoc, collection, addDoc, serverTimestamp, query, where, getDocs, orderBy, limit } from 'firebase/firestore'
+// [CLEANUP] Removed unused imports (collection, addDoc, query, where, getDocs, orderBy, limit)
+import { doc, getDoc, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 
 const route = useRoute()
 const router = useRouter()
@@ -239,6 +240,16 @@ const restoreScore = async () => {
 
 const addCount = (lvl) => {
     if(isLocked.value) return
+
+    // [FIX] Prevent accidental removal of DQ status
+    if (isDq.value) {
+        // If they are DQ'd, ask before adding points
+        if (!confirm("This jumper is marked DQ. Do you want to remove the DQ status and add points?")) {
+            return; // Stop here, do not add the point
+        }
+        isDq.value = false; // User confirmed, so clear DQ
+    }
+
     if(dqTriggered.value) {
         dqTriggered.value = false // Reset for next interaction
         return
