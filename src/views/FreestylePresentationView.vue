@@ -554,6 +554,7 @@ const submitScore = async () => {
 .hidden { visibility: hidden !important; pointer-events: none !important; }
 
 
+/* FIND THIS CLASS AND REPLACE IT */
 /* REVERTED: Restored to original full-width grid */
 .pres-grid {
   flex: 1;
