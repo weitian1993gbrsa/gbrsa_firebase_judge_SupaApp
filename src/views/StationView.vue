@@ -77,7 +77,7 @@ const { config } = useConfig()
 const route = useRoute()
 const router = useRouter()
 
-const stationId = ref(localStorage.getItem('gbrsa_allowed_station') || route.query.station || '1')
+const stationId = ref(route.query.station || localStorage.getItem('gbrsa_allowed_station') || '1')
 const participants = ref([])
 const loading = ref(true)
 let unsubscribe = null
@@ -154,7 +154,11 @@ const onCardSelect = (entry) => {
   
   console.log("Nav Logic:", { currentEvent, currentJudgeType }) // DEBUG
 
-  const q = { ...route.query, entry: entry.entry_code }
+  const q = { 
+      ...route.query, 
+      entry: entry.entry_code,
+      station: stationId.value 
+  }
 
   const isFreestyle = eventMode.value === 'freestyle' || 
                       (currentEvent && config.value.freestyleEvents.includes(currentEvent)) ||

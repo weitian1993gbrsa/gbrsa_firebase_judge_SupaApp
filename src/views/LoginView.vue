@@ -315,7 +315,8 @@ const handleLogin = async () => {
                 path: '/station', 
                 query: { 
                     event: data.event,
-                    judgeType: data.judgeType 
+                    judgeType: data.judgeType,
+                    station: data.station 
                 } 
             })
         }
