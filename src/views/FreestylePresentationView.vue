@@ -115,6 +115,14 @@ const route = useRoute()
 const router = useRouter()
 const entryCode = route.query.entry
 const station = localStorage.getItem('gbrsa_allowed_station') || route.query.station
+
+if (!station && route.query.test !== 'true') {
+    alert("CRITICAL ERROR: No Station Configuration Found.\n\nPlease return to the home screen and log in again.");
+    router.push('/');
+}
+
+const sId = station;
+
 const heat = ref("-")
 const isSubmitting = ref(false)
 const isSuccess = ref(false)
@@ -150,7 +158,7 @@ const WEIGHTS = { cre: 0.15, mus: 0.20, ent: 0.25, form: 0.25, var: 0.15 }
 onMounted(async () => {
     if(!entryCode) return
     // MIGRATE: competition/{station}/entries
-    const sId = station || '1'
+    // const sId = station || '1'
 
     // TESTER MODE
     if (route.query.test === 'true') {
@@ -331,7 +339,7 @@ const submitScore = async () => {
         }
 
         // Update Participant Status to 'done' (Crucial for Station View update)
-        const sId = station || '1' 
+        // const sId = station || '1' 
         const pRef = doc(db, "competition", sId, "entries", entryCode)
         await updateDoc(pRef, { status_presentation: true })
 

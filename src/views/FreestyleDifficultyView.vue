@@ -127,6 +127,14 @@ const router = useRouter()
 
 const entryCode = route.query.entry
 const station = localStorage.getItem('gbrsa_allowed_station') || route.query.station
+
+if (!station && route.query.test !== 'true') {
+    alert("CRITICAL ERROR: No Station Configuration Found.\n\nPlease return to the home screen and log in again.");
+    router.push('/');
+}
+
+const sId = station;
+
 const heat = ref("-")
 const isSubmitting = ref(false)
 const isSuccess = ref(false)
@@ -186,7 +194,7 @@ onMounted(async () => {
     if(entryCode) {
         // MIGRATE: station scoped
         // Note: 'station' param is required. StationView passes it.
-        const sId = station || '1' 
+        // const sId = station || '1' 
 
         // TESTER MODE
         if (route.query.test === 'true') {

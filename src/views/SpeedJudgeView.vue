@@ -174,7 +174,14 @@ const router = useRouter()
 
 // Data
 const entryCode = route.query.entry
-const station = route.query.station || localStorage.getItem('gbrsa_allowed_station')
+const station = localStorage.getItem('gbrsa_allowed_station') || route.query.station
+
+if (!station && route.query.test !== 'true') {
+    alert("CRITICAL ERROR: No Station Configuration Found.\n\nPlease return to the home screen and log in again.");
+    router.push('/');
+}
+
+const sId = station;
 const heat = ref("-")
 const participant = ref(null)
 
@@ -200,7 +207,7 @@ const tempNumpadScore = ref("0")
 onMounted(async () => {
     // Monitor Locks
     if (station !== 'TEST') {
-        const sId = station || '1'
+        // const sId = station || '1'
         
         // Acquire Lock Immediately (For both Competition AND Practice)
         await checkAndAcquireLock(sId)
