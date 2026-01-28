@@ -127,7 +127,7 @@ const route = useRoute()
 const router = useRouter()
 
 const entryCode = route.query.entry
-const station = localStorage.getItem('gbrsa_allowed_station') || route.query.station
+const station = route.query.station || localStorage.getItem('gbrsa_allowed_station')
 
 if (!station && route.query.test !== 'true') {
     alert("CRITICAL ERROR: No Station Configuration Found.\n\nPlease return to the home screen and log in again.");

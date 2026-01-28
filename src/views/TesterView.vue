@@ -99,13 +99,15 @@ const closePracticeModal = () => showStationModal.value = false
 const goPractice = async (station) => {
     const sId = String(station)
 
+    // [FIX] Clear cached station data so this device doesn't use old data
+    localStorage.removeItem('gbrsa_allowed_station');
+
     // CHECK: Is it locked?
     if (lockedStations.value[sId]) {
         // PROMPT: Ask user to confirm force entry
         const proceed = confirm(
-            `⚠️ Station ${sId} shows as "USED".\n\n` +
-            `This happens if the previous judge didn't exit properly.\n` +
-            `Click OK to FORCE UNLOCK and enter.`
+            `⚠️ Station ${sId} is being used by another device.\n\n` +
+            `Click OK to FORCE UNLOCK and overwrite that session.`
         )
         
         if (!proceed) return
