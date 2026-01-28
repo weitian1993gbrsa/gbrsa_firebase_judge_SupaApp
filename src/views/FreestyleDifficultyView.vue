@@ -241,13 +241,9 @@ const restoreScore = async () => {
 const addCount = (lvl) => {
     if(isLocked.value) return
 
-    // [FIX] Prevent accidental removal of DQ status
+    // [FIX] Strict DQ Rule: If DQ, scoring is disabled.
     if (isDq.value) {
-        // If they are DQ'd, ask before adding points
-        if (!confirm("This jumper is marked DQ. Do you want to remove the DQ status and add points?")) {
-            return; // Stop here, do not add the point
-        }
-        isDq.value = false; // User confirmed, so clear DQ
+        return; // Jumper is DQ, so ignore all score taps.
     }
 
     if(dqTriggered.value) {
@@ -255,14 +251,8 @@ const addCount = (lvl) => {
         return
     }
     
-    // Reset DQ status if they start adding points manually? 
-    // Or should DQ be permanent until reset? 
-    // Assuming adding points removes DQ status or just ignored. 
-    // Let's safe guard: adding points clears DQ if they decide to continue judging?
-    // User didn't specify, but usually if you DQ, you reset to clear it.
-    // I'll leave isDq as is, but if they add points, totalScore updates. 
-    // However, display shows DQ if isDq is true.
-    if (isDq.value) isDq.value = false
+    // Old logic removal
+    // if (isDq.value) isDq.value = false
 
     counts[lvl]++
     lastAction.value = { lvl }
