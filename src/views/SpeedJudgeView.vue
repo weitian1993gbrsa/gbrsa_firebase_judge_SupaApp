@@ -39,6 +39,8 @@
             </div>
         </div>
 
+    <div class="controls-sidebar">
+
         <!-- CONTROL BAR (Minus, Reset, FS) -->
         <div class="control-bar">
             <!-- Reset Button: Always enabled to allow unlocking/rescoring -->
@@ -82,6 +84,8 @@
              {{ isSubmitting ? '...' : 'SUBMIT' }}
           </button>
         </div>
+        
+    </div>
   
       </div>
     </main>
@@ -882,4 +886,69 @@ watch(currentScore, (val) => {
         box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
     }
     .force-btn:active { transform: scale(0.95); }
+
+/* --- MOBILE LAYOUT FIXES (PORTRAIT) --- */
+
+/* 1. Add gap to the new sidebar container */
+.controls-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem; /* Increased vertical space between Row 1 and Row 2 */
+}
+
+/* 2. Increase spacing between buttons in the rows */
+.control-bar, .bottom-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 1rem; /* Increased from 0.75rem to 1rem (16px) */
+    height: 72px; /* Increased height from 64px for easier tapping */
+}
+
+/* 3. Taller buttons for easier touch */
+.ctrl-btn, .action-btn, .submit-btn {
+    height: 100%; /* Fill the new 72px height */
+    font-size: 0.85rem; /* Slightly larger text */
+}
+
+
+/* --- TABLET/DESKTOP LAYOUT (LANDSCAPE) --- */
+@media (min-width: 768px) and (orientation: landscape) {
+    .form {
+        flex-direction: row; /* Horizontal layout */
+        align-items: stretch;
+        gap: 24px;
+        padding: 0 1rem;
+    }
+
+    .tap-hit-box {
+        flex: 2; /* Tap zone takes 66% width */
+        margin-bottom: 0;
+    }
+
+    .controls-sidebar {
+        flex: 1; /* Controls take 33% width */
+        gap: 1rem;
+        justify-content: center;
+        min-width: 260px;
+    }
+
+    /* Switch rows to columns inside the sidebar */
+    .control-bar, .bottom-actions {
+        display: flex;
+        flex-direction: column; 
+        height: auto;
+        flex: 1; 
+        gap: 16px; /* Good vertical gap between buttons */
+    }
+
+    /* Landscape button tweaks */
+    .ctrl-btn, .action-btn, .submit-btn {
+        width: 100%;
+        min-height: 64px;
+        font-size: 1rem;
+    }
+
+    .action-btn { flex-direction: row; gap: 8px; }
+    .score-display { font-size: 14vw; }
+}
 </style>
