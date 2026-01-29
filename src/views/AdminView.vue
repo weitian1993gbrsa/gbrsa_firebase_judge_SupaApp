@@ -1126,42 +1126,39 @@ const wipeAllData = async () => {
         return
     }
 
-    // Wipe Results Collections
     try {
-        const batch1 = writeBatch(db)
-        const sSnap = await getDocs(collection(db, 'results_speed'))
-        sSnap.forEach(doc => batch1.delete(doc.ref))
-        await batch1.commit()
+        // --- HELPER: Process in Safe Chunks (Max 500 limit) ---
+        const processInChunks = async (docs, operation) => {
+            const chunkSize = 450 // Safe margin below 500
+            for (let i = 0; i < docs.length; i += chunkSize) {
+                const batch = writeBatch(db)
+                const chunk = docs.slice(i, i + chunkSize)
+                chunk.forEach(d => operation(batch, d))
+                await batch.commit() // Commit one chunk at a time
+            }
+        }
 
-        const batch2 = writeBatch(db)
+        // 1. Wipe Speed Results
+        const sSnap = await getDocs(collection(db, 'results_speed'))
+        await processInChunks(sSnap.docs, (batch, doc) => batch.delete(doc.ref))
+
+        // 2. Wipe Freestyle Results
         const fSnap = await getDocs(collection(db, 'results_freestyle'))
-        fSnap.forEach(doc => batch2.delete(doc.ref))
-        await batch2.commit()
+        await processInChunks(fSnap.docs, (batch, doc) => batch.delete(doc.ref))
         
-        // Reset Participants
-        // LEGACY: Force reset ALL participants to 'normal' (remove 'scratch', 'rejump', 'dq', 'done', etc.)
-        // MIGRATE: Use collectionGroup to find all entries in all stations
+        // 3. Reset All Participants
         const pSnap = await getDocs(collectionGroup(db, "entries"))
-        const batch3 = writeBatch(db)
-        let count = 0
-        pSnap.forEach(doc => {
-             // Only update if not already normal to save writes? No, force it to be safe.
-             batch3.update(doc.ref, { 
+        await processInChunks(pSnap.docs, (batch, doc) => {
+             batch.update(doc.ref, { 
                  status: 'normal',
                  status_difficulty: false,
                  status_technical: false,
                  status_presentation: false,
                  status_re: false
              })
-             count++
-             if (count >= 490) { // Safety for batch limit (500)
-                 // In a real app we'd handle multiple batches, but for this event size 500 is likely enough.
-                 // If > 500, we'd need loop management.
-             }
         })
-        await batch3.commit()
 
-        // Broadcast
+        // 4. Broadcast Wipe Command
         await setDoc(doc(db, "broadcasts", "latest"), {
             type: 'wipe_all',
             timestamp: serverTimestamp()
@@ -1170,6 +1167,7 @@ const wipeAllData = async () => {
         alert("System Cleaned. All results wiped & Clients reset.")
         window.location.reload()
     } catch(err) {
+        console.error(err)
         alert("Wipe Failed: " + err.message)
     }
 }
