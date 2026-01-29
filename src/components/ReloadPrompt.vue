@@ -1,29 +1,32 @@
 <script setup lang="ts">
 import { useRegisterSW } from 'virtual:pwa-register/vue'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 const {
   needRefresh,
   updateServiceWorker
 } = useRegisterSW()
 
-// New Loading State
 const isUpdating = ref(false)
+
+// Logic: Keep showing if we need refresh OR if we are currently in the middle of updating
+const showModal = computed(() => needRefresh.value || isUpdating.value)
 
 const handleUpdate = async () => {
   isUpdating.value = true
-  // Force a small delay to ensure the UI updates before the browser freezes for the reload
+  
+  // Give the UI a moment to paint the "Updating..." state before the browser freezes
   setTimeout(async () => {
       await updateServiceWorker()
-  }, 50)
+  }, 100)
 }
 </script>
 
 <template>
-  <div v-if="needRefresh" class="pwa-backdrop"></div>
+  <div v-if="showModal" class="pwa-backdrop"></div>
 
   <div
-    v-if="needRefresh"
+    v-if="showModal"
     class="pwa-modal"
     role="alert"
   >
@@ -46,20 +49,26 @@ const handleUpdate = async () => {
 
     <div class="buttons">
         <button 
-          v-if="needRefresh" 
+          v-if="!isUpdating" 
           @click="handleUpdate" 
           class="reload-btn"
-          :disabled="isUpdating"
-          :style="{ opacity: isUpdating ? 0.7 : 1 }"
         >
-          {{ isUpdating ? 'Please Wait...' : 'Update Now' }}
+          Update Now
+        </button>
+        <button 
+          v-else 
+          class="reload-btn"
+          disabled 
+          style="opacity: 0.7; cursor: wait;"
+        >
+          Please Wait...
         </button>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* Backdrop */
+/* Use the styles from the previous turn */
 .pwa-backdrop {
   position: fixed;
   inset: 0;
@@ -68,7 +77,6 @@ const handleUpdate = async () => {
   z-index: 99998;
 }
 
-/* Centered Card */
 .pwa-modal {
   position: fixed;
   top: 50%;
@@ -102,7 +110,6 @@ const handleUpdate = async () => {
 }
 .icon { width: 28px; height: 28px; }
 
-/* Simple Spinner Animation */
 .spinner { animation: spin 1s linear infinite; }
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 
