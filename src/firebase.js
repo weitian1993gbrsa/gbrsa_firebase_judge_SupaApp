@@ -1,6 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
+import { getAuth, signInAnonymously } from "firebase/auth"; //
 
 const firebaseConfig = {
     apiKey: "AIzaSyAhHloO2GrXk6STzPYtjrUlA9e1uwyKDAo",
@@ -15,6 +16,12 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
+const auth = getAuth(app); // Re-initialize Auth
 
-// We export only what we use. 'auth' is removed to stop the 400 error.
-export { db, storage };
+// AUTO-LOGIN: Assigns a silent User ID to the device.
+// This prevents permission errors and stabilizes connections.
+signInAnonymously(auth).catch((error) => {
+    console.error("Auth Error (Did you enable Anonymous in Console?):", error);
+});
+
+export { db, storage, auth };
