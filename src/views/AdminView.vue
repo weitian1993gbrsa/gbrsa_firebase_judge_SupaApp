@@ -1651,6 +1651,112 @@ const exportPDF = async (isOfficial = false) => {
 }
 
 // --- BROADCAST ---
+    async function exportTeamResults() {
+        console.log("[Admin] Team Export started...");
+        const eventName = filterEvent.value;
+        const divName = filterDivision.value;
+
+        if (!eventName) {
+            alert("Please select an Event first.");
+            return;
+        }
+        
+        // Use fullData because live logic already has integrated names/scores
+        let sourceData = fullData.value;
+
+        // 1. Filter by current selection (limited by Event/Div)
+        let filtered = sourceData.filter(r => r.event === eventName);
+        if (divName) {
+            filtered = filtered.filter(r => r.division === divName);
+        }
+
+        if (filtered.length === 0) {
+            alert("No data found for this selection.");
+            return;
+        }
+
+        // 2. Group by Team
+        const groupsByTeam = {};
+        filtered.forEach(r => {
+            const team = r.team || "Independent / Unknown";
+            if (!groupsByTeam[team]) groupsByTeam[team] = [];
+            groupsByTeam[team].push(r);
+        });
+
+        // 3. Sub-sort within each team group
+        const teamNames = Object.keys(groupsByTeam).sort();
+        teamNames.forEach(team => {
+            groupsByTeam[team].sort((a, b) => (a.division || "").localeCompare(b.division || ""));
+        });
+
+        // 4. Generate PDF
+        const doc = new jsPDF();
+
+        doc.setFontSize(22);
+        doc.text("TEAM SUMMARY RESULTS", 105, 20, { align: "center" });
+        doc.setFontSize(14);
+        doc.text(`${eventName} • ${divName || "All Divisions"}`, 105, 30, { align: "center" });
+        doc.line(15, 35, 195, 35);
+
+        let y = 45;
+        teamNames.forEach((team, idx) => {
+            if (y > 250) { doc.addPage(); y = 20; }
+            doc.setFontSize(14);
+            doc.setFont("helvetica", "bold");
+            doc.setTextColor(70, 51, 245);
+            doc.text(`TEAM: ${team}`, 15, y);
+            y += 8;
+            doc.setTextColor(0);
+
+            groupsByTeam[team].forEach(r => {
+                doc.setFontSize(10);
+                doc.setFont("helvetica", "normal");
+                
+                // Name construction
+                const names = [r.name1, r.name2, r.name3, r.name4].filter(n => n).join(", ") || r.name;
+                
+                doc.text(`• ${names}`, 20, y);
+                doc.text(`${r.division}`, 120, y);
+                
+                // --- FIX: Handle Status (DQ, Scratch) ---
+                let scoreText = "";
+                
+                if (r.status === 'scratch') scoreText = "SCRATCH";
+                else if (r.status === 'dq') scoreText = "DQ";
+                else if (r.status === 'rejump') scoreText = "RE-JUMP";
+                else {
+                    // Calculate score if missing
+                    let score = r.finalScore;
+                    if(score == null) {
+                        if (activeView.value === 'freestyle') score = calculateScore(r)
+                        else {
+                            score = r.score
+                            if (r.false_start === true || String(r.false_start).toLowerCase() === 'yes') {
+                                score = (Number(score)||0) - 10
+                            }
+                        }
+                    }
+                    // Only show number if score is valid
+                    if (score !== null && score !== undefined && score !== '') {
+                        scoreText = parseFloat(score).toFixed(2);
+                    } else {
+                        scoreText = "-";
+                    }
+                }
+
+                doc.setFont("helvetica", "bold");
+                // Label the score clearly
+                doc.text(`Score: ${scoreText}`, 170, y);
+                y += 6;
+                if (y > 275) { doc.addPage(); y = 20; }
+            });
+            y += 8;
+        });
+
+        doc.save(`${eventName}_Team_Results.pdf`);
+    }
+
+// --- BROADCAST ---
 const sendAlert = async () => {
     if(!broadcastMsg.value) return
     await setDoc(doc(db, 'broadcasts', 'latest'), {
