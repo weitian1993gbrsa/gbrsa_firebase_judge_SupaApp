@@ -1,6 +1,5 @@
 <template>
   <div class="wrapper anim-up" :class="{ 'form-locked': isLocked }">
-    <!-- Header -->
     <header class="judge-header">
       <button class="btn-back" @click="goBack">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -17,19 +16,16 @@
       </button>
     </header>
 
-    <!-- Controls -->
     <div class="control-row">
       <button class="btn-undo" :class="{ hidden: !history.length }" @click="undo" :disabled="isLocked">Undo</button>
       <div class="total-score">RE (Missing: {{ missing }})</div>
       <button class="btn-reset" @click="resetScore">Reset</button>
     </div>
 
-    <!-- Scroll Container -->
     <div id="reScroll">
       <div id="reContainer">
           
         <div v-for="cat in categories" :key="cat.key" class="re-item">
-            <!-- HALF (+0.5) -->
             <button 
                 class="re-btn-half" 
                 :class="{ disabled: values[cat.key] >= 4 }"
@@ -40,14 +36,12 @@
                 <span class="re-btn-val">+½</span>
             </button>
 
-            <!-- CENTER PILL -->
             <div class="re-value-pill">
                 <span>{{ formatValue(values[cat.key]) }}</span>
                 <span class="slash">/</span>
                 <span>4</span>
             </div>
 
-            <!-- FULL (+1) -->
             <button 
                 class="re-btn-full" 
                 :class="{ disabled: values[cat.key] >= 4 }"
@@ -59,17 +53,13 @@
             </button>
         </div>
 
-
-
-      </div>
+        </div>
     </div>
 
-    <!-- Locked Stamp -->
     <Teleport to="body">
        <div v-if="isLocked" class="locked-stamp">COMPLETED</div>
     </Teleport>
 
-    <!-- Overlay -->
     <Teleport to="body">
         <div class="overlay" :class="{ show: isSubmitting, success: isSuccess }">
             <div class="overlay-card">
@@ -444,14 +434,13 @@ const submitScore = async () => {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding: 1rem;
-  /* REDUCED: Changed from 2.5rem to 1rem to match side padding + safe area */
+  /* CHANGED: Optimized padding to remove dead space but keep safe area */
   padding-bottom: calc(1rem + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   min-height: 0;
 }
 
-/* REVERTED: Restored original flex column layout */
 #reContainer {
   flex: 1;
   display: flex;
@@ -461,7 +450,7 @@ const submitScore = async () => {
   margin: 0 auto;
   width: 100%;
   min-height: 100%;
-  /* REMOVED: padding-bottom: 20px; */
+  /* CHANGED: Removed extra bottom padding */
   padding-bottom: 0;
 }
 
@@ -543,7 +532,7 @@ const submitScore = async () => {
   letter-spacing: 0.5px;
 }
 
-.bottom-spacer { height: 0; display: none; } /* Alternatively, just hide it via CSS if you kept the tag */
+/* REMOVED: .bottom-spacer { height: 20px; } */
 
 /* OVERLAY */
 .overlay {
@@ -606,7 +595,6 @@ const submitScore = async () => {
   background: rgba(15, 23, 42, 0.85);
   backdrop-filter: blur(8px);
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
-  /* ANIMATION REMOVED */
 }
 
 </style>

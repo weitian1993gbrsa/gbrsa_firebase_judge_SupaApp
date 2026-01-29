@@ -1,6 +1,5 @@
 <template>
   <div class="wrapper" :class="{ 'form-locked': isLocked }">
-    <!-- Header -->
     <header class="judge-header">
       <button class="btn-back" @click="goBack">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -17,14 +16,12 @@
       </button>
     </header>
 
-    <!-- Controls -->
     <div class="control-row">
       <button class="btn-undo" :class="{ hidden: !history.length }" @click="undo" :disabled="isLocked">Undo</button>
       <div class="total-card-plain">Technical</div>
       <button class="btn-reset" @click="resetScore">Reset</button>
     </div>
 
-    <!-- Grid -->
     <div class="grid anim-up">
       <button class="skill-btn miss-btn" @click="addCount('misses')" :disabled="isLocked">
         <div class="block-label">MISSES</div>
@@ -42,12 +39,10 @@
       </button>
     </div>
   
-    <!-- Locked Stamp -->
     <Teleport to="body">
        <div v-if="isLocked" class="locked-stamp">COMPLETED</div>
     </Teleport>
 
-    <!-- Overlay -->
     <Teleport to="body">
         <div class="overlay" :class="{ show: isSubmitting, success: isSuccess }">
             <div class="overlay-card">
@@ -460,7 +455,8 @@ const submitScore = async () => {
       grid-auto-rows: 1fr;
       gap: 14px;
       padding: 16px;
-      padding-bottom: calc(120px + env(safe-area-inset-bottom));
+      /* CHANGED: Match side padding + safe area */
+      padding-bottom: calc(16px + env(safe-area-inset-bottom));
       min-height: 0;
       overflow-y: auto;
       max-width: 600px;
