@@ -59,7 +59,7 @@
             </button>
         </div>
 
-        <div class="bottom-spacer"></div>
+
 
       </div>
     </div>
@@ -444,7 +444,8 @@ const submitScore = async () => {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding: 1rem;
-  padding-bottom: calc(2.5rem + env(safe-area-inset-bottom));
+  /* REDUCED: Changed from 2.5rem to 1rem to match side padding + safe area */
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -460,7 +461,8 @@ const submitScore = async () => {
   margin: 0 auto;
   width: 100%;
   min-height: 100%;
-  padding-bottom: 20px;
+  /* REMOVED: padding-bottom: 20px; */
+  padding-bottom: 0;
 }
 
 .re-item {
@@ -541,7 +543,7 @@ const submitScore = async () => {
   letter-spacing: 0.5px;
 }
 
-.bottom-spacer { height: 20px; }
+.bottom-spacer { height: 0; display: none; } /* Alternatively, just hide it via CSS if you kept the tag */
 
 /* OVERLAY */
 .overlay {
