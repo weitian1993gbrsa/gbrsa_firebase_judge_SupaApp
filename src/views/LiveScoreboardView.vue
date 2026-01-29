@@ -499,27 +499,27 @@ h1 { font-weight: 900; letter-spacing: 0.1em; color: white; font-size: 3rem; mar
 
 /* 1 STATION */
 .grid-1 { grid-template-columns: 1fr; padding: 2rem; }
-.grid-1 .score-val { font-size: 65cqh; } /* Maximize for single view */
+.grid-1 .score-val { font-size: 80cqmin; } /* Maximize for single view */
 
 /* 2 STATIONS */
 .grid-2 { grid-template-columns: 1fr 1fr; }
-.grid-2 .score-val { font-size: 55cqh; }
+.grid-2 .score-val { font-size: 60cqmin; }
 
 /* 4 STATIONS (2x2) */
 .grid-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
-.grid-4 .score-val { font-size: 90cqh; }
+.grid-4 .score-val { font-size: 90cqmin; }
 
 /* 6 STATIONS (3x2) */
 .grid-6 { grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr; }
-.grid-6 .score-val { font-size: 72cqh; }
+.grid-6 .score-val { font-size: 72cqmin; }
 
 /* 8 STATIONS (4x2) */
 .grid-8 { grid-template-columns: repeat(4, 1fr); grid-template-rows: 1fr 1fr; }
-.grid-8 .score-val { font-size: 60cqh; }
+.grid-8 .score-val { font-size: 60cqmin; }
 
 /* 12 STATIONS (4x3) */
 .grid-12 { grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(3, 1fr); }
-.grid-12 .score-val { font-size: 60cqh; }
+.grid-12 .score-val { font-size: 73cqmin; }
 
 /* MODAL STYLES */
 .modal-backdrop {
