@@ -174,7 +174,7 @@ onMounted(async () => {
     unsub = onSnapshot(collection(db, 'live_scores'), (snap) => {
         snap.docChanges().forEach((change) => {
             if (change.type === "added" || change.type === "modified") {
-                const data = change.doc.data()
+                const data = change.doc.data() || {}
                 const s = data.station
                 if (s) {
                     liveData[s] = data
@@ -226,7 +226,6 @@ const tweenScore = (station, targetVal) => {
         }
     }
     
-    activeTweens[station] = requestAnimationFrame(animate)
     activeTweens[station] = requestAnimationFrame(animate)
 }
 
