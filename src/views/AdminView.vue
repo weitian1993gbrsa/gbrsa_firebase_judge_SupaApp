@@ -1095,21 +1095,35 @@ const handleAction = async (row, action, event) => {
                 doc.text(`• ${names}`, 20, y);
                 doc.text(`${r.division}`, 120, y);
                 
-                // Calculate score if missing (helper usually available or logic inline)
-                // Calculate score if missing
-                 let score = r.finalScore;
-                 if(score == null) {
-                     if (activeView.value === 'freestyle') score = calculateScore(r)
-                     else {
-                         score = r.score
-                         if (r.false_start === true || String(r.false_start).toLowerCase() === 'yes') {
-                             score = (Number(score)||0) - 10
-                         }
-                     }
-                 }
+                // --- FIX: Handle Status (DQ, Scratch) ---
+                let scoreText = "";
+                
+                if (r.status === 'scratch') scoreText = "SCRATCH";
+                else if (r.status === 'dq') scoreText = "DQ";
+                else if (r.status === 'rejump') scoreText = "RE-JUMP";
+                else {
+                    // Calculate score if missing
+                    let score = r.finalScore;
+                    if(score == null) {
+                        if (activeView.value === 'freestyle') score = calculateScore(r)
+                        else {
+                            score = r.score
+                            if (r.false_start === true || String(r.false_start).toLowerCase() === 'yes') {
+                                score = (Number(score)||0) - 10
+                            }
+                        }
+                    }
+                    // Only show number if score is valid
+                    if (score !== null && score !== undefined && score !== '') {
+                        scoreText = parseFloat(score).toFixed(2);
+                    } else {
+                        scoreText = "-";
+                    }
+                }
 
                 doc.setFont("helvetica", "bold");
-                doc.text(`Score: ${parseFloat(score || 0).toFixed(2)}`, 170, y);
+                // Label the score clearly
+                doc.text(`Score: ${scoreText}`, 170, y);
                 y += 6;
                 if (y > 275) { doc.addPage(); y = 20; }
             });
