@@ -1,7 +1,6 @@
 <template>
   <div class="wrapper anim-up" :class="{ 'form-locked': isLocked }">
     
-    <!-- PAGE 1: SCORING GRID -->
     <section v-show="page === 1" class="page" id="page1" style="display: flex;">
         <header class="judge-header">
             <button class="btn-back" @click="goBack">
@@ -38,7 +37,6 @@
         </div>
     </section>
 
-    <!-- PAGE 2: SUMMARY SLIDERS -->
     <section v-show="page === 2" class="page" id="page2" style="display: flex;">
         <header class="judge-header">
             <button class="btn-back" @click="page = 1">
@@ -59,10 +57,11 @@
             <div id="summaryContainer">
               <div v-for="cat in categories" :key="cat.key" class="row">
                    <button class="box-minus" @click="adjustSlider(cat.key, -1)" :disabled="isLocked">
-                       <div class="label-text">{{ cat.label }}</div>
+                       <div class="label-text">{{ cat.minusLabel || cat.label }}</div>
                        <div class="symbol">-</div>
                    </button>
-                   <div style="display:flex; flex-direction:column; justify-content:center; flex:1;">
+                   
+                   <div class="slider-group">
                        <div class="level-labels">
                            <div>0</div>
                            <div :id="'val_'+cat.key" style="color:var(--text); font-size:18px; font-weight:900;">{{ summaryVals[cat.key] }}</div>
@@ -70,8 +69,9 @@
                        </div>
                        <input type="range" min="0" max="24" v-model.number="summaryVals[cat.key]" class="summary-slider" :disabled="isLocked">
                    </div>
+
                    <button class="box-plus" @click="adjustSlider(cat.key, 1)" :disabled="isLocked">
-                       <div class="label-text">{{ cat.label }}</div>
+                       <div class="label-text">{{ cat.plusLabel || cat.label }}</div>
                        <div class="symbol">+</div>
                    </button>
               </div>
@@ -79,12 +79,10 @@
         </div>
     </section>
     
-    <!-- Locked Stamp -->
     <Teleport to="body">
        <div v-if="isLocked" class="locked-stamp">COMPLETED</div>
     </Teleport>
 
-    <!-- Overlay -->
     <Teleport to="body">
         <div class="overlay" :class="{ show: isSubmitting, success: isSuccess }">
             <div class="overlay-card">
@@ -147,7 +145,13 @@ const categories = [
     { key: "mus", label: "Musicality" },
     { key: "ent", label: "Entertainment" },
     { key: "form", label: "Form" },
-    { key: "var", label: "Variety" }
+    // UPDATE: Split labels for Minus (Repetition) and Plus (Variety)
+    { 
+        key: "var", 
+        label: "Variety / Repetition", 
+        minusLabel: "Repetition", 
+        plusLabel: "Variety" 
+    }
 ]
 
 const summaryVals = ref({ cre: 12, mus: 12, ent: 12, form: 12, var: 12 })
@@ -554,15 +558,15 @@ const submitScore = async () => {
 .hidden { visibility: hidden !important; pointer-events: none !important; }
 
 
-/* FIND THIS CLASS AND REPLACE IT */
-/* REVERTED: Restored to original full-width grid */
+/* GRID FIX: Removed large bottom padding */
 .pres-grid {
   flex: 1;
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 12px;
-  padding: 24px 16px 120px 16px;
-  padding-bottom: calc(120px + env(safe-area-inset-bottom));
+  padding: 24px 16px;
+  /* Reduced bottom padding to match safe area only */
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
   overflow-y: auto;
 }
 
@@ -621,27 +625,45 @@ const submitScore = async () => {
   flex-shrink: 0;
 }
 
-/* REVERTED: Restored original summary scroll */
+/* CONTAINER FIX: Flex column to fill height */
 #summaryScroll {
   flex: 1;
   overflow-y: auto;
   padding: 24px 16px;
-  padding-bottom: calc(40px + env(safe-area-inset-bottom));
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  display: flex;
+  flex-direction: column;
 }
 
+#summaryContainer {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    /* Distribute space evenly between rows */
+    justify-content: space-evenly;
+    min-height: 100%;
+}
+
+/* ROW FIX: Center items, do not stretch buttons */
 .row {
   display: grid;
   grid-template-columns: 1fr 2fr 1fr;
   gap: 12px;
-  align-items: center;
-  margin-bottom: 20px;
+  /* CHANGED: Center items vertically, prevents button stretching */
+  align-items: center; 
   margin-left: auto;
   margin-right: auto;
+  width: 100%;
+  flex: 1; /* Allow row to occupy space */
+  min-height: 120px; /* INCREASED */
 }
 
+/* BUTTON FIX: Fixed height */
 .box-minus, .box-plus {
   color: white;
-  height: 110px;
+  /* CHANGED: Fixed height instead of 100% */
+  height: 120px; /* INCREASED */
+  width: 100%;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -661,6 +683,13 @@ const submitScore = async () => {
 
 .label-text { font-size: 10px; text-transform: uppercase; margin-bottom: 4px; text-align: center; }
 .symbol { font-size: 24px; font-weight: 900; }
+
+.slider-group {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    width: 100%;
+}
 
 .level-labels { display: flex; justify-content: space-between; font-size: 14px; font-weight: 800; margin-bottom: 4px; padding: 0 4px; color: #64748b; }
 
