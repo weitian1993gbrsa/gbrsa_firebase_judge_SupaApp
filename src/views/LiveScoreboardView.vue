@@ -1,6 +1,5 @@
 <template>
   <div class="page scoreboard">
-    <!-- AUTH OVERLAY -->
     <div v-if="!isAuthenticated" class="auth-container">
         <div class="auth-box">
             <h2>LIVESCORE ACCESS</h2>
@@ -10,7 +9,6 @@
         </div>
     </div>
 
-    <!-- MAIN GRID CONTAINER WRAPPER FOR ZOOM -->
     <div v-if="isAuthenticated" class="zoom-wrapper" :class="{ 'cursor-hidden': cursorHidden }" :style="containerStyle" @dblclick="isProjectorMode ? toggleFullScreen() : null">
         <header class="sb-header">
              <div class="brand">
@@ -28,7 +26,6 @@
                 style="cursor: pointer"
             >
             <div class="card-header">
-                <!-- REMOVED LABEL -->
                 <span class="st-num">{{ s }}</span>
             </div>
             
@@ -47,17 +44,13 @@
                 </div>
             </div>
 
-            <!-- STATUS STAMP OVERLAY -->
             <div v-if="getStatus(s)" class="card-stamp" :class="getStatusClass(s)">
                 {{ getStatus(s) }}
             </div>
         </div>
 
     </main>
-    </div> <!-- END ZOOM WRAPPER -->
-
-    <!-- CONTROL MODAL -->
-    <div v-if="selectedStation" class="modal-backdrop" @click.self="closeModal">
+    </div> <div v-if="selectedStation" class="modal-backdrop" @click.self="closeModal">
         <div class="modal-card">
             <h3>STATION {{ selectedStation }}</h3>
             <div class="status-actions">
@@ -67,7 +60,6 @@
             </div>
         </div>
     </div>
-    <!-- SETTINGS OVERLAY -->
     <div v-if="showSettings" class="settings-overlay">
         <div class="settings-card">
             <h3>Display Settings</h3>
@@ -88,7 +80,6 @@
         </div>
     </div>
 
-    <!-- SAFE AREA GUIDE -->
     <div v-if="showSafeArea && isAuthenticated" class="safe-area-border"></div>
   </div>
 </template>
@@ -424,6 +415,9 @@ h1 { font-weight: 900; letter-spacing: 0.1em; color: white; font-size: 3rem; mar
     position: relative;
     box-shadow: 0 4px 6px -1px rgba(0,0,0,0.3);
     transition: transform 0.1s;
+    
+    /* [CRITICAL FIX] Enable container queries for this card */
+    container-type: size;
 }
 
 .card-header {
@@ -500,31 +494,32 @@ h1 { font-weight: 900; letter-spacing: 0.1em; color: white; font-size: 3rem; mar
     color: #f97316; border-color: #f97316; background: rgba(0,0,0,0.6);
 }
 
-/* DYNAMIC SIZES - INCREASED */
+/* DYNAMIC SIZES - AUTOMATIC ADJUSTMENT (Responsive to Container Height) */
+/* Uses cqh (Container Query Height) to scale text relative to the card size */
 
 /* 1 STATION */
 .grid-1 { grid-template-columns: 1fr; padding: 2rem; }
-.grid-1 .score-val { font-size: 55rem; }
+.grid-1 .score-val { font-size: 65cqh; } /* Maximize for single view */
 
 /* 2 STATIONS */
 .grid-2 { grid-template-columns: 1fr 1fr; }
-.grid-2 .score-val { font-size: 30rem; }
+.grid-2 .score-val { font-size: 55cqh; }
 
 /* 4 STATIONS (2x2) */
 .grid-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
-.grid-4 .score-val { font-size: 20rem; }
+.grid-4 .score-val { font-size: 90cqh; }
 
 /* 6 STATIONS (3x2) */
 .grid-6 { grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr; }
-.grid-6 .score-val { font-size: 18rem; }
+.grid-6 .score-val { font-size: 72cqh; }
 
 /* 8 STATIONS (4x2) */
 .grid-8 { grid-template-columns: repeat(4, 1fr); grid-template-rows: 1fr 1fr; }
-.grid-8 .score-val { font-size: 15rem; }
+.grid-8 .score-val { font-size: 60cqh; }
 
 /* 12 STATIONS (4x3) */
 .grid-12 { grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(3, 1fr); }
-.grid-12 .score-val { font-size: 10rem; }
+.grid-12 .score-val { font-size: 60cqh; }
 
 /* MODAL STYLES */
 .modal-backdrop {
