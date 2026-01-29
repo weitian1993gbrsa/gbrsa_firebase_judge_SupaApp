@@ -364,18 +364,20 @@ const handleNavError = (err) => {
 
 <style scoped>
 .page-wrapper {
-  min-height: 100dvh;
+  min-height: 100dvh; /* Dynamic Viewport Height */
   width: 100%;
   overflow-x: hidden;
-  /* REMOVED: overflow-y: auto (Let #app handle scrolling) */
+  
+  /* FLEX LAYOUT */
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* REMOVED: justify-content: space-between (Use auto margins instead) */
-  padding: 2rem;
-  padding-bottom: env(safe-area-inset-bottom, 2rem); /* Safety for iPhone home bar */
   
-  /* Modern Flow Background (Blue -> Gold) */
+  padding: 2rem;
+  /* Ensure we respect iPhone Home Bar area */
+  padding-bottom: env(safe-area-inset-bottom, 2rem); 
+  
+  /* Background (Unchanged) */
   background-color: #f8fafc;
   background-image: linear-gradient(135deg,
       rgba(30, 58, 138, 0.05) 0%,
@@ -388,20 +390,15 @@ const handleNavError = (err) => {
   position: relative;
 }
 
-/* Helper to center the card vertically if there's space */
+/* Helper to center the card vertically */
 .glass-card-wrapper {
-    /* REMOVED: flex: 1 */
-    width: 100%;
+    flex: 1; /* Takes up all empty space */
     display: flex;
     flex-direction: column;
-    justify-content: center;
+    justify-content: center; /* Vertically Centers Card */
     align-items: center;
-    
-    /* ADDED: Auto margins handle vertical centering perfectly */
-    margin-top: auto;
-    margin-bottom: auto; 
-    
-    padding: 2rem 0; /* Add breathing room */
+    width: 100%;
+    padding: 2rem 0;
 }
 
 /* Animation */
@@ -531,19 +528,22 @@ const handleNavError = (err) => {
   transition: opacity 0.2s;
 }
 
+/* === UPDATED FOOTER === */
 .foot { 
-  /* REMOVED: position: absolute; bottom: 3rem; */
-  /* ADDED: Flex behavior */
-  margin-top: 2rem; /* Ensure minimal space from card */
-  flex-shrink: 0;   /* Prevent crushing if screen is small */
+  position: relative; /* Not absolute */
+  margin-top: 2rem;
+  
+  /* Controls height from bottom - Increase this to move it higher */
+  padding-bottom: 3rem; 
   
   color: #94a3b8; 
   font-size: 0.85rem; 
   text-align: center;
+  flex-shrink: 0;
 }
 
 @media (max-height: 600px) {
-  .foot { display: none; }
+  .foot { display: none; } /* Hide on very small screens to save space */
 }
 
 .btn-secondary {
