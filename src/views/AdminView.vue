@@ -515,29 +515,32 @@ const setupListeners = () => {
     // LIVE MODE (Filtered)
     console.log("[Admin] Mode: LIVE (Focused on " + filterEvent.value + ")")
     
-    // MIGRATE: collectionGroup('entries')
-    // We listen to Entries FILTERED (Saving 90% of reads)
+    // A. Listen to Participants (Filtered by Event = CHEAP)
     let qP = query(collectionGroup(db, 'entries'), where("event", "==", filterEvent.value))
     
-    // We listen to Results GLOBALLY (Unfiltered) because results don't have 'event' field
-    // This is a trade-off: We save on Entries, but pay for Results.
-    // Since we are in "Live Mode" (Focused), this is acceptable to ensure data appears.
-    let qS = collection(db, 'results_speed')
-    let qF = collection(db, 'results_freestyle')
-
     unsubs.push(onSnapshot(qP, snap => {
         participants.value = snap.docs.map(d => ({ ...d.data(), id: d.id, _path: d.ref.path }))
     }, err => console.error("Snapshot Error", err)))
 
-    unsubs.push(onSnapshot(qS, snap => {
-        // PERFORMANCE: Filter locally immediately to avoid giant array in memory if possible?
-        // Note: Firestore SDK still reads all documents cost-wise, but we can't filter server-side without index/schema change.
-        resultsSpeed.value = snap.docs.map(d => ({ ...d.data(), id: d.id }))
-    }))
-
-    unsubs.push(onSnapshot(qF, snap => {
-        resultsFreestyle.value = snap.docs.map(d => ({ ...d.data(), id: d.id }))
-    }))
+    // B. Listen to Results (Conditional = SMART)
+    // Only listen to the collection that matches the current view
+    if (activeView.value === 'speed') {
+        let qS = collection(db, 'results_speed')
+        unsubs.push(onSnapshot(qS, snap => {
+            resultsSpeed.value = snap.docs.map(d => ({ ...d.data(), id: d.id }))
+        }))
+        // Clear Freestyle to free memory
+        resultsFreestyle.value = []
+    } 
+    else {
+        // Freestyle (or others)
+        let qF = collection(db, 'results_freestyle')
+        unsubs.push(onSnapshot(qF, snap => {
+            resultsFreestyle.value = snap.docs.map(d => ({ ...d.data(), id: d.id }))
+        }))
+        // Clear Speed to free memory
+        resultsSpeed.value = []
+    }
 }
 
 const fetchMetadata = async () => {
