@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [
     vue(),
     VitePWA({
-      // CHANGED: Switch from 'autoUpdate' to 'prompt' for manual control
+      // 1. CHANGE THIS from 'autoUpdate' to 'prompt'
       registerType: 'prompt',
       includeAssets: ['favicon.ico', 'apple-icon-180.png', 'mask-icon.svg', 'logo.svg'],
       manifest: {
@@ -45,8 +45,12 @@ export default defineConfig({
       },
       workbox: {
         cleanupOutdatedCaches: true,
-        // CHANGED: Removed 'skipWaiting: true' and 'clientsClaim: true' 
-        // to prevent the Service Worker from taking over immediately.
+
+        // 2. IMPORTANT: REMOVE or set to false. 
+        // Do NOT use skipWaiting: true, otherwise it skips your prompt!
+        // skipWaiting: true,  <-- DELETE THIS LINE
+        // clientsClaim: true, <-- DELETE THIS LINE
+
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
@@ -55,7 +59,7 @@ export default defineConfig({
               cacheName: 'google-fonts-cache',
               expiration: {
                 maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+                maxAgeSeconds: 60 * 60 * 24 * 365
               },
               cacheableResponse: {
                 statuses: [0, 200]
@@ -69,7 +73,7 @@ export default defineConfig({
               cacheName: 'gstatic-fonts-cache',
               expiration: {
                 maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 365 // <== 365 days
+                maxAgeSeconds: 60 * 60 * 24 * 365
               },
               cacheableResponse: {
                 statuses: [0, 200]
@@ -83,7 +87,7 @@ export default defineConfig({
               cacheName: 'images',
               expiration: {
                 maxEntries: 60,
-                maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
+                maxAgeSeconds: 30 * 24 * 60 * 60,
               },
             },
           },
