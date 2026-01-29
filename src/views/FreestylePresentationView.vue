@@ -114,7 +114,7 @@ import { doc, getDoc, collection, addDoc, setDoc, serverTimestamp, updateDoc, qu
 const route = useRoute()
 const router = useRouter()
 const entryCode = route.query.entry
-const station = route.query.station || localStorage.getItem('gbrsa_allowed_station')
+const station = route.query.station || sessionStorage.getItem('gbrsa_allowed_station')
 
 if (!station && route.query.test !== 'true') {
     alert("CRITICAL ERROR: No Station Configuration Found.\n\nPlease return to the home screen and log in again.");
@@ -317,7 +317,7 @@ const submitScore = async () => {
     
                 // Raw Auditable Data
                 counts: counts.value,
-                judge_key: localStorage.getItem('gbrsa_access_key') || 'unknown',
+                judge_key: sessionStorage.getItem('gbrsa_access_key') || 'unknown',
                 updated_at: serverTimestamp()
             },
             

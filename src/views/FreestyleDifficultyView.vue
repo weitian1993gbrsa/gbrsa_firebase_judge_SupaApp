@@ -127,7 +127,7 @@ const route = useRoute()
 const router = useRouter()
 
 const entryCode = route.query.entry
-const station = route.query.station || localStorage.getItem('gbrsa_allowed_station')
+const station = route.query.station || sessionStorage.getItem('gbrsa_allowed_station')
 
 if (!station && route.query.test !== 'true') {
     alert("CRITICAL ERROR: No Station Configuration Found.\n\nPlease return to the home screen and log in again.");
@@ -294,7 +294,7 @@ const submitScore = async () => {
                 score: isDq.value ? 0 : Number(totalScore.value.toFixed(2)),
                 dq: isDq.value,
                 counts: { ...counts },
-                judge_key: localStorage.getItem('gbrsa_access_key') || 'unknown',
+                judge_key: sessionStorage.getItem('gbrsa_access_key') || 'unknown',
                 updated_at: serverTimestamp()
             },
             station: station,

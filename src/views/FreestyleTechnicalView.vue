@@ -78,7 +78,7 @@ import { doc, getDoc, setDoc, serverTimestamp, updateDoc } from 'firebase/firest
 const route = useRoute()
 const router = useRouter()
 const entryCode = route.query.entry
-const station = route.query.station || localStorage.getItem('gbrsa_allowed_station')
+const station = route.query.station || sessionStorage.getItem('gbrsa_allowed_station')
 
 if (!station && route.query.test !== 'true') {
     alert("CRITICAL ERROR: No Station Configuration Found.\n\nPlease return to the home screen and log in again.");
@@ -197,7 +197,7 @@ const submitScore = async () => {
                 breaks: counts.value.breaks,
                 space_violation: counts.value.space,
                 score: finalScore,
-                judge_key: localStorage.getItem('gbrsa_access_key') || 'unknown',
+                judge_key: sessionStorage.getItem('gbrsa_access_key') || 'unknown',
                 updated_at: serverTimestamp()
             },
             
