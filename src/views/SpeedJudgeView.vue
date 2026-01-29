@@ -178,7 +178,7 @@ const router = useRouter()
 
 // Data
 const entryCode = route.query.entry
-const station = route.query.station || localStorage.getItem('gbrsa_allowed_station')
+const station = route.query.station || sessionStorage.getItem('gbrsa_allowed_station')
 
 if (!station && route.query.test !== 'true') {
     alert("CRITICAL ERROR: No Station Configuration Found.\n\nPlease return to the home screen and log in again.");
@@ -354,7 +354,7 @@ const acquireLock = async (sId) => {
     try {
         await setDoc(doc(db, 'station_locks', String(sId)), {
             session_id: mySessionId,
-            judge_key: localStorage.getItem('gbrsa_access_key') || 'anon',
+            judge_key: sessionStorage.getItem('gbrsa_access_key') || 'anon',
             locked_at: serverTimestamp()
         })
         hasLock.value = true
@@ -368,7 +368,7 @@ const acquireLock = async (sId) => {
 const forceUnlock = async () => {
     if (station === 'TEST') return
     if (!confirm("Are you sure? Only do this if the other judge device is dead.")) return
-    const sId = station || localStorage.getItem('gbrsa_allowed_station')
+    const sId = station || sessionStorage.getItem('gbrsa_allowed_station')
     await acquireLock(sId) // Overwrite existing lock
 }
 
@@ -457,7 +457,7 @@ const submitScore = async () => {
             false_start: falseStart.value,
             remark: remark.value,
             station: station,
-            judge_key: localStorage.getItem('gbrsa_access_key') || 'unknown',
+            judge_key: sessionStorage.getItem('gbrsa_access_key') || 'unknown',
             created_at: serverTimestamp() 
         }
 

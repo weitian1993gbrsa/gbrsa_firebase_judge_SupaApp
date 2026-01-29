@@ -308,8 +308,8 @@ const handleLogin = async () => {
         }
         else if (role === 'judge') {
             // JUDGE
-            localStorage.setItem('gbrsa_access_key', key)
-            localStorage.setItem('gbrsa_allowed_station', data.station)
+            sessionStorage.setItem('gbrsa_access_key', key)
+            sessionStorage.setItem('gbrsa_allowed_station', data.station)
             
             await safeNavigate({ 
                 path: '/station', 

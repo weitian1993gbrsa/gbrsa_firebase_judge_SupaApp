@@ -77,7 +77,7 @@ const { config } = useConfig()
 const route = useRoute()
 const router = useRouter()
 
-const stationId = ref(route.query.station || localStorage.getItem('gbrsa_allowed_station') || '1')
+const stationId = ref(route.query.station || sessionStorage.getItem('gbrsa_allowed_station') || '1')
 const participants = ref([])
 const loading = ref(true)
 let unsubscribe = null
