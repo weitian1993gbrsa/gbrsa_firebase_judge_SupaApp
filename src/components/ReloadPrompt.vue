@@ -3,14 +3,8 @@ import { useRegisterSW } from 'virtual:pwa-register/vue'
 
 const {
   needRefresh,
-  updateServiceWorker,
-  close
+  updateServiceWorker
 } = useRegisterSW()
-
-const closePrompt = () => {
-  close()
-  needRefresh.value = false
-}
 </script>
 
 <template>
@@ -28,27 +22,24 @@ const closePrompt = () => {
     </div>
     
     <div class="message">
-      <div class="title">New Version Available</div>
-      <div class="subtitle">A new update is ready. Update now to get the latest features.</div>
+      <div class="title">Update Required</div>
+      <div class="subtitle">A new version of the app is available. Please update to continue.</div>
     </div>
 
     <div class="buttons">
         <button v-if="needRefresh" @click="updateServiceWorker()" class="reload-btn">
           Update Now
         </button>
-        <button @click="closePrompt" class="close-btn">
-          Later
-        </button>
     </div>
   </div>
 </template>
 
 <style scoped>
-/* Backdrop to dim the background */
+/* Backdrop to dim the background & block interaction */
 .pwa-backdrop {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.4);
+  background: rgba(0, 0, 0, 0.5); /* Slightly darker for emphasis */
   backdrop-filter: blur(4px);
   z-index: 99998;
 }
@@ -76,8 +67,8 @@ const closePrompt = () => {
 }
 
 .icon-box {
-  width: 48px;
-  height: 48px;
+  width: 56px;
+  height: 56px;
   background: #eff6ff;
   border-radius: 50%;
   display: flex;
@@ -85,28 +76,29 @@ const closePrompt = () => {
   align-items: center;
   color: #2563eb;
 }
-.icon { width: 24px; height: 24px; }
+.icon { width: 28px; height: 28px; }
 
 .message {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 6px;
 }
-.title { font-weight: 800; font-size: 1.1rem; color: #0f172a; }
-.subtitle { font-size: 0.9rem; color: #64748b; line-height: 1.4; }
+.title { font-weight: 800; font-size: 1.2rem; color: #0f172a; }
+.subtitle { font-size: 0.95rem; color: #64748b; line-height: 1.5; }
 
 .buttons {
     display: flex;
     flex-direction: column;
     gap: 8px;
     width: 100%;
+    margin-top: 8px;
 }
 
 button {
   border: none;
   outline: none;
   border-radius: 12px;
-  padding: 12px;
+  padding: 14px;
   cursor: pointer;
   font-weight: 700;
   font-size: 1rem;
@@ -116,15 +108,9 @@ button {
 button:active { transform: scale(0.97); }
 
 .reload-btn {
-    background: #4633f5;
+    background: linear-gradient(135deg, #4633f5 0%, #3b82f6 100%);
     color: white;
-    box-shadow: 0 4px 10px rgba(70, 51, 245, 0.25);
-}
-
-.close-btn {
-    background: transparent;
-    color: #64748b;
-    font-size: 0.9rem;
+    box-shadow: 0 4px 10px rgba(70, 51, 245, 0.3);
 }
 
 @keyframes popIn {
