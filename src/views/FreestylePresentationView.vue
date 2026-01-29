@@ -145,7 +145,6 @@ const categories = [
     { key: "mus", label: "Musicality" },
     { key: "ent", label: "Entertainment" },
     { key: "form", label: "Form" },
-    // UPDATE: Split labels for Minus (Repetition) and Plus (Variety)
     { 
         key: "var", 
         label: "Variety / Repetition", 
@@ -155,19 +154,13 @@ const categories = [
 ]
 
 const summaryVals = ref({ cre: 12, mus: 12, ent: 12, form: 12, var: 12 })
-
-// WEIGHTS from legacy judge-forms.js and judge-core.js
 const WEIGHTS = { cre: 0.15, mus: 0.20, ent: 0.25, form: 0.25, var: 0.15 }
 
 onMounted(async () => {
     if(!entryCode) return
-    // MIGRATE: competition/{station}/entries
-    // const sId = station || '1'
-
-    // TESTER MODE
     if (route.query.test === 'true') {
         heat.value = "TEST"
-        return // Skip Firebase
+        return
     }
 
     const docRef = doc(db, "competition", sId, "entries", entryCode)
@@ -192,16 +185,13 @@ const restoreScore = async () => {
             const data = snap.data()
             const pData = data.presentation || {}
             
-            // Restore Counts
             if(pData.counts) {
                 Object.keys(pData.counts).forEach(k => {
                     counts.value[k] = pData.counts[k]
                 })
             }
-            // Restore Misses
             if(pData.misses != null) misses.value = pData.misses
             
-            // Restore Summary Vals
             if (pData.creativity != null) summaryVals.value.cre = pData.creativity
             if (pData.musicality != null) summaryVals.value.mus = pData.musicality
             if (pData.entertainment != null) summaryVals.value.ent = pData.entertainment
@@ -237,7 +227,6 @@ const undo = () => {
 }
 
 const resetScore = () => {
-    // Unlock and Reset
     isLocked.value = false
     Object.keys(counts.value).forEach(k => counts.value[k] = 0)
     misses.value = 0
@@ -248,21 +237,15 @@ const resetScore = () => {
     page.value = 1
 }
 
-// Transition to Page 2
 const goToPage2 = () => {
-    // Only recalc if NOT locked (to preserve restored values if they differ from naive recalc)
-    // But usually restoration of counts matches summary.
-    // If locked, we trust the `summaryVals` we restored.
     if (!isLocked.value) {
         const calc = (plus, minus) => Math.max(0, Math.min(24, 12 + plus - minus))
-        
         summaryVals.value.cre = calc(counts.value.crePlus, counts.value.creMinus)
         summaryVals.value.mus = calc(counts.value.musPlus, counts.value.musMinus)
         summaryVals.value.ent = calc(counts.value.entPlus, counts.value.entMinus)
         summaryVals.value.form = calc(counts.value.formPlus, counts.value.formMinus)
         summaryVals.value.var = calc(counts.value.varPlus, counts.value.varMinus)
     }
-    
     page.value = 2
 }
 
@@ -272,7 +255,6 @@ const adjustSlider = (key, delta) => {
     if (navigator.vibrate) navigator.vibrate(50)
 }
 
-// Exact Calculation Logic from judge-forms.js
 const calculateFinalScore = () => {
     const v = summaryVals.value
     let sum = 
@@ -281,7 +263,6 @@ const calculateFinalScore = () => {
         (v.ent * WEIGHTS.ent) +
         (v.form * WEIGHTS.form) +
         (v.var * WEIGHTS.var)
-    
     sum -= (misses.value)
     return Number(sum.toFixed(2))
 }
@@ -302,37 +283,28 @@ const submitScore = async () => {
     if (navigator.vibrate) navigator.vibrate([100])
 
     const finalScore = calculateFinalScore()
-
     try {
         const payload = {
             entry_code: entryCode,
             presentation: {
-                // Flattened Schema
                 creativity: summaryVals.value.cre,
                 musicality: summaryVals.value.mus,
                 entertainment: summaryVals.value.ent,
                 form: summaryVals.value.form,
                 variety: summaryVals.value.var,
                 misses: misses.value,
-                
-                // Final Score
                 score: finalScore,
                 presentation_score: finalScore, 
-    
-                // Raw Auditable Data
                 counts: counts.value,
                 judge_key: sessionStorage.getItem('gbrsa_access_key') || 'unknown',
                 updated_at: serverTimestamp()
             },
-            
             station: station,
             created_at: serverTimestamp()
         }
 
-        // CONSOLIDATED WRITE
         await setDoc(doc(db, "results_freestyle", entryCode), payload, { merge: true })
         
-        // TESTER MODE
         if (route.query.test === 'true') {
              isSuccess.value = true
              setTimeout(() => {
@@ -342,8 +314,6 @@ const submitScore = async () => {
              return
         }
 
-        // Update Participant Status to 'done' (Crucial for Station View update)
-        // const sId = station || '1' 
         const pRef = doc(db, "competition", sId, "entries", entryCode)
         await updateDoc(pRef, { status_presentation: true })
 
@@ -558,14 +528,13 @@ const submitScore = async () => {
 .hidden { visibility: hidden !important; pointer-events: none !important; }
 
 
-/* GRID FIX: Removed large bottom padding */
+/* PAGE 1 GRID (UNTOUCHED) */
 .pres-grid {
   flex: 1;
   display: grid;
   grid-template-columns: 1fr 1fr 1fr;
   gap: 12px;
   padding: 24px 16px;
-  /* Reduced bottom padding to match safe area only */
   padding-bottom: calc(16px + env(safe-area-inset-bottom));
   overflow-y: auto;
 }
@@ -612,7 +581,7 @@ const submitScore = async () => {
 .pres-btn.plus { background: linear-gradient(135deg, #34d399 0%, #059669 100%); }
 .miss-btn { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); font-size: 18px; grid-row: span 3; }
 
-/* PAGE 2 SUMMARY */
+/* PAGE 2 SUMMARY (UPDATED) */
 .score-values {
   display: flex;
   justify-content: center;
@@ -635,34 +604,33 @@ const submitScore = async () => {
   flex-direction: column;
 }
 
+/* MATCHING PAGE 1 GRID LOGIC */
 #summaryContainer {
     flex: 1;
     display: flex;
     flex-direction: column;
-    /* Distribute space evenly between rows */
-    justify-content: space-evenly;
-    min-height: 100%;
+    gap: 12px;
+    height: 100%; /* Fill available space */
 }
 
-/* ROW FIX: Center items, do not stretch buttons */
+/* ROW FIX: Stretch to fill 1/5 of vertical space each */
 .row {
   display: grid;
   grid-template-columns: 1fr 2fr 1fr;
   gap: 12px;
-  /* CHANGED: Center items vertically, prevents button stretching */
   align-items: center; 
   margin-left: auto;
   margin-right: auto;
   width: 100%;
-  flex: 1; /* Allow row to occupy space */
-  min-height: 120px; /* INCREASED */
+  
+  /* THIS MAKES IT "SAME FAT" (Equal Distribution) */
+  flex: 1; 
 }
 
-/* BUTTON FIX: Fixed height */
+/* BUTTON FIX: Fill the row height */
 .box-minus, .box-plus {
   color: white;
-  /* CHANGED: Fixed height instead of 100% */
-  height: 120px; /* INCREASED */
+  height: 100%; /* Fill row */
   width: 100%;
   display: flex;
   flex-direction: column;
