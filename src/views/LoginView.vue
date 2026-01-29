@@ -119,6 +119,13 @@ onMounted(() => {
              if(locked) accessKey.value = '' 
         }
     })
+
+    // Auto-clear network errors when internet returns
+    window.addEventListener('online', () => {
+        if (errorMsg.value === 'No Internet Connection') {
+            errorMsg.value = ''
+        }
+    })
 })
 
 onUnmounted(() => {
@@ -146,25 +153,20 @@ watch(accessKey, (newVal) => {
 })
 
 /* =========================================
-   LOGIN LOGIC (OPTIMIZED)
+   LOGIN LOGIC (REFINED)
    ========================================= */
 const handleLogin = async (isSilent = false) => {
     const silentMode = typeof isSilent === 'boolean' ? isSilent : false
     
-    // Only clear errors if Manual click (so we don't flash red text while typing)
     if (!silentMode) errorMsg.value = ''
     
     const key = accessKey.value.trim()
     if (!key) return
 
-    // Show spinner only on Manual click
     if (!silentMode) loading.value = true
     
     try {
-        // DATA SAVER: Removed the redundant 'system/status' check.
-        // We rely on the local 'isLocked' variable which is already real-time.
-        
-        // 1. Check Access Key (1 Read Cost)
+        // 1. Check Access Key
         const keyRef = doc(db, 'access_keys', key)
         const keySnap = await withTimeout(getDoc(keyRef), 8000)
 
@@ -175,13 +177,14 @@ const handleLogin = async (isSilent = false) => {
         const data = keySnap.data()
         const role = data.role
 
-        // 2. Enforce Lock (Using local variable)
+        // 2. Enforce Lock
         if (isLocked.value && role !== 'admin' && role !== 'importer') {
              throw new Error("System is LOCKED by Host")
         }
 
         // 3. Success! Routing...
-        loading.value = true // Show spinner now that we are confirmed success
+        // (This is where "Chunk Load" errors happen if a new version exists)
+        loading.value = true 
         
         if (role === 'admin') {
             localStorage.setItem('gbrsa_access_key', 'admin') 
@@ -202,17 +205,11 @@ const handleLogin = async (isSilent = false) => {
             await safeNavigate({ path: '/live' })
         }
         else if (role === 'judge') {
-            // MULTI-TAB SUPPORT (SessionStorage)
             sessionStorage.setItem('gbrsa_access_key', key)
             sessionStorage.setItem('gbrsa_allowed_station', data.station)
-            
             await safeNavigate({ 
                 path: '/station', 
-                query: { 
-                    event: data.event,
-                    judgeType: data.judgeType,
-                    station: data.station 
-                } 
+                query: { event: data.event, judgeType: data.judgeType, station: data.station } 
             })
         }
         else {
@@ -220,14 +217,43 @@ const handleLogin = async (isSilent = false) => {
         }
 
     } catch (e) {
-        // IF SILENT FAILURE: Do nothing. Be invisible.
         if (silentMode) {
             loading.value = false
             return 
         }
 
-        // IF MANUAL FAILURE: Show Error
-        console.error("Login Check Failed", e)
+        console.error("Login Error", e)
+
+        // === 🛡️ REFINED ERROR HANDLING START ===
+
+        // 1. Check for Offline Status FIRST (Prevent Reload Loop)
+        if (!navigator.onLine) {
+            errorMsg.value = "No Internet Connection"
+            loading.value = false
+            return
+        }
+
+        // 2. Identify Version Mismatches (Chunk Load Errors)
+        // These happen when the router tries to load a file that was deleted by a new deployment
+        const isVersionError = e.message && (
+            e.message.includes("Importing") || 
+            e.message.includes("dynamically imported module") ||
+            (e.message.includes("Failed to fetch") && e.stack && e.stack.includes('router')) // Specific to router
+        )
+
+        if (isVersionError) {
+            errorMsg.value = "New Version Found! Updating..."
+            
+            // Wait 1.5s for user to read message, then Force Reload (True = ignore cache)
+            setTimeout(() => {
+                window.location.reload(true)
+            }, 1500)
+            return
+        }
+
+        // === 🛡️ REFINED ERROR HANDLING END ===
+
+        // Standard Errors
         if (e.message === "Invalid Access Code") {
             errorMsg.value = "Invalid Access Code"
         } else if (e.message === "System is LOCKED by Host") {
@@ -237,11 +263,7 @@ const handleLogin = async (isSilent = false) => {
         } else if (e.message === "Navigation Timeout") {
             errorMsg.value = "Loading Stuck. Refresh App?"
         } else {
-            if (e.message && (e.message.includes("Failed to fetch") || e.message.includes("Importing"))) {
-                errorMsg.value = "Update Required. Refreshing..."
-                setTimeout(() => window.location.reload(), 1000)
-                return
-            }
+            // Fallback for generic Firestore errors
             errorMsg.value = "Login Failed (Network)"
         }
         
