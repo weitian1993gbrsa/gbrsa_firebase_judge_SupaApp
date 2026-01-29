@@ -581,7 +581,7 @@ const submitScore = async () => {
 .pres-btn.plus { background: linear-gradient(135deg, #34d399 0%, #059669 100%); }
 .miss-btn { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); font-size: 18px; grid-row: span 3; }
 
-/* PAGE 2 SUMMARY (UPDATED) */
+/* PAGE 2 SUMMARY (FIXED) */
 .score-values {
   display: flex;
   justify-content: center;
@@ -604,33 +604,34 @@ const submitScore = async () => {
   flex-direction: column;
 }
 
-/* MATCHING PAGE 1 GRID LOGIC */
+/* UPDATED: Space between rows to fill screen */
 #summaryContainer {
     flex: 1;
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    height: 100%; /* Fill available space */
+    justify-content: space-between; /* Spreads rows out to fill height */
+    min-height: 100%;
+    padding-bottom: 10px; /* Small bottom buffer */
 }
 
-/* ROW FIX: Stretch to fill 1/5 of vertical space each */
+/* ROW FIX: Fixed short height */
 .row {
   display: grid;
   grid-template-columns: 1fr 2fr 1fr;
   gap: 12px;
   align-items: center; 
-  margin-left: auto;
-  margin-right: auto;
+  margin: 0 auto;
   width: 100%;
   
-  /* THIS MAKES IT "SAME FAT" (Equal Distribution) */
-  flex: 1; 
+  /* CHANGED: Fixed height (Short & Fat, same as Page 1 Ent) */
+  height: 90px; 
+  flex: 0 0 90px;
 }
 
 /* BUTTON FIX: Fill the row height */
 .box-minus, .box-plus {
   color: white;
-  height: 100%; /* Fill row */
+  height: 100%; /* Fill the 90px row */
   width: 100%;
   display: flex;
   flex-direction: column;
