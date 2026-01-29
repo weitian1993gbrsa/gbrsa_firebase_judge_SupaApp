@@ -511,7 +511,7 @@ h1 { font-weight: 900; letter-spacing: 0.1em; color: white; font-size: 3rem; mar
 
 /* 6 STATIONS (3x2) */
 .grid-6 { grid-template-columns: repeat(3, 1fr); grid-template-rows: 1fr 1fr; }
-.grid-6 .score-val { font-size: 72cqmin; }
+.grid-6 .score-val { font-size: 70cqmin; }
 
 /* 8 STATIONS (4x2) */
 .grid-8 { grid-template-columns: repeat(4, 1fr); grid-template-rows: 1fr 1fr; }
@@ -519,7 +519,7 @@ h1 { font-weight: 900; letter-spacing: 0.1em; color: white; font-size: 3rem; mar
 
 /* 12 STATIONS (4x3) */
 .grid-12 { grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(3, 1fr); }
-.grid-12 .score-val { font-size: 73cqmin; }
+.grid-12 .score-val { font-size: 70cqmin; }
 
 /* MODAL STYLES */
 .modal-backdrop {
