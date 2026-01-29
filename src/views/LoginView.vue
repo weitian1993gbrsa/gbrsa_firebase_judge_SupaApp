@@ -85,7 +85,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue' // <--- Added 'watch'
 import { useRouter } from 'vue-router'
 import { db } from '../firebase'
 import { doc, getDoc, onSnapshot } from 'firebase/firestore'
@@ -104,10 +104,11 @@ const errorMsg = ref('')
 const loading = ref(false)
 const isLocked = ref(false)
 const showScanner = ref(false)
-const isScannerInit = ref(true) // Start true to show loader immediately
+const isScannerInit = ref(true) 
 let html5QrCode = null
-
 let unsubLock = null
+
+// Timer for the Silent Login
 let typingTimer = null
 
 onMounted(() => {
@@ -115,7 +116,7 @@ onMounted(() => {
         if (doc.exists()) {
              const locked = doc.data().locked === true
              isLocked.value = locked
-             if(locked) accessKey.value = '' // Clear input so placeholder shows
+             if(locked) accessKey.value = '' 
         }
     })
 })
@@ -127,166 +128,43 @@ onUnmounted(() => {
     }
 })
 
-const startScan = async () => {
-    showScanner.value = true
-    isScannerInit.value = true // Show loader
-    await nextTick()
-
-    // Clean up existing instance if any
-    if (html5QrCode) {
-        try {
-            if (html5QrCode.isScanning) await html5QrCode.stop()
-            html5QrCode.clear()
-        } catch (e) { console.warn("Cleanup warning", e) }
-    }
-
-    html5QrCode = new Html5Qrcode("reader")
-
-    const config = {
-        fps: 20, // Increased FPS for smoother feel
-        qrbox: { width: 250, height: 250 },
-        aspectRatio: 1.0,
-        // Experimental: Try to load faster
-        videoConstraints: {
-            facingMode: "environment",
-            focusMode: "continuous"
-        }
-    }
-
-    const onStartSuccess = () => {
-             isScannerInit.value = false // Hide loader when camera is LIVE
-    }
-
-    try {
-        // FAST PATH: Direct start without listing cameras
-        // This simulates "Native App" feel by skipping the "Checking what cameras you have" step
-        await html5QrCode.start(
-            { facingMode: "environment" }, 
-            config, 
-            onScanSuccess, 
-            (err) => {}
-        ).then(onStartSuccess)
-
-    } catch (err) {
-        console.warn("Fast start failed, retrying with extensive lookup", err)
-        // Fallback: If direct "environment" fails, try listing cameras (legacy robust method)
-        try {
-             const devices = await Html5Qrcode.getCameras()
-             if (devices && devices.length) {
-                 const backCam = devices.find(d => d.label.toLowerCase().includes('back')) || devices[0]
-                 await html5QrCode.start(backCam.id, config, onScanSuccess, (err)=>{})
-                 onStartSuccess()
-             } else {
-                 throw new Error("No camera found")
-             }
-        } catch (finalErr) {
-             console.error("Critical Scanner Error", finalErr)
-             alert("Camera Error: " + (finalErr.message || "Unknown error"))
-             showScanner.value = false
-             if (html5QrCode) html5QrCode.clear()
-        }
-    }
-}
-
-const stopScan = () => {
-    if(html5QrCode) {
-        html5QrCode.stop().then(() => {
-            html5QrCode.clear()
-            showScanner.value = false
-        }).catch(err => {
-            console.error(err)
-            showScanner.value = false
-        })
-    } else {
-        showScanner.value = false
-    }
-}
-
-const onScanSuccess = (decodedText, decodedResult) => {
-    // Stop scanning
-    if(html5QrCode) {
-        html5QrCode.stop().then(() => {
-            html5QrCode.clear()
-            showScanner.value = false
-        }).catch(console.error)
-    } else {
-        showScanner.value = false
-    }
-    
-    // Decode Base64 if possible
-    let key = decodedText
-    try {
-        // Attempt decode
-        const decoded = atob(decodedText)
-        if(decoded) key = decoded
-    } catch(e) {
-        console.log("QR is not base64, using raw")
-    }
-
-    accessKey.value = key
-    handleLogin()
-}
-
-const withTimeout = (promise, ms = 8000) => {
-    return new Promise((resolve, reject) => {
-        const timer = setTimeout(() => {
-            reject(new Error("Network Timeout"))
-        }, ms)
-        promise.then(
-            (res) => { clearTimeout(timer); resolve(res) },
-            (err) => { clearTimeout(timer); reject(err) }
-        )
-    })
-}
-
-const safeNavigate = async (routeParams) => {
-    // Wrap router.push in a promise that rejects after timeout
-    // This fixes the "Stuck at Verifying" issue if chunk loading hangs
-    const navPromise = router.push(routeParams)
-    
-    // Create a timeout promise (5 seconds)
-    const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error("Navigation Timeout")), 5000)
-    )
-
-    // Race them
-    await Promise.race([navPromise, timeoutPromise])
-}
-
 /* =========================================
-   AUTO-LOGIN WATCHER
+   ⚡️ FAST AUTO-LOGIN WATCHER
    ========================================= */
 watch(accessKey, (newVal) => {
-    // 1. Clear previous timer (debounce)
+    // 1. Clear previous timer
     if (typingTimer) clearTimeout(typingTimer)
     
-    // 2. If empty, do nothing
+    // 2. Ignore short inputs to save data
     if (!newVal || newVal.length < 3) return
 
-    // 3. Wait 800ms after user stops typing
+    // 3. The "Sweet Spot" Timer (300ms)
+    // Fast enough to feel instant, slow enough to group "ss1" into one check.
     typingTimer = setTimeout(() => {
-        // Trigger a "Silent" login check
-        handleLogin(true) 
-    }, 800)
+        handleLogin(true) // Trigger Silent Mode
+    }, 300) 
 })
 
 /* =========================================
-   UPDATED LOGIN HANDLER
+   LOGIN LOGIC (OPTIMIZED)
    ========================================= */
 const handleLogin = async (isSilent = false) => {
     const silentMode = typeof isSilent === 'boolean' ? isSilent : false
+    
+    // Only clear errors if Manual click (so we don't flash red text while typing)
     if (!silentMode) errorMsg.value = ''
     
     const key = accessKey.value.trim()
     if (!key) return
 
+    // Show spinner only on Manual click
     if (!silentMode) loading.value = true
     
     try {
-        // OPTIMIZATION: Removed 'getDoc(sysRef)'
-        // We already know if the system is locked via the onSnapshot listener in onMounted
+        // DATA SAVER: Removed the redundant 'system/status' check.
+        // We rely on the local 'isLocked' variable which is already real-time.
         
-        // 1. Check Access Key (Only 1 Read!)
+        // 1. Check Access Key (1 Read Cost)
         const keyRef = doc(db, 'access_keys', key)
         const keySnap = await withTimeout(getDoc(keyRef), 8000)
 
@@ -297,13 +175,13 @@ const handleLogin = async (isSilent = false) => {
         const data = keySnap.data()
         const role = data.role
 
-        // 2. Enforce Lock (Using local variable 'isLocked')
+        // 2. Enforce Lock (Using local variable)
         if (isLocked.value && role !== 'admin' && role !== 'importer') {
              throw new Error("System is LOCKED by Host")
         }
 
-        // 3. Success & Routing
-        loading.value = true 
+        // 3. Success! Routing...
+        loading.value = true // Show spinner now that we are confirmed success
         
         if (role === 'admin') {
             localStorage.setItem('gbrsa_access_key', 'admin') 
@@ -324,8 +202,7 @@ const handleLogin = async (isSilent = false) => {
             await safeNavigate({ path: '/live' })
         }
         else if (role === 'judge') {
-            // JUDGE
-            // Use sessionStorage for multi-tab support
+            // MULTI-TAB SUPPORT (SessionStorage)
             sessionStorage.setItem('gbrsa_access_key', key)
             sessionStorage.setItem('gbrsa_allowed_station', data.station)
             
@@ -343,16 +220,13 @@ const handleLogin = async (isSilent = false) => {
         }
 
     } catch (e) {
-        // FAILURE HANDLING
-        
-        // IF SILENT: Do NOTHING. Just return.
-        // User won't know we checked. They can click Login manually.
+        // IF SILENT FAILURE: Do nothing. Be invisible.
         if (silentMode) {
             loading.value = false
             return 
         }
 
-        // IF MANUAL: Show Error
+        // IF MANUAL FAILURE: Show Error
         console.error("Login Check Failed", e)
         if (e.message === "Invalid Access Code") {
             errorMsg.value = "Invalid Access Code"
@@ -373,19 +247,53 @@ const handleLogin = async (isSilent = false) => {
         
         loading.value = false
         if (navigator.vibrate) navigator.vibrate(200)
-    } finally {
-        setTimeout(() => {
-            // Keep loading true if navigating
-        }, 2000)
     }
 }
 
-const handleNavError = (err) => {
-    console.error("Navigation failed:", err)
-    errorMsg.value = "Navigation Error. Refreshing..."
-    loading.value = false
-    // If it's a chunk error, the global handler will pick it up and reload. 
-    // If it's something else, we show error.
+// ... Keep your existing helpers (startScan, stopScan, withTimeout, safeNavigate) ...
+const startScan = async () => {
+    showScanner.value = true
+    isScannerInit.value = true 
+    await nextTick()
+    if (html5QrCode) {
+        try { if (html5QrCode.isScanning) await html5QrCode.stop(); html5QrCode.clear() } catch (e) {}
+    }
+    html5QrCode = new Html5Qrcode("reader")
+    const config = { fps: 20, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0, videoConstraints: { facingMode: "environment", focusMode: "continuous" } }
+    try {
+        await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, (err) => {}).then(() => isScannerInit.value = false)
+    } catch (err) {
+        try {
+             const devices = await Html5Qrcode.getCameras()
+             if (devices && devices.length) {
+                 const backCam = devices.find(d => d.label.toLowerCase().includes('back')) || devices[0]
+                 await html5QrCode.start(backCam.id, config, onScanSuccess, (err)=>{})
+                 isScannerInit.value = false
+             } else { throw new Error("No camera found") }
+        } catch (finalErr) {
+             showScanner.value = false
+             if (html5QrCode) html5QrCode.clear()
+        }
+    }
+}
+const stopScan = () => { if(html5QrCode) html5QrCode.stop().then(() => { html5QrCode.clear(); showScanner.value = false }).catch(() => showScanner.value = false); else showScanner.value = false }
+const onScanSuccess = (decodedText) => {
+    if(html5QrCode) html5QrCode.stop().then(() => { html5QrCode.clear(); showScanner.value = false }).catch(console.error); else showScanner.value = false
+    let key = decodedText
+    try { const decoded = atob(decodedText); if(decoded) key = decoded } catch(e) {}
+    accessKey.value = key
+    handleLogin(false) // QR is manual-like success
+}
+const withTimeout = (promise, ms = 8000) => {
+    return new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error("Network Timeout")), ms)
+        promise.then((res) => { clearTimeout(timer); resolve(res) }, (err) => { clearTimeout(timer); reject(err) })
+    })
+}
+const safeNavigate = async (routeParams) => {
+    const navPromise = router.push(routeParams)
+    const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Navigation Timeout")), 5000))
+    await Promise.race([navPromise, timeoutPromise])
 }
 </script>
 
