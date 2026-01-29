@@ -604,34 +604,36 @@ const submitScore = async () => {
   flex-direction: column;
 }
 
-/* UPDATED: Space between rows to fill screen */
+/* GAP FIX: Add gap back so it matches Page 1 */
 #summaryContainer {
     flex: 1;
     display: flex;
     flex-direction: column;
-    justify-content: space-between; /* Spreads rows out to fill height */
+    /* CHANGED: Use gap for spacing instead of just justify-content */
+    gap: 12px; 
     min-height: 100%;
-    padding-bottom: 10px; /* Small bottom buffer */
+    padding-bottom: 10px;
 }
 
-/* ROW FIX: Fixed short height */
+/* ROW FIX: Fixed Width Columns & Stretching Height */
 .row {
   display: grid;
-  grid-template-columns: 1fr 2fr 1fr;
+  /* CHANGED: Force fixed column ratios (ignore text length) */
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
   gap: 12px;
   align-items: center; 
   margin: 0 auto;
   width: 100%;
   
-  /* CHANGED: Fixed height (Short & Fat, same as Page 1 Ent) */
-  height: 90px; 
-  flex: 0 0 90px;
+  /* HEIGHT LOGIC: Stretch to fill container */
+  flex: 1; 
+  min-height: 80px; 
 }
 
 /* BUTTON FIX: Fill the row height */
 .box-minus, .box-plus {
   color: white;
-  height: 100%; /* Fill the 90px row */
+  height: 100%; 
   width: 100%;
   display: flex;
   flex-direction: column;
@@ -650,7 +652,18 @@ const submitScore = async () => {
 .box-minus { background: linear-gradient(135deg, #f87171 0%, #dc2626 100%); }
 .box-plus { background: linear-gradient(135deg, #34d399 0%, #059669 100%); }
 
-.label-text { font-size: 10px; text-transform: uppercase; margin-bottom: 4px; text-align: center; }
+/* LABEL TEXT FIX: Handle overflow */
+.label-text { 
+    font-size: 10px; 
+    text-transform: uppercase; 
+    margin-bottom: 4px; 
+    text-align: center;
+    /* Wrap long words if needed */
+    white-space: normal;
+    word-break: break-word;
+    padding: 0 4px;
+    line-height: 1.1;
+}
 .symbol { font-size: 24px; font-weight: 900; }
 
 .slider-group {
