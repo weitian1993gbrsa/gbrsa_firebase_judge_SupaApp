@@ -503,7 +503,7 @@ h1 { font-weight: 900; letter-spacing: 0.1em; color: white; font-size: 3rem; mar
 
 /* 2 STATIONS */
 .grid-2 { grid-template-columns: 1fr 1fr; }
-.grid-2 .score-val { font-size: 60cqmin; }
+.grid-2 .score-val { font-size: 55cqmin; }
 
 /* 4 STATIONS (2x2) */
 .grid-4 { grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; }
