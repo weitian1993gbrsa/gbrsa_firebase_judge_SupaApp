@@ -29,7 +29,7 @@
                 name="gs_auth_key_v1"
                 spellcheck="false"
                 data-form-type="other"
-                @keydown.enter="handleLogin"
+                @keydown.enter="handleLogin(false)"
               >
               <button 
                   v-if="!isLocked && !loading"
@@ -45,7 +45,7 @@
             class="btn-primary" 
             :class="{ 'btn-locked': isLocked }"
             :disabled="loading || isLocked"
-            @click="handleLogin"
+            @click="handleLogin(false)"
           >
             {{ isLocked ? '⚠ SYSTEM LOCKED' : (loading ? 'Verifying...' : 'Login') }}
           </button>
@@ -85,7 +85,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { db } from '../firebase'
 import { doc, getDoc, onSnapshot } from 'firebase/firestore'
@@ -108,6 +108,7 @@ const isScannerInit = ref(true) // Start true to show loader immediately
 let html5QrCode = null
 
 let unsubLock = null
+let typingTimer = null
 
 onMounted(() => {
     unsubLock = onSnapshot(doc(db, 'system', 'status'), (doc) => {
@@ -252,22 +253,40 @@ const safeNavigate = async (routeParams) => {
     await Promise.race([navPromise, timeoutPromise])
 }
 
-const handleLogin = async () => {
-    errorMsg.value = ''
+/* =========================================
+   AUTO-LOGIN WATCHER
+   ========================================= */
+watch(accessKey, (newVal) => {
+    // 1. Clear previous timer (debounce)
+    if (typingTimer) clearTimeout(typingTimer)
+    
+    // 2. If empty, do nothing
+    if (!newVal || newVal.length < 3) return
+
+    // 3. Wait 800ms after user stops typing
+    typingTimer = setTimeout(() => {
+        // Trigger a "Silent" login check
+        handleLogin(true) 
+    }, 800)
+})
+
+/* =========================================
+   UPDATED LOGIN HANDLER
+   ========================================= */
+const handleLogin = async (isSilent = false) => {
+    const silentMode = typeof isSilent === 'boolean' ? isSilent : false
+    if (!silentMode) errorMsg.value = ''
+    
     const key = accessKey.value.trim()
     if (!key) return
 
-    loading.value = true
+    if (!silentMode) loading.value = true
     
     try {
-        // 1. Check System Lock (Timeout: 5s)
-        const sysRef = doc(db, 'system', 'status')
-        // Use timeout to prevent hanging on weak connections
-        const sysSnap = await withTimeout(getDoc(sysRef), 5000)
-        const isSystemLocked = sysSnap.exists() && sysSnap.data().locked === true
-
-        // 2. Initial Local Check (Optimization)
-        // Access keys are documents in 'access_keys' collection where ID = the key
+        // OPTIMIZATION: Removed 'getDoc(sysRef)'
+        // We already know if the system is locked via the onSnapshot listener in onMounted
+        
+        // 1. Check Access Key (Only 1 Read!)
         const keyRef = doc(db, 'access_keys', key)
         const keySnap = await withTimeout(getDoc(keyRef), 8000)
 
@@ -278,16 +297,14 @@ const handleLogin = async () => {
         const data = keySnap.data()
         const role = data.role
 
-        // 3. Enforce Lock (Except Admin/Importer)
-        if (isSystemLocked && role !== 'admin' && role !== 'importer') {
-             errorMsg.value = "System is LOCKED by Host"
-             loading.value = false
-             if (navigator.vibrate) navigator.vibrate(200)
-             return
+        // 2. Enforce Lock (Using local variable 'isLocked')
+        if (isLocked.value && role !== 'admin' && role !== 'importer') {
+             throw new Error("System is LOCKED by Host")
         }
 
-        // 4. Role Routing
-        // We use safeNavigate to ensure we don't hang if chunk fails to load
+        // 3. Success & Routing
+        loading.value = true 
+        
         if (role === 'admin') {
             localStorage.setItem('gbrsa_access_key', 'admin') 
             localStorage.setItem('admin_authorized', 'true')
@@ -308,6 +325,7 @@ const handleLogin = async () => {
         }
         else if (role === 'judge') {
             // JUDGE
+            // Use sessionStorage for multi-tab support
             sessionStorage.setItem('gbrsa_access_key', key)
             sessionStorage.setItem('gbrsa_allowed_station', data.station)
             
@@ -325,15 +343,26 @@ const handleLogin = async () => {
         }
 
     } catch (e) {
+        // FAILURE HANDLING
+        
+        // IF SILENT: Do NOTHING. Just return.
+        // User won't know we checked. They can click Login manually.
+        if (silentMode) {
+            loading.value = false
+            return 
+        }
+
+        // IF MANUAL: Show Error
         console.error("Login Check Failed", e)
         if (e.message === "Invalid Access Code") {
             errorMsg.value = "Invalid Access Code"
+        } else if (e.message === "System is LOCKED by Host") {
+            errorMsg.value = "System is LOCKED by Host"
         } else if (e.message === "Network Timeout") {
             errorMsg.value = "Slow Connection. Retry?"
         } else if (e.message === "Navigation Timeout") {
             errorMsg.value = "Loading Stuck. Refresh App?"
         } else {
-            // Check for chunk errors
             if (e.message && (e.message.includes("Failed to fetch") || e.message.includes("Importing"))) {
                 errorMsg.value = "Update Required. Refreshing..."
                 setTimeout(() => window.location.reload(), 1000)
@@ -345,10 +374,8 @@ const handleLogin = async () => {
         loading.value = false
         if (navigator.vibrate) navigator.vibrate(200)
     } finally {
-        // If we are still here (e.g. navigation failed or redirected back), stop loading
-        // We use a small timeout to allow unmount to happen first if successful
         setTimeout(() => {
-            if(loading.value) loading.value = false
+            // Keep loading true if navigating
         }, 2000)
     }
 }
