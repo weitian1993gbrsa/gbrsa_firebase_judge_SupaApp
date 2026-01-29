@@ -16,7 +16,5 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
 
-// REMOVED: const auth = getAuth(app); 
-// REMOVED: export { db, auth, storage };
-
+// We export only what we use. 'auth' is removed to stop the 400 error.
 export { db, storage };
