@@ -364,16 +364,16 @@ const handleNavError = (err) => {
 
 <style scoped>
 .page-wrapper {
-  min-height: 100dvh; /* Use dynamic viewport height */
+  min-height: 100dvh;
   width: 100%;
   overflow-x: hidden;
-  overflow-y: auto; /* Allow scroll if content is too tall */
+  /* REMOVED: overflow-y: auto (Let #app handle scrolling) */
   display: flex;
   flex-direction: column;
   align-items: center;
-  /* Space between: Branding (top/natural), Card (center), Footer (bottom) */
-  justify-content: space-between; 
+  /* REMOVED: justify-content: space-between (Use auto margins instead) */
   padding: 2rem;
+  padding-bottom: env(safe-area-inset-bottom, 2rem); /* Safety for iPhone home bar */
   
   /* Modern Flow Background (Blue -> Gold) */
   background-color: #f8fafc;
@@ -390,12 +390,17 @@ const handleNavError = (err) => {
 
 /* Helper to center the card vertically if there's space */
 .glass-card-wrapper {
-    flex: 1;
+    /* REMOVED: flex: 1 */
+    width: 100%;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    width: 100%;
     align-items: center;
+    
+    /* ADDED: Auto margins handle vertical centering perfectly */
+    margin-top: auto;
+    margin-bottom: auto; 
+    
     padding: 2rem 0; /* Add breathing room */
 }
 
@@ -527,10 +532,14 @@ const handleNavError = (err) => {
 }
 
 .foot { 
-  position: absolute;
-  bottom: 3rem;
+  /* REMOVED: position: absolute; bottom: 3rem; */
+  /* ADDED: Flex behavior */
+  margin-top: 2rem; /* Ensure minimal space from card */
+  flex-shrink: 0;   /* Prevent crushing if screen is small */
+  
   color: #94a3b8; 
   font-size: 0.85rem; 
+  text-align: center;
 }
 
 @media (max-height: 600px) {
