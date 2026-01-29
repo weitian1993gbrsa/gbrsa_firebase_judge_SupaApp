@@ -133,8 +133,8 @@ const handleLogin = async (isSilent = false) => {
         if (isLocked.value && role !== 'admin' && role !== 'importer') throw new Error("System is LOCKED by Host")
         
         loading.value = true 
-        if (role === 'admin') { localStorage.setItem('gbrsa_access_key', 'admin'); localStorage.setItem('admin_authorized', 'true'); await safeNavigate('/admin') } 
-        else if (role === 'importer') { localStorage.setItem('gbrsa_access_key', 'importer'); await safeNavigate('/importer') }
+        if (role === 'admin') { localStorage.setItem('gbrsa_access_key', key); localStorage.setItem('admin_authorized', 'true'); await safeNavigate('/admin') } 
+        else if (role === 'importer') { localStorage.setItem('gbrsa_access_key', key); await safeNavigate('/importer') }
         else if (role === 'tester') { localStorage.setItem('gbrsa_access_key', 'tester'); localStorage.setItem('tester_authorized', 'true'); await safeNavigate('/tester') }
         else if (role === 'live_board') { localStorage.setItem('gbrsa_live_key', key); await safeNavigate({ path: '/live' }) }
         else if (role === 'judge') { sessionStorage.setItem('gbrsa_access_key', key); sessionStorage.setItem('gbrsa_allowed_station', data.station); await safeNavigate({ path: '/station', query: { event: data.event, judgeType: data.judgeType, station: data.station } }) }
