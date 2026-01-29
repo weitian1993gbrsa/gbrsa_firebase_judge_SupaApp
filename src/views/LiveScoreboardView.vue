@@ -519,7 +519,7 @@ h1 { font-weight: 900; letter-spacing: 0.1em; color: white; font-size: 3rem; mar
 
 /* 12 STATIONS (4x3) */
 .grid-12 { grid-template-columns: repeat(4, 1fr); grid-template-rows: repeat(3, 1fr); }
-.grid-12 .score-val { font-size: 73cqmin; }
+.grid-12 .score-val { font-size: 70cqmin; }
 
 /* MODAL STYLES */
 .modal-backdrop {
