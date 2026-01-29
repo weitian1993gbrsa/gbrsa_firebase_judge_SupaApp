@@ -82,8 +82,11 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
     const publicPages = ['/', '/live/board', '/live'];
     const authRequired = !publicPages.includes(to.path);
-    const loggedIn = localStorage.getItem('gbrsa_access_key');
-    const allowedStation = localStorage.getItem('gbrsa_allowed_station');
+
+    // FIX: Check BOTH storages (Admin uses Local, Judge uses Session)
+    const loggedIn = localStorage.getItem('gbrsa_access_key') || sessionStorage.getItem('gbrsa_access_key');
+    const allowedStation = localStorage.getItem('gbrsa_allowed_station') || sessionStorage.getItem('gbrsa_allowed_station');
+
     const isAdmin = loggedIn === 'admin';
 
     // 1. Authentication Check
@@ -98,7 +101,9 @@ router.beforeEach((to, from, next) => {
 
         if (!isTester && !allowedStation) {
             // Basic Check: If not a tester and no station assigned, kick out.
+            // Clear both to be safe
             localStorage.removeItem('gbrsa_access_key');
+            sessionStorage.removeItem('gbrsa_access_key');
             return next('/');
         }
     }
