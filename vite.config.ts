@@ -7,7 +7,8 @@ export default defineConfig({
   plugins: [
     vue(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // CHANGED: Switch from 'autoUpdate' to 'prompt' for manual control
+      registerType: 'prompt',
       includeAssets: ['favicon.ico', 'apple-icon-180.png', 'mask-icon.svg', 'logo.svg'],
       manifest: {
         name: 'GBRSA SupaApp',
@@ -44,8 +45,8 @@ export default defineConfig({
       },
       workbox: {
         cleanupOutdatedCaches: true,
-        skipWaiting: true,
-        clientsClaim: true,
+        // CHANGED: Removed 'skipWaiting: true' and 'clientsClaim: true' 
+        // to prevent the Service Worker from taking over immediately.
         runtimeCaching: [
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
