@@ -210,20 +210,15 @@ const onScanSuccess = async (decodedText) => {
     
     // 2. Token Lookup
     try {
-        console.log("Scanning Token:", scannedVal) // DEBUG
-        
         // Query for token match
         const q =  query(collection(db, 'access_keys'), where('qr_token', '==', scannedVal))
         const snaps = await getDocs(q)
         
         if (!snaps.empty) {
             // FOUND: It's a secure token. Use the ID (Real Password)
-            const realKey = snaps.docs[0].id
-            console.log("Secure Token Verified ->", realKey)
-            accessKey.value = realKey
+            accessKey.value = snaps.docs[0].id
         } else {
             // NOT FOUND: Assume it is a Legacy/Manual Code
-            console.warn("Token NOT found, trying manual key:", scannedVal)
             accessKey.value = scannedVal
         }
         

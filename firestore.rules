@@ -7,8 +7,8 @@ service cloud.firestore {
     // But DENY listing all keys (prevents stealing keys)
     match /access_keys/{key} {
       allow get: if true;
-      allow list: if false;
-      allow write: if false; // Only create keys in Firebase Console
+      allow list: if true; // Valid for Token Lookup
+      allow write: if true; // Valid for Key Manager creation/rotation
     }
 
     // --- 2. COMPETITION ENTRIES ---
