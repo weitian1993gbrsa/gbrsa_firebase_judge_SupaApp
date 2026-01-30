@@ -23,6 +23,8 @@ const router = createRouter({
         // --- NEW KEY MANAGER ROUTE ---
         { path: '/keys', name: 'key-manager', component: () => import('../views/KeyManagerView.vue') },
 
+        { path: '/practice', name: 'practice', component: () => import('../views/PracticeView.vue') },
+
         { path: '/tester', name: 'tester', component: TesterView },
         { path: '/live', name: 'live-setup', component: () => import('../views/ScoreboardSetupView.vue') },
         { path: '/live/board', name: 'live-scoreboard', component: () => import('../views/LiveScoreboardView.vue') }
