@@ -8,7 +8,16 @@
                <span class="logo-subtitle">Live Board Control</span>
            </div>
        </div>
-       <button class="btn-exit" @click="goBack">Back</button>
+       <div class="header-actions" style="display:flex; gap:10px;">
+           <button 
+              v-if="Object.keys(lockedStations).length > 0" 
+              @click="unlockAll" 
+              class="btn-unlock-all"
+            >
+              Unlock All ({{ Object.keys(lockedStations).length }})
+           </button>
+           <button class="btn-exit" @click="goBack">Back</button>
+       </div>
     </header>
 
     <main class="content">
@@ -42,7 +51,8 @@
 import { useRouter } from 'vue-router'
 import { onMounted, ref, onUnmounted } from 'vue'
 import { db } from '../firebase'
-import { collection, onSnapshot, deleteDoc, doc } from 'firebase/firestore'
+// ADDED: writeBatch, getDocs
+import { collection, onSnapshot, deleteDoc, doc, writeBatch, getDocs } from 'firebase/firestore'
 
 const router = useRouter()
 const lockedStations = ref({})
@@ -50,6 +60,17 @@ let unsubLocks = null
 
 const goBack = () => {
     router.push('/tester')
+}
+
+// --- NEW TWEAK FUNCTION ---
+const unlockAll = async () => {
+    if(!confirm("Clear ALL locked stations? This resets the simulation for everyone.")) return;
+    try {
+        const batch = writeBatch(db);
+        const snaps = await getDocs(collection(db, 'station_locks'));
+        snaps.forEach(d => batch.delete(d.ref));
+        await batch.commit();
+    } catch(e) { alert(e.message); }
 }
 
 const goPractice = async (station) => {
@@ -153,6 +174,12 @@ onUnmounted(() => {
     padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s;
 }
 .btn-exit:hover { background: #f1f5f9; color: #0f172a; border-color: #94a3b8; }
+
+.btn-unlock-all {
+    background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5;
+    padding: 8px 12px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+}
+.btn-unlock-all:hover { background: #ef4444; color: white; }
 
 .center-stage { width: 100%; max-width: 500px; padding: 0 1rem; text-align: center; }
 .title { font-size: 1.75rem; font-weight: 800; margin: 0 0 0.5rem 0; color: #1e293b; }

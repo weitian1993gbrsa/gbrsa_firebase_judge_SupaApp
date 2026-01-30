@@ -11,7 +11,13 @@
       <div class="glass-panel">
         
         <div class="panel-toolbar">
-          <h3 class="panel-title">Active Keys</h3>
+          <div class="toolbar-left">
+            <h3 class="panel-title">Active Keys</h3>
+            <button @click="nukeStations" class="btn-nuke" title="Kick everyone out of stations">
+              <span>☢ Reset Stations</span>
+            </button>
+          </div>
+
           <button @click="openKeyModal()" class="btn-add">
             <span class="icon-plus">+</span>
             <span class="btn-label">New Key</span>
@@ -63,6 +69,10 @@
               </div>
 
               <div class="col col-actions">
+                <button @click="forceKeyReset(k)" class="action-btn btn-reset" title="Force Reset Status">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+                </button>
+
                 <button @click="showQr(k)" class="action-btn btn-qr" title="Show QR">
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
                 </button>
@@ -158,7 +168,8 @@
 <script setup>
 import { ref, reactive, onMounted, onUnmounted } from 'vue'
 import { db } from '../firebase'
-import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch, serverTimestamp } from 'firebase/firestore'
+// ADDED: getDocs, updateDoc
+import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch, serverTimestamp, getDocs, updateDoc } from 'firebase/firestore'
 import QRCode from 'qrcode' 
 
 const keysList = ref([])
@@ -180,7 +191,32 @@ const getRoleClass = (r) => {
   return 'role-gray'
 }
 
-// --- DATA & DRAG LOGIC (Same as before, simplified for brevity) ---
+// --- NEW TWEAK FUNCTIONS ---
+const nukeStations = async () => {
+  if (!confirm("☢ NUCLEAR OPTION ☢\n\nThis will KICK ALL USERS out of every station immediately.\nAre you sure?")) return;
+  try {
+    const batch = writeBatch(db);
+    const snaps = await getDocs(collection(db, 'station_locks'));
+    if (snaps.empty) { alert("No active stations."); return; }
+    snaps.forEach(d => batch.delete(d.ref));
+    await batch.commit();
+    alert("Stations cleared!");
+  } catch(e) { alert(e.message); }
+}
+
+const forceKeyReset = async (k) => {
+  if (!confirm(`Force reset key "${k.id}"? This clears its active status.`)) return;
+  try {
+    await updateDoc(doc(db, 'access_keys', k.id), {
+      is_active: false,
+      current_session: null,
+      last_active: null
+    });
+    alert(`Key ${k.id} reset.`);
+  } catch(e) { alert(e.message); }
+}
+
+// --- DATA & DRAG LOGIC ---
 onMounted(() => {
     unsub = onSnapshot(collection(db, 'access_keys'), snap => {
         let list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
@@ -294,6 +330,7 @@ const onDrop = async (e, dropI) => {
   align-items: center;
   background: rgba(255,255,255,0.02);
 }
+.toolbar-left { display: flex; gap: 1rem; align-items: center; }
 .panel-title { margin: 0; font-size: 1.1rem; font-weight: 700; color: #e2e8f0; }
 
 .btn-add {
@@ -311,6 +348,19 @@ const onDrop = async (e, dropI) => {
 }
 .btn-add:hover { background: #2563eb; transform: translateY(-1px); }
 .icon-plus { font-size: 1.2rem; line-height: 1; }
+
+.btn-nuke {
+  background: rgba(239, 68, 68, 0.15);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-nuke:hover { background: #ef4444; color: white; }
 
 /* --- LIST LAYOUT --- */
 .list-header {
@@ -351,7 +401,7 @@ const onDrop = async (e, dropI) => {
 .col-code { width: 25%; }
 .col-role { width: 20%; }
 .col-info { flex: 1; }
-.col-actions { width: 140px; display: flex; justify-content: flex-end; gap: 0.5rem; }
+.col-actions { width: 180px; display: flex; justify-content: flex-end; gap: 0.5rem; }
 
 /* ELEMENTS */
 .drag-grip span { display: block; width: 4px; height: 4px; background: currentColor; margin: 2px 0; border-radius: 50%; }
@@ -387,13 +437,14 @@ const onDrop = async (e, dropI) => {
 }
 .action-btn:hover { background: #3b82f6; color: white; }
 .btn-delete:hover { background: #ef4444; }
+.btn-reset:hover { background: #f59e0b; color: white; }
 
 /* --- RESPONSIVE MOBILE --- */
 @media (max-width: 768px) {
   .view-header { padding: 1rem; }
   .dashboard-container { padding: 1rem; }
   
-  .list-header { display: none; } /* Hide Table Header */
+  .list-header { display: none; }
   
   .list-row {
     flex-direction: column;
@@ -404,35 +455,24 @@ const onDrop = async (e, dropI) => {
   }
 
   .col { width: 100%; padding: 0; }
-  
-  /* Drag Handle to Top Right */
-  .col-handle {
-    position: absolute; top: 1rem; right: 1rem;
-    width: auto; height: auto;
-  }
+  .col-handle { position: absolute; top: 1rem; right: 1rem; width: auto; height: auto; }
   .drag-grip { transform: rotate(90deg); }
-
   .col-code { margin-bottom: 0.25rem; }
   .code-pill { font-size: 1.1rem; }
-
   .col-role { display: flex; align-items: center; }
   
   .col-actions {
-    width: 100%;
-    margin-top: 0.5rem;
-    padding-top: 0.75rem;
-    border-top: 1px solid rgba(255,255,255,0.05);
-    justify-content: space-between; /* Spread buttons */
+    width: 100%; margin-top: 0.5rem; padding-top: 0.75rem; border-top: 1px solid rgba(255,255,255,0.05);
+    justify-content: space-between;
   }
-  .action-btn { width: 30%; height: 40px; } /* Larger touch targets */
+  .action-btn { width: 22%; height: 40px; }
 }
 
 /* --- MODALS --- */
 .modal-backdrop {
   position: fixed; inset: 0; background: rgba(0,0,0,0.8);
   backdrop-filter: blur(4px); z-index: 50;
-  display: flex; align-items: center; justify-content: center;
-  padding: 1rem;
+  display: flex; align-items: center; justify-content: center; padding: 1rem;
 }
 .modal-window {
   background: #1e293b;
@@ -475,7 +515,4 @@ const onDrop = async (e, dropI) => {
 .qr-display img { width: 200px; height: 200px; display: block; }
 .qr-code-label { font-family: monospace; font-size: 1.25rem; font-weight: 700; color: #facc15; margin-bottom: 1.5rem; }
 .full-width { width: 100%; }
-
-/* ANIMATION */
-.list-move { transition: transform 0.3s ease; }
 </style>
