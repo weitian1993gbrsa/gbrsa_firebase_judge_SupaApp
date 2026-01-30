@@ -201,17 +201,9 @@ const onScanSuccess = async (decodedText) => {
     }
 
     let scannedVal = decodedText
-    try {
-        const decoded = atob(decodedText)
-        if(decoded) scannedVal = decoded // Legacy Base64 support
-    } catch(e) {}
-
-    loading.value = true
     
     // 2. Token Lookup
     try {
-        console.log("Scanning Token:", scannedVal) // DEBUG
-        
         // Query for token match
         const q =  query(collection(db, 'access_keys'), where('qr_token', '==', scannedVal))
         const snaps = await getDocs(q)
@@ -219,11 +211,14 @@ const onScanSuccess = async (decodedText) => {
         if (!snaps.empty) {
             // FOUND: It's a secure token. Use the ID (Real Password)
             const realKey = snaps.docs[0].id
-            alert(`DEBUG: Found Secure Token! Login as: ${realKey}`) // DEBUG
             accessKey.value = realKey
         } else {
-            // NOT FOUND: Assume it is a Legacy/Manual Code
-            alert(`DEBUG: Token '${scannedVal}' not found in DB. Trying as Password.`) // DEBUG
+            // NOT FOUND: Might be a Legacy Base64 Code or Plain Password
+            try {
+                const decoded = atob(decodedText)
+                if(decoded) scannedVal = decoded
+            } catch(e) {}
+            
             accessKey.value = scannedVal
         }
         
@@ -231,7 +226,6 @@ const onScanSuccess = async (decodedText) => {
         await handleLogin(false)
         
     } catch (e) {
-        alert(`DEBUG ERROR: ${e.message}`) // DEBUG
         // Fallback if query fails
         accessKey.value = scannedVal
         handleLogin(false)
