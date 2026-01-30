@@ -158,7 +158,13 @@
           <img :src="qrModal.url" alt="QR Code" />
         </div>
         <div class="qr-code-label">{{ qrModal.code }}</div>
-        <button class="btn-primary full-width" @click="qrModal.open = false">Done</button>
+        
+        <div style="display:flex; gap:10px;">
+             <button class="btn-primary full-width" @click="qrModal.open = false">Done</button>
+             <button class="btn-rotate" @click="rotateToken" title="Invalidate old QR and simple generate new one">
+                ↻
+             </button>
+        </div>
       </div>
     </div>
 
@@ -233,20 +239,35 @@ onUnmounted(() => { if (unsub) unsub() })
 const openKeyModal = () => Object.assign(keyModal, { open: true, isEdit: false, id: '', originalId: '', role: 'judge', station: 1, event: 'speed', judgeType: 'difficulty' })
 const editKey = (k) => Object.assign(keyModal, { open: true, isEdit: true, id: k.id, originalId: k.id, ...k })
 
+// --- TOKEN LOGIC ---
+const generateToken = () => {
+    // 16 chars alphanumeric
+    return Math.random().toString(36).substring(2, 10) + Math.random().toString(36).substring(2, 10)
+}
+
 const saveKey = async () => {
     if (!keyModal.id) return
     const newId = keyModal.id.trim()
     const data = { role: keyModal.role, updated_at: serverTimestamp() }
+    
+    // Auto-generate token for new keys if not present
+    if (!keyModal.isEdit) {
+        data.qr_token = generateToken()
+        data.sort_order = keysList.value.length
+    }
+
     if (keyModal.role === 'judge') {
         data.station = Number(keyModal.station); data.event = keyModal.event
         if (keyModal.event === 'freestyle') data.judgeType = keyModal.judgeType
     } else { data.station = null; data.event = null; data.judgeType = null }
-    if (!keyModal.isEdit) data.sort_order = keysList.value.length
-
+    
     try {
         if (keyModal.isEdit && newId !== keyModal.originalId) {
             const old = keysList.value.find(k => k.id === keyModal.originalId)
             if (old?.sort_order !== undefined) data.sort_order = old.sort_order
+            if (old?.qr_token) data.qr_token = old.qr_token // Preserve token on rename
+            else data.qr_token = generateToken() // Ensure token exists
+
             await setDoc(doc(db, 'access_keys', newId), data)
             await deleteDoc(doc(db, 'access_keys', keyModal.originalId))
         } else {
@@ -259,8 +280,42 @@ const saveKey = async () => {
 const deleteKey = async (id) => { if(confirm(`Delete ${id}?`)) await deleteDoc(doc(db, 'access_keys', id)) }
 
 const showQr = async (k) => {
-    qrModal.url = await QRCode.toDataURL(k.id, { width: 300, margin: 2, color: { dark: '#0f172a', light: '#ffffff' } })
-    qrModal.code = k.id; qrModal.open = true
+    // Lazy Migration: If no token, generate and save one now.
+    let token = k.qr_token
+    if (!token) {
+        token = generateToken()
+        try {
+            await updateDoc(doc(db, 'access_keys', k.id), { qr_token: token })
+            // Update local instantly to avoid lag
+            k.qr_token = token 
+        } catch (e) {
+            console.error("Token gen failed", e)
+            alert("Failed to generate secure token")
+            return
+        }
+    }
+
+    qrModal.url = await QRCode.toDataURL(token, { width: 300, margin: 2, color: { dark: '#0f172a', light: '#ffffff' } })
+    qrModal.code = k.id; // Still show the ID (Password) as label
+    qrModal.token = token; // Store current token for Rotate
+    qrModal.keyId = k.id; // Store key ID for Rotate
+    qrModal.open = true
+}
+
+const rotateToken = async () => {
+    if (!confirm("↻ Rotate QR Token?\n\nThis will INVALIDATE the old QR code. The manual password (Access Code) will NOT change.\n\nContinue?")) return;
+    
+    const newToken = generateToken()
+    try {
+        await updateDoc(doc(db, 'access_keys', qrModal.keyId), { qr_token: newToken })
+        
+        // Refresh QR View
+        qrModal.url = await QRCode.toDataURL(newToken, { width: 300, margin: 2, color: { dark: '#0f172a', light: '#ffffff' } })
+        qrModal.token = newToken
+        alert("QR Code Rotated Successfully!")
+    } catch(e) {
+        alert("Error: " + e.message)
+    }
 }
 
 // Drag
@@ -505,6 +560,12 @@ const onDrop = async (e, dropI) => {
   padding: 1rem 1.5rem; border-top: 1px solid rgba(255,255,255,0.05);
   display: flex; justify-content: flex-end; gap: 1rem;
 }
+.btn-rotate {
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+    color: #e2e8f0; width: 48px; border-radius: 8px; cursor: pointer; font-size: 1.2rem;
+    transition: all 0.2s;
+}
+.btn-rotate:hover { background: rgba(255,255,255,0.2); color: white; transform: rotate(180deg); }
 .btn-text { background: none; border: none; color: #94a3b8; cursor: pointer; font-weight: 600; }
 .btn-primary { background: #3b82f6; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer; }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }

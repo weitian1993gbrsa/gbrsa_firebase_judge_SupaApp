@@ -77,7 +77,7 @@
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue' 
 import { useRouter } from 'vue-router'
 import { db } from '../firebase'
-import { doc, getDoc, onSnapshot } from 'firebase/firestore'
+import { doc, getDoc, onSnapshot, query, collection, where, getDocs } from 'firebase/firestore'
 import { Html5Qrcode } from 'html5-qrcode'
 import { library } from '@fortawesome/fontawesome-svg-core'
 import { faQrcode } from '@fortawesome/free-solid-svg-icons'
@@ -192,7 +192,46 @@ const handleLogin = async (isSilent = false) => {
 }
 const startScan = async () => { /* ... existing ... */ showScanner.value = true; isScannerInit.value = true; await nextTick(); if (html5QrCode) { try { if (html5QrCode.isScanning) await html5QrCode.stop(); html5QrCode.clear() } catch (e) {} } html5QrCode = new Html5Qrcode("reader"); const config = { fps: 20, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0, videoConstraints: { facingMode: "environment", focusMode: "continuous" } }; try { await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, (err) => {}).then(() => isScannerInit.value = false) } catch (err) { try { const devices = await Html5Qrcode.getCameras(); if (devices && devices.length) { const backCam = devices.find(d => d.label.toLowerCase().includes('back')) || devices[0]; await html5QrCode.start(backCam.id, config, onScanSuccess, (err)=>{}); isScannerInit.value = false } else { throw new Error("No camera found") } } catch (finalErr) { showScanner.value = false; if (html5QrCode) html5QrCode.clear() } } }
 const stopScan = () => { if(html5QrCode) html5QrCode.stop().then(() => { html5QrCode.clear(); showScanner.value = false }).catch(() => showScanner.value = false); else showScanner.value = false }
-const onScanSuccess = (decodedText) => { if(html5QrCode) html5QrCode.stop().then(() => { html5QrCode.clear(); showScanner.value = false }).catch(console.error); else showScanner.value = false; let key = decodedText; try { const decoded = atob(decodedText); if(decoded) key = decoded } catch(e) {} accessKey.value = key; handleLogin(false) }
+const onScanSuccess = async (decodedText) => {
+    // 1. Stop Scanner UI
+    if(html5QrCode) {
+        html5QrCode.stop().then(() => { html5QrCode.clear(); showScanner.value = false }).catch(console.error)
+    } else {
+        showScanner.value = false
+    }
+
+    let scannedVal = decodedText
+    try {
+        const decoded = atob(decodedText)
+        if(decoded) scannedVal = decoded // Legacy Base64 support
+    } catch(e) {}
+
+    loading.value = true
+    
+    // 2. Token Lookup
+    try {
+        // Query for token match
+        const q =  query(collection(db, 'access_keys'), where('qr_token', '==', scannedVal))
+        const snaps = await getDocs(q)
+        
+        if (!snaps.empty) {
+            // FOUND: It's a secure token. Use the ID (Real Password)
+            accessKey.value = snaps.docs[0].id
+            console.log("Secure Token Verified")
+        } else {
+            // NOT FOUND: Assume it is a Legacy/Manual Code
+            accessKey.value = scannedVal
+        }
+        
+        // 3. Auto Login
+        await handleLogin(false)
+        
+    } catch (e) {
+        // Fallback if query fails
+        accessKey.value = scannedVal
+        handleLogin(false)
+    }
+}
 const withTimeout = (promise, ms = 8000) => { return new Promise((resolve, reject) => { const timer = setTimeout(() => reject(new Error("Network Timeout")), ms); promise.then((res) => { clearTimeout(timer); resolve(res) }, (err) => { clearTimeout(timer); reject(err) }) }) }
 const safeNavigate = async (routeParams) => { const navPromise = router.push(routeParams); const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Navigation Timeout")), 5000)); await Promise.race([navPromise, timeoutPromise]) }
 </script>
