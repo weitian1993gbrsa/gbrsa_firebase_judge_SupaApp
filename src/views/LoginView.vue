@@ -158,6 +158,12 @@ const handleLogin = async (isSilent = false) => {
             localStorage.setItem('tester_authorized', 'true'); 
             await safeNavigate('/tester') 
         }
+        else if (role === 'practice') { 
+             // Behave like a tester but go to practice
+            localStorage.setItem('gbrsa_access_key', 'practice'); 
+            localStorage.setItem('tester_authorized', 'true'); 
+            await safeNavigate('/practice') 
+        }
         else if (role === 'live_board') { 
             localStorage.setItem('gbrsa_live_key', key); 
             await safeNavigate({ path: '/live' }) 

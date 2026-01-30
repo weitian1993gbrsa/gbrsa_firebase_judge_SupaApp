@@ -105,6 +105,7 @@
               <option value="super_admin">Super Admin</option>
               <option value="importer">Data Importer</option>
               <option value="tester">Tester</option>
+              <option value="practice">Practice Mode</option>
               <option value="live_board">Live Scoreboard</option>
             </select>
           </div>
@@ -168,7 +169,7 @@ let unsub = null
 
 // --- UTILS ---
 const formatRole = (r) => {
-  const map = { 'super_admin': 'Super Admin', 'live_board': 'Live Board' }
+  const map = { 'super_admin': 'Super Admin', 'live_board': 'Live Board', 'practice': 'Practice Mode' }
   return map[r] || r.charAt(0).toUpperCase() + r.slice(1)
 }
 
