@@ -1,155 +1,154 @@
 <template>
   <div class="key-manager-layout">
-    <header class="header">
-      <div class="brand">
-        <div class="brand-text">
-          <h1>Access Key Manager</h1>
-        </div>
+    <header class="view-header">
+      <div class="header-content">
+        <h1 class="page-title">Access Key Manager</h1>
+        <p class="page-subtitle">Manage system access, roles, and lanes.</p>
       </div>
     </header>
 
-    <div class="dashboard-container px-8 pt-8 pb-8">
-        <div class="glass-card" style="max-width: 1000px; margin: 0 auto;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
-                <h3 class="host-title">Access Keys</h3>
-                <button @click="openKeyModal()" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
-                   + Add Key
+    <div class="dashboard-container">
+      <div class="glass-panel">
+        
+        <div class="panel-toolbar">
+          <h3 class="panel-title">Active Keys</h3>
+          <button @click="openKeyModal()" class="btn-add">
+            <span class="icon-plus">+</span>
+            <span class="btn-label">New Key</span>
+          </button>
+        </div>
+
+        <div class="list-header">
+          <div class="col col-handle"></div>
+          <div class="col col-code">Code</div>
+          <div class="col col-role">Role</div>
+          <div class="col col-info">Details</div> <div class="col col-actions">Actions</div>
+        </div>
+
+        <div class="list-body">
+          <TransitionGroup name="list" tag="div" class="drag-container">
+            <div 
+              v-for="(k, index) in keysList" 
+              :key="k.id"
+              class="list-row"
+              :class="{ 'is-dragging': dragIndex === index }"
+              draggable="true"
+              @dragstart="onDragStart($event, index)"
+              @dragover.prevent="onDragOver($event)"
+              @drop="onDrop($event, index)"
+            >
+              <div class="col col-handle" title="Hold to drag">
+                <div class="drag-grip">
+                  <span></span><span></span><span></span>
+                </div>
+              </div>
+
+              <div class="col col-code">
+                <span class="code-pill">{{ k.id }}</span>
+              </div>
+
+              <div class="col col-role">
+                <span class="role-badge" :class="getRoleClass(k.role)">
+                  {{ formatRole(k.role) }}
+                </span>
+              </div>
+
+              <div class="col col-info">
+                <div v-if="k.role === 'judge'" class="info-tags">
+                  <span class="tag-station">St. {{ k.station }}</span>
+                  <span class="tag-event">{{ k.event }}</span>
+                  <span class="tag-type">{{ k.judgeType }}</span>
+                </div>
+                <span v-else class="text-muted">—</span>
+              </div>
+
+              <div class="col col-actions">
+                <button @click="showQr(k)" class="action-btn btn-qr" title="Show QR">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
                 </button>
+                <button @click="editKey(k)" class="action-btn btn-edit" title="Edit">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                </button>
+                <button @click="deleteKey(k.id)" class="action-btn btn-delete" title="Delete">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                </button>
+              </div>
             </div>
-
-            <div class="table-scroll-container">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th style="width: 5%;"></th>
-                        <th style="width: 20%;">Code</th>
-                        <th style="width: 15%;">Role</th>
-                        <th style="width: 10%;">Station</th>
-                        <th style="width: 15%;">Event</th>
-                        <th style="width: 15%;">Type</th>
-                        <th style="width: 20%; text-align: center;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody class="drag-container">
-                    <tr 
-                        v-for="(k, index) in keysList" 
-                        :key="k.id"
-                        draggable="true"
-                        @dragstart="onDragStart($event, index)"
-                        @dragover.prevent="onDragOver($event)"
-                        @drop="onDrop($event, index)"
-                        class="draggable-row"
-                        :class="{ 'is-dragging': dragIndex === index }"
-                    >
-                        <td class="drag-handle" title="Drag to reorder">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" style="opacity: 0.5;">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
-                            </svg>
-                        </td>
-
-                        <td class="font-mono font-bold text-white">{{ k.id }}</td>
-                        <td>
-                            <span :class="{
-                                'badge-status badge-live': k.role === 'judge',
-                                'badge-status badge-dq': k.role === 'admin' || k.role === 'super_admin'
-                            }">{{ k.role.toUpperCase() }}</span>
-                        </td>
-                        <td>{{ k.station || '-' }}</td>
-                        <td>{{ k.event || '-' }}</td>
-                        <td>{{ k.judgeType || '-' }}</td>
-                        <td class="text-center">
-                            <div class="action-buttons">
-                                <button @click="showQr(k)" class="btn-xs btn-icon-blue" title="Show QR">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4h2v-4zm-6 0H6.4M7 16h.4M16 16h.4M6 12h.4M12 12h.4M12 16h.4M16 12h.4M6 8h.4M12 8h.4M16 8h.4M7 8h.4M7 12h.4M7 4h.4M6.4 4H6m1.2 0h.4M12 4h.4M16.4 4H16m1.2 0h.4M6 16h.4M16 16h.4M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                                    </svg>
-                                </button>
-                                <button @click="editKey(k)" class="btn-xs btn-icon-yellow" title="Edit">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                                    </svg>
-                                </button>
-                                <button @click="deleteKey(k.id)" class="btn-xs btn-icon-red" title="Delete">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                    </svg>
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                </tbody>
-            </table>
-            </div>
+          </TransitionGroup>
+          
+          <div v-if="keysList.length === 0" class="empty-state">
+            <p>No keys found. Click "New Key" to start.</p>
+          </div>
         </div>
+      </div>
     </div>
 
-    <div class="modal-overlay" v-if="keyModal.open" @click.self="keyModal.open = false">
-        <div class="modal-card">
-            <h3>{{ keyModal.isEdit ? 'Edit Key' : 'Add New Key' }}</h3>
-            
-            <div class="form-group mb-4">
-                <label>Access Code (Password)</label>
-                <input v-model="keyModal.id" class="modal-input" placeholder="e.g. secret123">
-                <small v-if="keyModal.isEdit" style="color: #f59e0b;">⚠ Changing this will create a new key and delete the old one.</small>
-            </div>
-
-            <div class="form-group mb-4">
-                <label>Role</label>
-                <select v-model="keyModal.role" class="modal-input">
-                    <option value="judge">Judge</option>
-                    <option value="admin">Admin</option>
-                    <option value="super_admin">Super Admin</option>
-                    <option value="importer">Importer</option>
-                    <option value="tester">Tester</option>
-                    <option value="live_board">Live Board</option>
-                </select>
-            </div>
-
-            <template v-if="keyModal.role === 'judge'">
-                <div class="form-group mb-4">
-                    <label>Station (Lane)</label>
-                    <input v-model="keyModal.station" type="number" class="modal-input">
-                </div>
-                <div class="form-group mb-4">
-                    <label>Event Type</label>
-                    <select v-model="keyModal.event" class="modal-input">
-                        <option value="speed">Speed</option>
-                        <option value="freestyle">Freestyle</option>
-                    </select>
-                </div>
-                <div class="form-group mb-4" v-if="keyModal.event === 'freestyle'">
-                    <label>Judge Type</label>
-                     <select v-model="keyModal.judgeType" class="modal-input">
-                        <option value="difficulty">Difficulty</option>
-                        <option value="presentation">Presentation</option>
-                        <option value="technical">Technical</option>
-                        <option value="re">Req. Elements</option>
-                    </select>
-                </div>
-            </template>
-
-            <div class="modal-actions mt-6">
-                <button @click="keyModal.open = false" class="btn-outline">Cancel</button>
-                <button @click="saveKey" class="btn-primary" :disabled="!keyModal.id">Save Key</button>
-            </div>
+    <div class="modal-backdrop" v-if="keyModal.open" @click.self="keyModal.open = false">
+      <div class="modal-window">
+        <div class="modal-header">
+          <h3>{{ keyModal.isEdit ? 'Edit Access Key' : 'Create Access Key' }}</h3>
+          <button class="btn-close" @click="keyModal.open = false">×</button>
         </div>
+        
+        <div class="modal-body">
+          <div class="input-group">
+            <label>Access Code</label>
+            <input v-model="keyModal.id" type="text" placeholder="e.g. Judge1" class="form-input">
+            <p v-if="keyModal.isEdit" class="input-hint">⚠ Changing this creates a new key entry.</p>
+          </div>
+
+          <div class="input-group">
+            <label>Role</label>
+            <select v-model="keyModal.role" class="form-select">
+              <option value="judge">Judge (Station)</option>
+              <option value="admin">Administrator</option>
+              <option value="super_admin">Super Admin</option>
+              <option value="importer">Data Importer</option>
+              <option value="tester">Tester</option>
+              <option value="live_board">Live Scoreboard</option>
+            </select>
+          </div>
+
+          <div v-if="keyModal.role === 'judge'" class="grid-2">
+            <div class="input-group">
+              <label>Station No.</label>
+              <input v-model="keyModal.station" type="number" class="form-input">
+            </div>
+            <div class="input-group">
+              <label>Event</label>
+              <select v-model="keyModal.event" class="form-select">
+                <option value="speed">Speed</option>
+                <option value="freestyle">Freestyle</option>
+              </select>
+            </div>
+            <div class="input-group full-width" v-if="keyModal.event === 'freestyle'">
+              <label>Judge Type</label>
+              <select v-model="keyModal.judgeType" class="form-select">
+                <option value="difficulty">Difficulty</option>
+                <option value="presentation">Presentation</option>
+                <option value="technical">Technical</option>
+                <option value="re">Req. Elements</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn-text" @click="keyModal.open = false">Cancel</button>
+          <button class="btn-primary" @click="saveKey" :disabled="!keyModal.id">Save Changes</button>
+        </div>
+      </div>
     </div>
 
-    <div class="modal-overlay" v-if="qrModal.open" @click.self="qrModal.open = false">
-        <div class="modal-card" style="max-width: 350px; text-align: center;">
-            <h3 style="margin-bottom: 1rem;">Login QR Code</h3>
-            
-            <div style="background: white; padding: 1rem; border-radius: 12px; display: inline-block;">
-                <img :src="qrModal.url" alt="QR Code" style="width: 200px; height: 200px;" />
-            </div>
-            
-            <p class="font-mono mt-4" style="font-size: 1.2rem; font-weight: bold; color: #facc15;">{{ qrModal.code }}</p>
-            <p class="text-sm text-gray-400">Scan this at the login screen</p>
-
-            <div class="mt-6">
-                 <button @click="qrModal.open = false" class="btn-primary w-full">Close</button>
-            </div>
+    <div class="modal-backdrop" v-if="qrModal.open" @click.self="qrModal.open = false">
+      <div class="modal-window qr-window">
+        <h3>Login QR Code</h3>
+        <div class="qr-display">
+          <img :src="qrModal.url" alt="QR Code" />
         </div>
+        <div class="qr-code-label">{{ qrModal.code }}</div>
+        <button class="btn-primary full-width" @click="qrModal.open = false">Done</button>
+      </div>
     </div>
 
   </div>
@@ -162,252 +161,320 @@ import { collection, onSnapshot, doc, setDoc, deleteDoc, writeBatch, serverTimes
 import QRCode from 'qrcode' 
 
 const keysList = ref([])
-// Added originalId to track renames
 const keyModal = reactive({ open: false, isEdit: false, id: '', originalId: '', role: 'judge', station: 1, event: 'speed', judgeType: 'difficulty' })
 const qrModal = reactive({ open: false, url: '', code: '' })
 const dragIndex = ref(null)
-
 let unsub = null
 
+// --- UTILS ---
+const formatRole = (r) => {
+  const map = { 'super_admin': 'Super Admin', 'live_board': 'Live Board' }
+  return map[r] || r.charAt(0).toUpperCase() + r.slice(1)
+}
+
+const getRoleClass = (r) => {
+  if (r === 'judge') return 'role-judge'
+  if (r === 'admin' || r === 'super_admin') return 'role-admin'
+  if (r === 'live_board') return 'role-live'
+  return 'role-gray'
+}
+
+// --- DATA & DRAG LOGIC (Same as before, simplified for brevity) ---
 onMounted(() => {
-    // FIXED: Removed orderBy('sort_order') from query so keys without it still show up
-    const q = collection(db, 'access_keys')
-    
-    unsub = onSnapshot(q, snap => {
+    unsub = onSnapshot(collection(db, 'access_keys'), snap => {
         let list = snap.docs.map(d => ({ id: d.id, ...d.data() }))
-        
-        // Client-side Sorting
         list.sort((a, b) => {
-            // 1. If both have sort_order, use it
-            if (a.sort_order !== undefined && b.sort_order !== undefined) {
-                return a.sort_order - b.sort_order
-            }
-            // 2. If only one has sort_order, prioritize it (optional, or push to bottom)
-            if (a.sort_order !== undefined) return -1
-            if (b.sort_order !== undefined) return 1
-            
-            // 3. Fallback: Sort alphabetically by ID
+            if (a.sort_order !== undefined && b.sort_order !== undefined) return a.sort_order - b.sort_order
             return a.id.localeCompare(b.id)
         })
-        
         keysList.value = list
-    }, err => console.error("Keys Error", err))
-})
-
-onUnmounted(() => {
-    if (unsub) unsub()
-})
-
-// --- ACTIONS ---
-
-const openKeyModal = () => {
-    Object.assign(keyModal, { 
-        open: true, 
-        isEdit: false, 
-        id: '', 
-        originalId: '',
-        role: 'judge', 
-        station: 1, 
-        event: 'speed', 
-        judgeType: 'difficulty' 
     })
-}
+})
+onUnmounted(() => { if (unsub) unsub() })
 
-const editKey = (key) => {
-    Object.assign(keyModal, {
-        open: true,
-        isEdit: true,
-        id: key.id,
-        originalId: key.id, // Track original
-        role: key.role,
-        station: key.station || 1,
-        event: key.event || 'speed',
-        judgeType: key.judgeType || 'difficulty'
-    })
-}
+// Actions
+const openKeyModal = () => Object.assign(keyModal, { open: true, isEdit: false, id: '', originalId: '', role: 'judge', station: 1, event: 'speed', judgeType: 'difficulty' })
+const editKey = (k) => Object.assign(keyModal, { open: true, isEdit: true, id: k.id, originalId: k.id, ...k })
 
 const saveKey = async () => {
     if (!keyModal.id) return
-    
     const newId = keyModal.id.trim()
-    
-    const data = {
-        role: keyModal.role,
-        updated_at: serverTimestamp()
-    }
-    
+    const data = { role: keyModal.role, updated_at: serverTimestamp() }
     if (keyModal.role === 'judge') {
-        data.station = Number(keyModal.station)
-        data.event = keyModal.event
+        data.station = Number(keyModal.station); data.event = keyModal.event
         if (keyModal.event === 'freestyle') data.judgeType = keyModal.judgeType
-    } else {
-        data.station = null
-        data.event = null
-        data.judgeType = null
-    }
-
-    // Set default sort order if new (append to end)
-    if (!keyModal.isEdit) {
-        data.sort_order = keysList.value.length
-    }
+    } else { data.station = null; data.event = null; data.judgeType = null }
+    if (!keyModal.isEdit) data.sort_order = keysList.value.length
 
     try {
-        // CHECK: Rename?
         if (keyModal.isEdit && newId !== keyModal.originalId) {
-            // 1. Create NEW doc (Preserve old sort_order)
-            const oldKeyData = keysList.value.find(k => k.id === keyModal.originalId)
-            if (oldKeyData && oldKeyData.sort_order !== undefined) {
-                data.sort_order = oldKeyData.sort_order
-            }
-            
+            const old = keysList.value.find(k => k.id === keyModal.originalId)
+            if (old?.sort_order !== undefined) data.sort_order = old.sort_order
             await setDoc(doc(db, 'access_keys', newId), data)
-            
-            // 2. Delete OLD doc
             await deleteDoc(doc(db, 'access_keys', keyModal.originalId))
         } else {
-            // Normal update or Insert
             await setDoc(doc(db, 'access_keys', newId), data, { merge: true })
         }
-
         keyModal.open = false
-    } catch(e) {
-        alert("Error saving key: " + e.message)
-    }
+    } catch(e) { alert(e.message) }
 }
 
-const deleteKey = async (id) => {
-    if(!confirm(`Delete access key "${id}"?`)) return
-    try {
-        await deleteDoc(doc(db, 'access_keys', id))
-    } catch(e) {
-        alert("Error deleting: " + e.message)
-    }
+const deleteKey = async (id) => { if(confirm(`Delete ${id}?`)) await deleteDoc(doc(db, 'access_keys', id)) }
+
+const showQr = async (k) => {
+    qrModal.url = await QRCode.toDataURL(k.id, { width: 300, margin: 2, color: { dark: '#0f172a', light: '#ffffff' } })
+    qrModal.code = k.id; qrModal.open = true
 }
 
-const showQr = async (key) => {
-    try {
-        const url = await QRCode.toDataURL(key.id, { 
-            width: 300, 
-            margin: 2,
-            color: { dark: '#000000', light: '#ffffff' }
-        })
-        qrModal.url = url
-        qrModal.code = key.id
-        qrModal.open = true
-    } catch (err) {
-        alert("Failed to generate QR: " + err.message)
-    }
-}
-
-// --- DRAG & DROP ---
-
-const onDragStart = (e, index) => {
-    dragIndex.value = index
-    e.dataTransfer.effectAllowed = 'move'
-    // Optional: set transparent drag image if needed
-}
-
-const onDragOver = (e) => {
-    e.dataTransfer.dropEffect = 'move'
-}
-
-const onDrop = async (e, dropIndex) => {
-    const startIndex = dragIndex.value
-    if (startIndex === null || startIndex === dropIndex) return
-
-    // Reorder locally
-    const movedItem = keysList.value[startIndex]
+// Drag
+const onDragStart = (e, i) => { dragIndex.value = i; e.dataTransfer.effectAllowed = 'move' }
+const onDragOver = (e) => { e.dataTransfer.dropEffect = 'move' }
+const onDrop = async (e, dropI) => {
+    const startI = dragIndex.value
+    if (startI === null || startI === dropI) return
+    const moved = keysList.value[startI]
     const list = [...keysList.value]
-    list.splice(startIndex, 1)
-    list.splice(dropIndex, 0, movedItem)
-    keysList.value = list // Optimistic update
-    dragIndex.value = null
-
-    // Save Order to Firestore
+    list.splice(startI, 1); list.splice(dropI, 0, moved)
+    keysList.value = list; dragIndex.value = null
     const batch = writeBatch(db)
-    list.forEach((k, idx) => {
-        const ref = doc(db, 'access_keys', k.id)
-        // Only update if index actually changed to save writes, but updating all is safer for consistency
-        batch.update(ref, { sort_order: idx })
-    })
-
-    try {
-        await batch.commit()
-    } catch(err) {
-        console.error("Reorder failed", err)
-        alert("Failed to save new order")
-    }
+    list.forEach((k, i) => batch.update(doc(db, 'access_keys', k.id), { sort_order: i }))
+    await batch.commit()
 }
 </script>
 
 <style scoped>
+/* --- LAYOUT & BASE --- */
 .key-manager-layout {
-    height: 100vh;
-    background-color: #0f172a;
-    color: #f1f5f9;
-    overflow-y: auto;
-}
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 2rem;
-    background: rgba(15, 23, 42, 0.9);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-.brand h1 { margin: 0; font-size: 1.25rem; }
-
-.glass-card {
-    background: rgba(30, 41, 59, 0.7);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 16px;
-    padding: 2rem;
+  height: 100vh;
+  background-color: #0f172a; /* Slate 900 */
+  color: #f8fafc;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  font-family: 'Inter', sans-serif;
 }
 
-.data-table { width: 100%; border-collapse: collapse; }
-.data-table th { text-align: left; padding: 12px; color: #94a3b8; font-size: 0.85rem; border-bottom: 1px solid rgba(255,255,255,0.1); }
-.data-table td { padding: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 0.95rem; }
+.view-header {
+  padding: 1.5rem 2rem;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  flex-shrink: 0;
+}
+.page-title { margin: 0; font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px; }
+.page-subtitle { margin: 0.25rem 0 0; color: #94a3b8; font-size: 0.9rem; }
 
-/* DRAG & DROP STYLES */
-.draggable-row { cursor: default; transition: background 0.2s, transform 0.2s; }
-.draggable-row.is-dragging { opacity: 0.5; background: rgba(59, 130, 246, 0.2); }
-.drag-handle { cursor: grab; text-align: center; }
-.drag-handle:active { cursor: grabbing; }
-
-.action-buttons { display: flex; justify-content: center; gap: 8px; }
-
-.badge-status { padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; font-weight: bold; }
-.badge-live { background: rgba(34, 197, 94, 0.2); color: #4ade80; }
-.badge-dq { background: rgba(239, 68, 68, 0.2); color: #f87171; }
-
-.btn-primary { background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; }
-.btn-primary:hover { background: #2563eb; }
-.btn-outline { background: transparent; border: 1px solid #475569; color: #cbd5e1; border-radius: 8px; padding: 8px 16px; cursor: pointer; }
-.btn-outline:hover { border-color: #94a3b8; color: #fff; }
-
-.btn-xs { 
-    width: 32px; height: 32px; 
-    border: none; border-radius: 6px; 
-    cursor: pointer; 
-    display: flex; align-items: center; justify-content: center; 
-    transition: all 0.2s;
+.dashboard-container {
+  flex: 1;
+  padding: 2rem;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
-.btn-icon-blue { background: rgba(59, 130, 246, 0.2); color: #60a5fa; }
-.btn-icon-blue:hover { background: #3b82f6; color: white; }
-.btn-icon-yellow { background: rgba(234, 179, 8, 0.2); color: #facc15; }
-.btn-icon-yellow:hover { background: #eab308; color: white; }
-.btn-icon-red { background: rgba(239, 68, 68, 0.2); color: #f87171; }
-.btn-icon-red:hover { background: #ef4444; color: white; }
+/* --- GLASS PANEL --- */
+.glass-panel {
+  background: rgba(30, 41, 59, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  max-width: 1000px;
+  margin: 0 auto;
+  width: 100%;
+}
 
-.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.8); display: flex; align-items: center; justify-content: center; z-index: 50; }
-.modal-card { background: #1e293b; padding: 2rem; border-radius: 16px; width: 100%; max-width: 500px; border: 1px solid #334155; position: relative; }
-.modal-input { width: 100%; padding: 10px; background: #0f172a; border: 1px solid #334155; color: white; border-radius: 8px; margin-top: 4px; }
-.form-group label { font-size: 0.85rem; color: #94a3b8; }
-.modal-actions { display: flex; justify-content: flex-end; gap: 1rem; }
-.w-full { width: 100%; }
-.mt-4 { margin-top: 1rem; }
-.mt-6 { margin-top: 1.5rem; }
+.panel-toolbar {
+  padding: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255,255,255,0.02);
+}
+.panel-title { margin: 0; font-size: 1.1rem; font-weight: 700; color: #e2e8f0; }
+
+.btn-add {
+  background: #3b82f6;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.6rem 1.2rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s;
+}
+.btn-add:hover { background: #2563eb; transform: translateY(-1px); }
+.icon-plus { font-size: 1.2rem; line-height: 1; }
+
+/* --- LIST LAYOUT --- */
+.list-header {
+  display: flex;
+  padding: 0.75rem 1.5rem;
+  background: rgba(15, 23, 42, 0.5);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  color: #94a3b8;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.list-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0.5rem;
+}
+
+.list-row {
+  display: flex;
+  align-items: center;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.02);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 0.5rem;
+  transition: all 0.2s;
+}
+.list-row:hover { background: rgba(255,255,255,0.05); border-color: rgba(255,255,255,0.1); }
+.list-row.is-dragging { opacity: 0.5; border: 1px dashed #3b82f6; }
+
+/* COLUMNS */
+.col { padding: 0 0.5rem; }
+.col-handle { width: 40px; display: flex; justify-content: center; cursor: grab; opacity: 0.4; }
+.col-handle:hover { opacity: 1; }
+.col-code { width: 25%; }
+.col-role { width: 20%; }
+.col-info { flex: 1; }
+.col-actions { width: 140px; display: flex; justify-content: flex-end; gap: 0.5rem; }
+
+/* ELEMENTS */
+.drag-grip span { display: block; width: 4px; height: 4px; background: currentColor; margin: 2px 0; border-radius: 50%; }
+
+.code-pill {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  background: rgba(0,0,0,0.3);
+  padding: 4px 8px;
+  border-radius: 4px;
+  color: #facc15;
+  border: 1px solid rgba(250, 204, 21, 0.2);
+}
+
+.role-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase; }
+.role-judge { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+.role-admin { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+.role-live { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+.role-gray { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; }
+
+.info-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.tag-station, .tag-event, .tag-type { 
+  font-size: 0.75rem; padding: 2px 6px; border-radius: 4px; background: rgba(255,255,255,0.05); color: #cbd5e1;
+}
+
+.action-btn {
+  width: 34px; height: 34px;
+  border: none; border-radius: 8px;
+  background: rgba(255,255,255,0.05);
+  color: #94a3b8;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all 0.2s;
+}
+.action-btn:hover { background: #3b82f6; color: white; }
+.btn-delete:hover { background: #ef4444; }
+
+/* --- RESPONSIVE MOBILE --- */
+@media (max-width: 768px) {
+  .view-header { padding: 1rem; }
+  .dashboard-container { padding: 1rem; }
+  
+  .list-header { display: none; } /* Hide Table Header */
+  
+  .list-row {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 1rem;
+    position: relative;
+    gap: 0.75rem;
+  }
+
+  .col { width: 100%; padding: 0; }
+  
+  /* Drag Handle to Top Right */
+  .col-handle {
+    position: absolute; top: 1rem; right: 1rem;
+    width: auto; height: auto;
+  }
+  .drag-grip { transform: rotate(90deg); }
+
+  .col-code { margin-bottom: 0.25rem; }
+  .code-pill { font-size: 1.1rem; }
+
+  .col-role { display: flex; align-items: center; }
+  
+  .col-actions {
+    width: 100%;
+    margin-top: 0.5rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255,255,255,0.05);
+    justify-content: space-between; /* Spread buttons */
+  }
+  .action-btn { width: 30%; height: 40px; } /* Larger touch targets */
+}
+
+/* --- MODALS --- */
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(4px); z-index: 50;
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem;
+}
+.modal-window {
+  background: #1e293b;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  width: 100%; max-width: 450px;
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+  display: flex; flex-direction: column;
+}
+.modal-header {
+  padding: 1.25rem; border-bottom: 1px solid rgba(255,255,255,0.05);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.modal-header h3 { margin: 0; font-size: 1.1rem; color: white; }
+.btn-close { background: none; border: none; color: #94a3b8; font-size: 1.5rem; cursor: pointer; }
+
+.modal-body { padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; }
+
+.input-group label { display: block; font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.4rem; }
+.form-input, .form-select {
+  width: 100%; background: #0f172a; border: 1px solid #334155;
+  color: white; padding: 0.75rem; border-radius: 8px; font-size: 1rem;
+}
+.form-input:focus, .form-select:focus { outline: 2px solid #3b82f6; border-color: transparent; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.full-width { grid-column: span 2; }
+.input-hint { font-size: 0.8rem; color: #f59e0b; margin: 0.25rem 0 0; }
+
+.modal-footer {
+  padding: 1rem 1.5rem; border-top: 1px solid rgba(255,255,255,0.05);
+  display: flex; justify-content: flex-end; gap: 1rem;
+}
+.btn-text { background: none; border: none; color: #94a3b8; cursor: pointer; font-weight: 600; }
+.btn-primary { background: #3b82f6; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer; }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* QR Styles */
+.qr-window { text-align: center; padding: 2rem; max-width: 350px; }
+.qr-display { background: white; padding: 1rem; border-radius: 12px; margin: 1rem auto; display: inline-block; }
+.qr-display img { width: 200px; height: 200px; display: block; }
+.qr-code-label { font-family: monospace; font-size: 1.25rem; font-weight: 700; color: #facc15; margin-bottom: 1.5rem; }
+.full-width { width: 100%; }
+
+/* ANIMATION */
+.list-move { transition: transform 0.3s ease; }
 </style>
