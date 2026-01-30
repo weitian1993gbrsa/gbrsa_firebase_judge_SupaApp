@@ -130,15 +130,46 @@ const handleLogin = async (isSilent = false) => {
         if (!keySnap.exists()) throw new Error("Invalid Access Code")
         const data = keySnap.data()
         const role = data.role
-        if (isLocked.value && role !== 'admin' && role !== 'importer') throw new Error("System is LOCKED by Host")
+        // Allow super_admin to bypass lock
+        if (isLocked.value && role !== 'admin' && role !== 'importer' && role !== 'super_admin') {
+            throw new Error("System is LOCKED by Host")
+        }
         
         loading.value = true 
-        if (role === 'admin') { localStorage.setItem('gbrsa_access_key', key); localStorage.setItem('admin_authorized', 'true'); await safeNavigate('/admin') } 
-        else if (role === 'importer') { localStorage.setItem('gbrsa_access_key', key); await safeNavigate('/importer') }
-        else if (role === 'tester') { localStorage.setItem('gbrsa_access_key', 'tester'); localStorage.setItem('tester_authorized', 'true'); await safeNavigate('/tester') }
-        else if (role === 'live_board') { localStorage.setItem('gbrsa_live_key', key); await safeNavigate({ path: '/live' }) }
-        else if (role === 'judge') { sessionStorage.setItem('gbrsa_access_key', key); sessionStorage.setItem('gbrsa_allowed_station', data.station); await safeNavigate({ path: '/station', query: { event: data.event, judgeType: data.judgeType, station: data.station } }) }
-        else { throw new Error("Unknown Role") }
+
+        // --- NEW LOGIC ADDED HERE ---
+        if (role === 'super_admin') {
+            localStorage.setItem('gbrsa_access_key', key);
+            await safeNavigate('/keys'); 
+        }
+        // ----------------------------
+        
+        else if (role === 'admin') { 
+            localStorage.setItem('gbrsa_access_key', key); 
+            localStorage.setItem('admin_authorized', 'true'); 
+            await safeNavigate('/admin') 
+        } 
+        else if (role === 'importer') { 
+            localStorage.setItem('gbrsa_access_key', key); 
+            await safeNavigate('/importer') 
+        }
+        else if (role === 'tester') { 
+            localStorage.setItem('gbrsa_access_key', 'tester'); 
+            localStorage.setItem('tester_authorized', 'true'); 
+            await safeNavigate('/tester') 
+        }
+        else if (role === 'live_board') { 
+            localStorage.setItem('gbrsa_live_key', key); 
+            await safeNavigate({ path: '/live' }) 
+        }
+        else if (role === 'judge') { 
+            sessionStorage.setItem('gbrsa_access_key', key); 
+            sessionStorage.setItem('gbrsa_allowed_station', data.station); 
+            await safeNavigate({ path: '/station', query: { event: data.event, judgeType: data.judgeType, station: data.station } }) 
+        }
+        else { 
+            throw new Error("Unknown Role") 
+        }
     } catch (e) {
         if (silentMode) { loading.value = false; return }
         if (!navigator.onLine) { errorMsg.value = "No Internet Connection"; loading.value = false; return }

@@ -19,6 +19,10 @@ const router = createRouter({
         { path: '/admin', name: 'admin', component: () => import('../views/AdminView.vue') },
         { path: '/admin/certificates', name: 'certificates', component: () => import('../views/CertificatesView.vue') },
         { path: '/host', name: 'host', component: () => import('../views/HostView.vue') },
+
+        // --- NEW KEY MANAGER ROUTE ---
+        { path: '/keys', name: 'key-manager', component: () => import('../views/KeyManagerView.vue') },
+
         { path: '/tester', name: 'tester', component: TesterView },
         { path: '/live', name: 'live-setup', component: () => import('../views/ScoreboardSetupView.vue') },
         { path: '/live/board', name: 'live-scoreboard', component: () => import('../views/LiveScoreboardView.vue') }
@@ -41,25 +45,33 @@ router.beforeEach(async (to, from, next) => {
 
     // 2. High-Security Verification for Admin/Importer/Host
     // We check the DB to ensure the key is actually valid and has the right role.
-    if (to.path.startsWith('/admin') || to.path.startsWith('/importer') || to.path.startsWith('/host')) {
+    if (to.path.startsWith('/admin') || to.path.startsWith('/importer') || to.path.startsWith('/host') || to.path.startsWith('/keys')) {
         try {
             // Verify against Firestore
             const docRef = doc(db, 'access_keys', key);
             const snap = await getDoc(docRef);
 
             if (!snap.exists()) {
-                console.warn("Security Alert: Invalid Key used for Admin Access");
+                console.warn("Security Alert: Invalid Key");
                 return next('/');
             }
 
             const role = snap.data().role;
 
-            // Allow if role matches the route requirements
-            if (to.path.startsWith('/admin') && role === 'admin') return next();
-            if (to.path.startsWith('/importer') && (role === 'importer' || role === 'admin')) return next();
-            if (to.path.startsWith('/host') && role === 'admin') return next();
+            // --- ROLE CHECKS ---
 
-            // If role doesn't match
+            // 1. Key Manager (Super Admin) Access
+            if (to.path.startsWith('/keys') && role === 'super_admin') return next();
+
+            // 2. Admin Access (Allow Super Admin to enter Admin view too)
+            if (to.path.startsWith('/admin') && (role === 'admin' || role === 'super_admin')) return next();
+
+            // 3. Importer Access
+            if (to.path.startsWith('/importer') && (role === 'importer' || role === 'admin' || role === 'super_admin')) return next();
+
+            // 4. Host Access
+            if (to.path.startsWith('/host') && (role === 'admin' || role === 'super_admin')) return next();
+
             return next('/');
 
         } catch (error) {
