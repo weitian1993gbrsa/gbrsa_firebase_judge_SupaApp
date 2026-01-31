@@ -11,9 +11,14 @@
 
     <div v-if="isAuthenticated" class="zoom-wrapper" :class="{ 'cursor-hidden': cursorHidden }" :style="containerStyle" @dblclick="toggleFullScreen">
         
-        <button class="btn-settings-trigger" @click="showSettings = true" title="Open Settings">
-            ⚙️
-        </button>
+        <div class="top-controls">
+            <button class="btn-control" @click="exitBoard" title="Exit to Setup">
+                ✕
+            </button>
+            <button class="btn-control" @click="showSettings = true" title="Open Settings">
+                ⚙️
+            </button>
+        </div>
 
         <header class="sb-header">
              <div class="brand">
@@ -109,12 +114,13 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, reactive, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { db } from '../firebase'
 import { collection, onSnapshot, doc, getDoc, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { COMPETITION_LOGO } from '../constants'
 
 const route = useRoute()
+const router = useRouter()
 
 // CONFIG FROM URL
 const urlStationCount = computed(() => {
@@ -313,6 +319,18 @@ const resetRange = () => {
     configEnd.value = urlStationCount.value
 }
 
+const exitBoard = () => {
+    // Back-fill persistence for the setup screen
+    // This handles the case where user is already on the board but hasn't "Launched" via the new setup code yet.
+    if (urlStationCount.value) {
+        localStorage.setItem('gbrsa_setup_count', String(urlStationCount.value))
+    }
+    const mode = isProjectorMode.value ? 'projector' : 'tv'
+    localStorage.setItem('gbrsa_setup_mode', mode)
+
+    router.push('/live')
+}
+
 const containerStyle = computed(() => ({
     cursor: cursorHidden.value ? 'none' : 'default',
     transform: `scale(${zoomLevel.value / 100})`,
@@ -398,18 +416,24 @@ const handleAuth = async () => {
 .cursor-hidden, .cursor-hidden * { cursor: none !important; }
 
 /* NEW SETTINGS BUTTON STYLE */
-.btn-settings-trigger {
-    position: fixed; top: 1rem; right: 1rem;
+/* TOP CONTROLS */
+.top-controls {
+    position: fixed; top: 1rem; right: 1rem; z-index: 50;
+    display: flex; gap: 0.5rem;
+}
+
+.btn-control {
     background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255,255,255,0.2);
-    font-size: 1.5rem; padding: 0.5rem; width: 50px; height: 50px;
-    border-radius: 50%; cursor: pointer; z-index: 50;
+    font-size: 1.2rem; padding: 0.5rem; width: 44px; height: 44px;
+    border-radius: 50%; cursor: pointer; color: white;
     transition: all 0.3s ease; display: flex; align-items: center; justify-content: center;
 }
-.btn-settings-trigger:hover {
-    background: rgba(255, 255, 255, 0.3); transform: rotate(90deg);
+.btn-control:hover {
+    background: rgba(255, 255, 255, 0.3); transform: scale(1.1);
 }
-/* Hide button when cursor is hidden (during competition) */
-.cursor-hidden .btn-settings-trigger {
+
+/* Hide controls when cursor is hidden (during competition) */
+.cursor-hidden .top-controls {
     opacity: 0; pointer-events: none;
 }
 

@@ -52,6 +52,14 @@ const stationCount = ref(12)
 const displayMode = ref('projector')
 
 const launchScoreboard = () => {
+    // Save state before launch
+    localStorage.setItem('gbrsa_setup_count', String(stationCount.value))
+    localStorage.setItem('gbrsa_setup_mode', displayMode.value)
+
+    // Clear old filter preferences so the new board shows ALL stations by default
+    localStorage.removeItem('gbrsa_live_start')
+    localStorage.removeItem('gbrsa_live_end')
+
     router.push({
         path: '/live/board',
         query: {
@@ -66,7 +74,15 @@ onMounted(() => {
     if (!key) {
         // Not authorized, kick back to login
         router.push('/')
+        return
     }
+
+    // Restore previous state
+    const savedCount = localStorage.getItem('gbrsa_setup_count')
+    if (savedCount) stationCount.value = Number(savedCount)
+
+    const savedMode = localStorage.getItem('gbrsa_setup_mode')
+    if (savedMode) displayMode.value = savedMode
 })
 
 </script>
