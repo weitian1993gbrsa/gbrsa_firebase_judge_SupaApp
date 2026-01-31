@@ -16,8 +16,9 @@
             <button @click="nukeStations" class="btn-nuke" title="Kick everyone out of stations">
               <span>☢ Reset Stations</span>
             </button>
-            <button @click="triggerGlobalUpdate" class="btn-force" title="Force all connected devices to reload">
-               <span>⚡ Force Update</span>
+            <button @click="triggerGlobalUpdate" class="btn-force" :disabled="isRefreshing" title="Force all connected devices to reload">
+               <span :class="{ 'spin-infinite': isRefreshing }">⚡</span> 
+               <span>{{ isRefreshing ? 'Refreshing...' : 'Force Refresh' }}</span>
             </button>
           </div>
 
@@ -213,9 +214,12 @@ const nukeStations = async () => {
   } catch(e) { alert(e.message); }
 }
 
+const isRefreshing = ref(false)
+
 const triggerGlobalUpdate = async () => {
-    if (!confirm("⚡ FORCE GLOBAL UPDATE ⚡\n\nThis will cause ALL connected devices (judges, scoreboards) to RELOAD immediately.\n\nUse this to push new code updates to everyone.\n\nContinue?")) return;
+    if (!confirm("⚡ FORCE REFRESH ⚡\n\nThis will cause ALL connected devices (judges, scoreboards) to RELOAD immediately.\n\nUse this to push new code updates to everyone.\n\nContinue?")) return;
     
+    isRefreshing.value = true
     try {
         await setDoc(doc(db, 'broadcasts', 'latest'), {
             type: 'reload',
@@ -223,9 +227,13 @@ const triggerGlobalUpdate = async () => {
             triggered_by: 'KeyManager',
             force: true
         });
-        alert("Update Signal Sent!");
+        // Artificial delay so the user feels the power
+        await new Promise(resolve => setTimeout(resolve, 800))
+        alert("Refresh Signal Sent!");
     } catch(e) {
         alert("Error sending update: " + e.message);
+    } finally {
+        isRefreshing.value = false
     }
 }
 
@@ -608,4 +616,7 @@ const onDrop = async (e, dropI) => {
 .qr-display img { width: 200px; height: 200px; display: block; }
 .qr-code-label { font-family: monospace; font-size: 1.25rem; font-weight: 700; color: #facc15; margin-bottom: 1.5rem; }
 .full-width { width: 100%; }
+
+@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+.spin-infinite { display: inline-block; animation: spin 1s linear infinite; }
 </style>

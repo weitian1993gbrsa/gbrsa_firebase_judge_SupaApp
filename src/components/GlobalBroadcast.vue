@@ -18,6 +18,8 @@ const showLockOverlay = computed(() => {
 
 const isReady = ref(false)
 
+const isReloading = ref(false)
+
 onMounted(() => {
     // Small delay to ensure any initial state snapshot from Firestore is settled
     setTimeout(() => {
@@ -36,6 +38,9 @@ onMounted(() => {
             if (currentPath.includes('/admin') || currentPath.includes('/host')) return
 
             console.log("Force Reload Triggered - Resetting Viewport...")
+            
+            // SHOW OVERLAY
+            isReloading.value = true
 
             // 1. FORCE CLOSE KEYBOARD
             if (document.activeElement instanceof HTMLElement) {
@@ -47,13 +52,13 @@ onMounted(() => {
             if (app) app.scrollTop = 0;
             window.scrollTo(0, 0);
 
-            // 3. Wait for Keyboard Animation & Settle
+            // 3. Wait for Keyboard Animation & User to see the overlay
             setTimeout(() => {
                 // 4. Force Hard Reload / State Reset using timestamp
                 const url = new URL(window.location.href);
                 url.searchParams.set('t', Date.now());
                 window.location.href = url.toString();
-            }, 500); 
+            }, 1500); // Increased delay for visibility
         },
         onForceLogout: () => {
             const currentRoute = router.currentRoute.value
@@ -152,6 +157,15 @@ const dismissAlert = () => {
             <div class="lock-icon">🔒</div>
             <div class="lock-title">System Locked</div>
             <div class="lock-text">The host has temporarily locked the system. Please wait for the next heat.</div>
+        </div>
+    </div>
+
+    <!-- Re-Sync Overlay -->
+    <div v-if="isReloading" class="reload-overlay">
+        <div class="reload-card">
+            <div class="reload-spinner"></div>
+            <div class="reload-title">Refreshing System</div>
+            <div class="reload-text">Syncing latest updates...</div>
         </div>
     </div>
 
@@ -267,4 +281,21 @@ const dismissAlert = () => {
 .lock-icon { font-size: 4rem; margin-bottom: 1rem; }
 .lock-title { font-size: 1.5rem; font-weight: 800; color: #0f172a; margin-bottom: 0.5rem; }
 .lock-text { color: #64748b; font-weight: 500; }
+
+/* RELOAD OVERLAY */
+.reload-overlay {
+    position: fixed; inset: 0; background: #0f172a; z-index: 30000;
+    display: flex; align-items: center; justify-content: center;
+    color: white; text-align: center;
+}
+.reload-card { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+.reload-spinner {
+    width: 50px; height: 50px;
+    border: 5px solid rgba(255,255,255,0.2); border-top-color: #facc15;
+    border-radius: 50%; animation: spin 0.8s linear infinite;
+}
+.reload-title { font-size: 1.5rem; font-weight: 800; letter-spacing: 0.05em; }
+.reload-text { color: #94a3b8; font-weight: 600; }
+
+@keyframes spin { to { transform: rotate(360deg); } }
 </style>
