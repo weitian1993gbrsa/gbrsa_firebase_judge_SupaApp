@@ -35,12 +35,16 @@ onMounted(() => {
                       document.activeElement.blur();
                   }
 
-                  // 2. Reset Scroll
+                  // 2. Reset Scroll (Target #app)
+                  const app = document.getElementById('app');
+                  if (app) app.scrollTop = 0;
                   window.scrollTo(0, 0);
 
                   // 3. Wait for layout to settle (500ms)
                   setTimeout(() => {
-                      window.location.href = window.location.href;
+                      const url = new URL(window.location.href);
+                      url.searchParams.set('t', Date.now());
+                      window.location.href = url.toString();
                   }, 500);
               }
           }

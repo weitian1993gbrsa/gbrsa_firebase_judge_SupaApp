@@ -37,18 +37,22 @@ onMounted(() => {
 
             console.log("Force Reload Triggered - Resetting Viewport...")
 
-            // 1. FORCE CLOSE KEYBOARD (Crucial!)
+            // 1. FORCE CLOSE KEYBOARD
             if (document.activeElement instanceof HTMLElement) {
                 document.activeElement.blur(); 
             }
 
-            // 2. Reset Scroll
+            // 2. Reset Scroll (Target #app because body is overflow:hidden)
+            const app = document.getElementById('app');
+            if (app) app.scrollTop = 0;
             window.scrollTo(0, 0);
 
-            // 3. Wait for Keyboard Animation (iPhone keyboard takes ~300-400ms to slide down)
+            // 3. Wait for Keyboard Animation & Settle
             setTimeout(() => {
-                // Use href assignment instead of reload() for a harder reset on some browsers
-                window.location.href = window.location.href; 
+                // 4. Force Hard Reload / State Reset using timestamp
+                const url = new URL(window.location.href);
+                url.searchParams.set('t', Date.now());
+                window.location.href = url.toString();
             }, 500); 
         },
         onForceLogout: () => {
