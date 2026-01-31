@@ -566,9 +566,10 @@ watch(currentScore, (val) => {
       background: #f3f4f6;
       font-family: 'Outfit', system-ui, -apple-system, sans-serif;
       color: #0f172a;
-      overflow: hidden; 
+      overflow-y: auto; /* Allow scroll if content needs it */
+      padding-bottom: env(safe-area-inset-bottom);
       overscroll-behavior: none;
-      touch-action: none;
+      /* touch-action: none; Removed to allow scrolling if needed */
       background-image:
         radial-gradient(at 0% 0%, hsla(253, 16%, 7%, 1) 0, transparent 50%),
         radial-gradient(at 50% 0%, hsla(225, 39%, 30%, 1) 0, transparent 50%);
@@ -642,7 +643,7 @@ watch(currentScore, (val) => {
       display: flex;
       flex-direction: column;
       padding: 1rem;
-      overflow: hidden;
+      /* overflow: hidden; Removed to allow scroll */
     }
 
     .form {
@@ -677,6 +678,7 @@ watch(currentScore, (val) => {
         transition: background 0.05s ease-out, transform 0.05s ease-out;
         position: relative;
         overflow: hidden;
+        touch-action: none; /* Lock touch actions here for fast tapping */
     }
     /* Instant Attack */
     .tap-zone.active {

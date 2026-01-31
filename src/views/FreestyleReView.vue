@@ -288,7 +288,8 @@ const submitScore = async () => {
   background: #f8fafc;
   font-family: 'Outfit', sans-serif;
   color: #0f172a;
-  overflow: hidden;
+  overflow-y: auto; /* Allow scroll */
+  padding-bottom: env(safe-area-inset-bottom);
   background-image:
     radial-gradient(at 0% 0%, rgba(70, 51, 245, 0.08) 0, transparent 50%),
     radial-gradient(at 100% 0%, rgba(34, 197, 94, 0.08) 0, transparent 50%);

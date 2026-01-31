@@ -358,7 +358,8 @@ const submitScore = async () => {
   display: flex;
   flex-direction: column;
   background: #f8fafc;
-  overflow: hidden;
+  overflow-y: auto; /* Allow scroll */
+  padding-bottom: env(safe-area-inset-bottom);
   background-image:
     radial-gradient(at 0% 0%, rgba(70, 51, 245, 0.04) 0, transparent 50%),
     radial-gradient(at 50% 0%, rgba(34, 197, 94, 0.04) 0, transparent 50%);

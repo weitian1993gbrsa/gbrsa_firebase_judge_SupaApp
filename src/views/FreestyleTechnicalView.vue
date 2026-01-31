@@ -265,7 +265,8 @@ const submitScore = async () => {
       background: #f8fafc;
       font-family: 'Outfit', system-ui, -apple-system, sans-serif;
       color: #0f172a;
-      overflow: hidden;
+      overflow-y: auto; /* Allow scroll */
+      padding-bottom: env(safe-area-inset-bottom);
       
       /* Premium Background */
       background-image:
