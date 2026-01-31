@@ -237,8 +237,9 @@ const safeNavigate = async (routeParams) => { const navPromise = router.push(rou
 
 <style scoped>
 .page-wrapper {
-  /* Ensure it fills screen but allows scrolling only if needed on really small phones */
-  min-height: 100dvh; 
+  /* Ensure it fills screen but allows scrolling only if needed */
+  height: 100%; 
+  overflow-y: auto;
   width: 100%;
   
   display: flex;
