@@ -482,7 +482,11 @@ const submitScore = async () => {
              isSuccess.value = true
              setTimeout(() => {
                  isSubmitting.value = false
-                 router.push('/tester') 
+                 if (route.query.entry === 'PRACTICE') {
+                     router.push('/practice')
+                 } else {
+                     router.push('/tester')
+                 }
              }, 1200)
              return
         }

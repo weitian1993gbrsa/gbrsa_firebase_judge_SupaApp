@@ -12,7 +12,7 @@ const alertQueue = ref([])
 const showLockOverlay = computed(() => {
     if (!isSystemLocked.value) return false
     const path = router.currentRoute.value.path || window.location.pathname
-    if (path.includes('/admin') || path.includes('/host')) return false
+    if (path.includes('/admin') || path.includes('/host') || path.includes('/keys')) return false
     return true
 })
 
@@ -34,8 +34,8 @@ onMounted(() => {
             if (!isReady.value) return
             const currentPath = router.currentRoute.value.path || window.location.pathname
             
-            // Protection: Don't reload Admin/Host
-            if (currentPath.includes('/admin') || currentPath.includes('/host')) return
+            // Protection: Don't reload Admin/Host/Keys
+            if (currentPath.includes('/admin') || currentPath.includes('/host') || currentPath.includes('/keys')) return
 
             console.log("Force Reload Triggered - Resetting Viewport...")
             
@@ -65,8 +65,8 @@ onMounted(() => {
             const currentPath = currentRoute.path || window.location.pathname
             const isJudgeForm = currentPath.includes('/judge/') || currentPath.includes('freestyle-') || currentPath.includes('speed-')
             
-            // Exempt Admin and Host from Force Logout
-            if (currentPath.includes('/admin') || currentPath.includes('/host')) return
+            // Exempt Admin and Host and Keys from Force Logout
+            if (currentPath.includes('/admin') || currentPath.includes('/host') || currentPath.includes('/keys')) return
 
             // Check if Test Mode (Immediate Logout)
             const isTestMode = currentRoute.query.test === 'true' || currentRoute.query.entry === 'PRACTICE'
@@ -93,8 +93,8 @@ onUnmounted(() => {
 const handleIncomingAlert = (msg) => {
     const path = router.currentRoute.value.path || window.location.pathname
     
-    // EXEMPT Admin and Host from Alerts
-    if (path.includes('/admin') || path.includes('/host')) return
+    // EXEMPT Admin and Host and Keys from Alerts
+    if (path.includes('/admin') || path.includes('/host') || path.includes('/keys')) return
 
     // If we are on a judge form, queue it
     const isJudgeForm = path.includes('/judge/') || path.includes('freestyle-') || path.includes('speed-')
