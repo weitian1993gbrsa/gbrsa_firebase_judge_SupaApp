@@ -13,9 +13,6 @@
         <div class="panel-toolbar">
           <div class="toolbar-left">
             <h3 class="panel-title">Active Keys</h3>
-            <button @click="nukeStations" class="btn-nuke" title="Kick everyone out of stations">
-              <span>☢ Reset Stations</span>
-            </button>
             <button @click="triggerGlobalUpdate" class="btn-force" :disabled="isRefreshing" title="Force all connected devices to reload">
                <span :class="{ 'spin-infinite': isRefreshing }">⚡</span> 
                <span>{{ isRefreshing ? 'Refreshing...' : 'Force Refresh' }}</span>
@@ -202,17 +199,6 @@ const getRoleClass = (r) => {
 }
 
 // --- NEW TWEAK FUNCTIONS ---
-const nukeStations = async () => {
-  if (!confirm("☢ NUCLEAR OPTION ☢\n\nThis will KICK ALL USERS out of every station immediately.\nAre you sure?")) return;
-  try {
-    const batch = writeBatch(db);
-    const snaps = await getDocs(collection(db, 'station_locks'));
-    if (snaps.empty) { alert("No active stations."); return; }
-    snaps.forEach(d => batch.delete(d.ref));
-    await batch.commit();
-    alert("Stations cleared!");
-  } catch(e) { alert(e.message); }
-}
 
 const isRefreshing = ref(false)
 

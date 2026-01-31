@@ -52,7 +52,7 @@ import { useRouter } from 'vue-router'
 import { onMounted, ref, onUnmounted } from 'vue'
 import { db } from '../firebase'
 // ADDED: writeBatch, getDocs
-import { collection, onSnapshot, deleteDoc, doc, writeBatch, getDocs } from 'firebase/firestore'
+import { collection, onSnapshot, deleteDoc, doc, writeBatch, getDocs, setDoc } from 'firebase/firestore'
 
 const router = useRouter()
 const lockedStations = ref({})
@@ -97,6 +97,19 @@ const goPractice = async (station) => {
         }
     }
     
+
+    // ADDED: Write Lock to Database so others see it as occupied
+    try {
+        await setDoc(doc(db, 'station_locks', sId), {
+            station: Number(sId),
+            user: 'PRACTICE_USER', // Simple identifier
+            timestamp: Date.now()
+        })
+    } catch (e) {
+        console.error("Lock Write Failed:", e)
+        // Proceed anyway, local practice shouldn't be blocked by network write fail
+    }
+
     // Proceed to navigation
     router.push({ 
         path: `/judge/speed`, 

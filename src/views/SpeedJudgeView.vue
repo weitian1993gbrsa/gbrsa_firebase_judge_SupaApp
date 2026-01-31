@@ -10,7 +10,8 @@
   
       <!-- Center: Title -->
       <div class="header-title" style="display:flex; justify-content:center;">
-        <div class="heat-pill">HEAT <span>{{ heat || '-' }}</span></div>
+        <div class="heat-pill" v-if="isTestMode">STATION <span>{{ station }}</span></div>
+        <div class="heat-pill" v-else>HEAT <span>{{ heat || '-' }}</span></div>
       </div>
   
       <!-- Right: Spacer -->
@@ -168,7 +169,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db } from '../firebase'
 import { doc, getDoc, updateDoc, collection, setDoc, serverTimestamp, query, where, getDocs, limit, deleteDoc } from 'firebase/firestore'
@@ -179,6 +180,7 @@ const router = useRouter()
 // Data
 const entryCode = route.query.entry
 const station = route.query.station || sessionStorage.getItem('gbrsa_allowed_station')
+const isTestMode = computed(() => route.query.test === 'true')
 
 if (!station && route.query.test !== 'true') {
     alert("CRITICAL ERROR: No Station Configuration Found.\n\nPlease return to the home screen and log in again.");
@@ -336,9 +338,18 @@ const checkAndAcquireLock = async (sId) => {
         const snap = await getDoc(lockRef)
         
         if (snap.exists()) {
-             // LOCKED BY SOMEONE
-             console.warn("Station is locked by another session")
-             isStationBusy.value = true
+             const data = snap.data()
+             // Special Handover for Practice Mode
+             const isPracticeHandover = isTestMode.value && data.user === 'PRACTICE_USER'
+             
+             if (isPracticeHandover) {
+                 // It's my lock from the previous screen, claim it fully
+                 await acquireLock(sId)
+             } else {
+                 // LOCKED BY SOMEONE ELSE
+                 console.warn("Station is locked by another session")
+                 isStationBusy.value = true
+             }
         } else {
             // FREE - GRAB IT
             await acquireLock(sId)

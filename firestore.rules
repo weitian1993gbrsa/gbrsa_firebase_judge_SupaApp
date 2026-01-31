@@ -42,6 +42,12 @@ service cloud.firestore {
       allow write: if false; 
     }
 
+    // --- 6. STATION LOCKS ---
+    // Critical for concurrency control
+    match /station_locks/{stationId} {
+        allow read, write: if true;
+    }
+
     // Default Deny (Safety Net)
     match /{document=**} {
       allow read, write: if false;
