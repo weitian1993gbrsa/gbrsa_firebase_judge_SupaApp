@@ -33,7 +33,11 @@ onMounted(() => {
             const currentPath = router.currentRoute.value.path || window.location.pathname
             // Exempt Admin and Host from Automatic Reloads (prevents infinite loops)
             if (currentPath.includes('/admin') || currentPath.includes('/host')) return
-            location.reload()
+            // FIX: Scroll to top to reset viewport before reloading
+            window.scrollTo(0, 0)
+            setTimeout(() => {
+                window.location.reload()
+            }, 100)
         },
         onForceLogout: () => {
             const currentRoute = router.currentRoute.value

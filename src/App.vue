@@ -29,7 +29,11 @@ onMounted(() => {
                   }
 
                   console.log("Force Reload Triggered")
-                  window.location.reload()
+                  // FIX: Scroll to top to reset viewport before reloading
+                  window.scrollTo(0, 0)
+                  setTimeout(() => {
+                      window.location.reload()
+                  }, 100)
               }
           }
       }
