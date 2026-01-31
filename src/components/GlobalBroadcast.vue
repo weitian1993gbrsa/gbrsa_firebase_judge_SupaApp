@@ -31,13 +31,25 @@ onMounted(() => {
         onReload: () => {
             if (!isReady.value) return
             const currentPath = router.currentRoute.value.path || window.location.pathname
-            // Exempt Admin and Host from Automatic Reloads (prevents infinite loops)
+            
+            // Protection: Don't reload Admin/Host
             if (currentPath.includes('/admin') || currentPath.includes('/host')) return
-            // FIX: Scroll to top to reset viewport before reloading
-            window.scrollTo(0, 0)
+
+            console.log("Force Reload Triggered - Resetting Viewport...")
+
+            // 1. FORCE CLOSE KEYBOARD (Crucial!)
+            if (document.activeElement instanceof HTMLElement) {
+                document.activeElement.blur(); 
+            }
+
+            // 2. Reset Scroll
+            window.scrollTo(0, 0);
+
+            // 3. Wait for Keyboard Animation (iPhone keyboard takes ~300-400ms to slide down)
             setTimeout(() => {
-                window.location.reload()
-            }, 100)
+                // Use href assignment instead of reload() for a harder reset on some browsers
+                window.location.href = window.location.href; 
+            }, 500); 
         },
         onForceLogout: () => {
             const currentRoute = router.currentRoute.value

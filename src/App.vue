@@ -28,12 +28,20 @@ onMounted(() => {
                       return
                   }
 
-                  console.log("Force Reload Triggered")
-                  // FIX: Scroll to top to reset viewport before reloading
-                  window.scrollTo(0, 0)
+                  console.log("Global Reload Triggered (App.vue)")
+
+                  // 1. FORCE CLOSE KEYBOARD
+                  if (document.activeElement instanceof HTMLElement) {
+                      document.activeElement.blur();
+                  }
+
+                  // 2. Reset Scroll
+                  window.scrollTo(0, 0);
+
+                  // 3. Wait for layout to settle (500ms)
                   setTimeout(() => {
-                      window.location.reload()
-                  }, 100)
+                      window.location.href = window.location.href;
+                  }, 500);
               }
           }
       }
