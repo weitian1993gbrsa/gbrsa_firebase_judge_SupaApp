@@ -13,6 +13,9 @@
         <div class="panel-toolbar">
           <div class="toolbar-left">
             <h3 class="panel-title">Active Keys</h3>
+            <button @click="resetStationLocks" class="btn-nuke" title="Kick everyone out of stations (Practice)">
+              <span>☢ Unlock All</span>
+            </button>
             <button @click="triggerGlobalUpdate" class="btn-force" :disabled="isRefreshing" title="Force all connected devices to reload">
                <span :class="{ 'spin-infinite': isRefreshing }">⚡</span> 
                <span>{{ isRefreshing ? 'Refreshing...' : 'Force Refresh' }}</span>
@@ -158,7 +161,6 @@
         <div class="qr-display">
           <img :src="qrModal.url" alt="QR Code" />
         </div>
-        <div class="qr-code-label">{{ qrModal.code }}</div>
         
         <div style="display:flex; gap:10px;">
              <button class="btn-primary full-width" @click="qrModal.open = false">Done</button>
@@ -199,6 +201,21 @@ const getRoleClass = (r) => {
 }
 
 // --- NEW TWEAK FUNCTIONS ---
+
+const resetStationLocks = async () => {
+    if(!confirm("☢ UNLOCK ALL STATIONS? ☢\n\nThis will REMOVE all practice locks.\nAny device in a station will be KICKED OUT immediately.\n\nContinue?")) return;
+    try {
+        const batch = writeBatch(db);
+        const snaps = await getDocs(collection(db, 'station_locks'));
+        if (snaps.empty) {
+            alert("No locks found to clear.");
+            return;
+        }
+        snaps.forEach(d => batch.delete(d.ref));
+        await batch.commit();
+        alert(`Cleared ${snaps.size} locks. Users should be kicked out.`);
+    } catch(e) { alert(e.message); }
+}
 
 const isRefreshing = ref(false)
 

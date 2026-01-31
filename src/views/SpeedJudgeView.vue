@@ -172,7 +172,7 @@
 import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db } from '../firebase'
-import { doc, getDoc, updateDoc, collection, setDoc, serverTimestamp, query, where, getDocs, limit, deleteDoc } from 'firebase/firestore'
+import { doc, getDoc, updateDoc, collection, setDoc, serverTimestamp, query, where, getDocs, limit, deleteDoc, onSnapshot } from 'firebase/firestore'
 
 const route = useRoute()
 const router = useRouter()
@@ -321,6 +321,7 @@ onUnmounted(() => {
     if (hasLock.value && station && station !== 'TEST') {
         deleteDoc(doc(db, 'station_locks', String(station))).catch(e => console.error("Unlock failed", e))
     }
+    if (lockUnsub) lockUnsub()
 })
 
 // ...
@@ -339,11 +340,14 @@ const checkAndAcquireLock = async (sId) => {
         
         if (snap.exists()) {
              const data = snap.data()
+             console.log("Judge Lock Check:", data)
+             
              // Special Handover for Practice Mode
              const isPracticeHandover = isTestMode.value && data.user === 'PRACTICE_USER'
              
              if (isPracticeHandover) {
                  // It's my lock from the previous screen, claim it fully
+                 console.log("Judge: Taking over Practice Lock")
                  await acquireLock(sId)
              } else {
                  // LOCKED BY SOMEONE ELSE
@@ -352,12 +356,33 @@ const checkAndAcquireLock = async (sId) => {
              }
         } else {
             // FREE - GRAB IT
+            console.log("Judge: Station is free, locking...")
             await acquireLock(sId)
         }
+        
+        // START WATCHING THE LOCK
+        if (sId !== 'TEST') watchLock(sId)
+
     } catch (e) {
         console.error("Lock check error", e)
         // Fail open or closed? Let's fail open but warn
     }
+}
+
+let lockUnsub = null
+
+const watchLock = (sId) => {
+    if (lockUnsub) lockUnsub()
+    
+    lockUnsub = onSnapshot(doc(db, 'station_locks', String(sId)), (snap) => {
+        // If doc is gone, and we think we have the lock -> WE WERE KICKED
+        if (!snap.exists() && hasLock.value) {
+            console.warn("Lock lost! Auto-exiting...")
+            hasLock.value = false // Prevent delete loop in onUnmounted
+            alert("Session Ended via Remote Unlock")
+            goBack()
+        }
+    })
 }
 
 const acquireLock = async (sId) => {

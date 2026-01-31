@@ -9,13 +9,6 @@
            </div>
        </div>
        <div class="header-actions" style="display:flex; gap:10px;">
-           <button 
-              v-if="Object.keys(lockedStations).length > 0" 
-              @click="unlockAll" 
-              class="btn-unlock-all"
-            >
-              Unlock All ({{ Object.keys(lockedStations).length }})
-           </button>
            <button class="btn-exit" @click="goBack">Exit</button>
        </div>
     </header>
@@ -62,16 +55,6 @@ const goBack = () => {
     router.push('/')
 }
 
-// --- NEW TWEAK FUNCTION ---
-const unlockAll = async () => {
-    if(!confirm("Clear ALL locked stations? This resets the simulation for everyone.")) return;
-    try {
-        const batch = writeBatch(db);
-        const snaps = await getDocs(collection(db, 'station_locks'));
-        snaps.forEach(d => batch.delete(d.ref));
-        await batch.commit();
-    } catch(e) { alert(e.message); }
-}
 
 const goPractice = async (station) => {
     const sId = String(station)
@@ -129,12 +112,17 @@ onMounted(() => {
     }
 
     // Monitor Locks
+    console.log("PracticeView: Subscribing to station_locks...")
     unsubLocks = onSnapshot(collection(db, 'station_locks'), (snap) => {
         const locks = {}
         snap.forEach(doc => {
             locks[doc.id] = true
         })
+        console.log("PracticeView: Station Locks Updated:", locks)
         lockedStations.value = locks
+    }, (error) => {
+        console.error("PracticeView: Lock Listener Error:", error)
+        alert("Permission Error: Cannot see station locks. " + error.message)
     })
 })
 
