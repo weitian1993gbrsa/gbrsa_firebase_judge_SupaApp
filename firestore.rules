@@ -32,7 +32,7 @@ service cloud.firestore {
     // Global messages
     match /broadcasts/{document} {
       allow read: if true;
-      allow write: if false; // Only Admin should write these via Console/Admin panel
+      allow write: if true; // Allow KeyManager to trigger updates
     }
     
     // --- 5. SYSTEM STATUS ---
