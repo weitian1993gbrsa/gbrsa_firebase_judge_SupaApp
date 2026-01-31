@@ -16,7 +16,7 @@
             >
               Unlock All ({{ Object.keys(lockedStations).length }})
            </button>
-           <button class="btn-exit" @click="goBack">Back</button>
+           <button class="btn-exit" @click="goBack">Exit</button>
        </div>
     </header>
 
@@ -59,7 +59,7 @@ const lockedStations = ref({})
 let unsubLocks = null
 
 const goBack = () => {
-    router.push('/tester')
+    router.push('/')
 }
 
 // --- NEW TWEAK FUNCTION ---
@@ -170,10 +170,12 @@ onUnmounted(() => {
 .logo-subtitle { font-size: 0.75rem; color: #f59e0b; font-weight: 700; letter-spacing: 0.5px; }
 
 .btn-exit {
-    background: white; border: 1px solid #cbd5e1; color: #64748b;
-    padding: 8px 16px; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    background: #facc15; border: 1px solid #eab308; color: #422006;
+    padding: 8px 20px; border-radius: 8px; font-weight: 700; cursor: pointer; transition: all 0.2s;
+    box-shadow: 0 4px 6px -1px rgba(250, 204, 21, 0.4);
 }
-.btn-exit:hover { background: #f1f5f9; color: #0f172a; border-color: #94a3b8; }
+.btn-exit:hover { background: #fde047; transform: translateY(-1px); }
+.btn-exit:active { transform: translateY(0); }
 
 .btn-unlock-all {
     background: #fee2e2; color: #ef4444; border: 1px solid #fca5a5;

@@ -375,7 +375,24 @@ const forceUnlock = async () => {
 // ...
 
 // Logic
-const goBack = () => router.back()
+const goBack = () => {
+    // 1. Practice Mode Check
+    if (route.query.test === 'true') {
+        router.push('/practice')
+        return
+    }
+
+    // 2. Competition Mode logic
+    // We strip 'entry' key to return to the station list cleanly
+    const { entry, ...params } = route.query
+    
+    // Ensure station ID is preserved
+    if (!params.station) {
+        params.station = sessionStorage.getItem('gbrsa_allowed_station')
+    }
+
+    router.push({ path: '/station', query: params })
+}
 
 const handleTap = async () => {
     if(isLocked.value || isTapLocked.value) return
