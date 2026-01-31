@@ -353,7 +353,7 @@ const submitScore = async () => {
 .wrapper {
   position: relative;
   width: 100%;
-  height: 100dvh;
+  height: 100%; /* Fill #app */
   min-height: -webkit-fill-available;
   display: flex;
   flex-direction: column;

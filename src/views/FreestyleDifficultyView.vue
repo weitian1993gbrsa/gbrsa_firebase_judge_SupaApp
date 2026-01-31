@@ -357,7 +357,7 @@ const submitScore = async () => {
 .wrapper {
   display: flex;
   flex-direction: column;
-  height: 100dvh;
+  height: 100%; /* Fill #app */
   width: 100%;
   padding-bottom: env(safe-area-inset-bottom);
   background: #f8fafc;

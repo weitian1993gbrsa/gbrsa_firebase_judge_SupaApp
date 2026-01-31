@@ -561,7 +561,7 @@ watch(currentScore, (val) => {
     .page.judge {
       margin: 0;
       padding: 0;
-      height: 100dvh;
+      height: 100%; /* Fill #app */
       width: 100%;
       background: #f3f4f6;
       font-family: 'Outfit', system-ui, -apple-system, sans-serif;

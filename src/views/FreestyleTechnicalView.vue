@@ -260,7 +260,7 @@ const submitScore = async () => {
     .wrapper {
       display: flex;
       flex-direction: column;
-      height: 100dvh;
+      height: 100%; /* Fill #app */
       width: 100%;
       background: #f8fafc;
       font-family: 'Outfit', system-ui, -apple-system, sans-serif;
