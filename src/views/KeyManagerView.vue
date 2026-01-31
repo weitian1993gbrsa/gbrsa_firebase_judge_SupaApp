@@ -16,6 +16,9 @@
             <button @click="nukeStations" class="btn-nuke" title="Kick everyone out of stations">
               <span>☢ Reset Stations</span>
             </button>
+            <button @click="triggerGlobalUpdate" class="btn-force" title="Force all connected devices to reload">
+               <span>⚡ Force Update</span>
+            </button>
           </div>
 
           <button @click="openKeyModal()" class="btn-add">
@@ -208,6 +211,22 @@ const nukeStations = async () => {
     await batch.commit();
     alert("Stations cleared!");
   } catch(e) { alert(e.message); }
+}
+
+const triggerGlobalUpdate = async () => {
+    if (!confirm("⚡ FORCE GLOBAL UPDATE ⚡\n\nThis will cause ALL connected devices (judges, scoreboards) to RELOAD immediately.\n\nUse this to push new code updates to everyone.\n\nContinue?")) return;
+    
+    try {
+        await setDoc(doc(db, 'broadcasts', 'latest'), {
+            type: 'reload',
+            timestamp: serverTimestamp(),
+            triggered_by: 'KeyManager',
+            force: true
+        });
+        alert("Update Signal Sent!");
+    } catch(e) {
+        alert("Error sending update: " + e.message);
+    }
 }
 
 const forceKeyReset = async (k) => {
@@ -416,6 +435,19 @@ const onDrop = async (e, dropI) => {
   transition: all 0.2s;
 }
 .btn-nuke:hover { background: #ef4444; color: white; }
+
+.btn-force {
+  background: rgba(139, 92, 246, 0.15);
+  color: #a78bfa;
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-force:hover { background: #8b5cf6; color: white; }
 
 /* --- LIST LAYOUT --- */
 .list-header {
