@@ -16,6 +16,8 @@ export default defineConfig({
         description: 'GBRSA Super Application',
         theme_color: '#FFFFFF',
         background_color: '#FFFFFF',
+        display: 'standalone',
+        orientation: 'portrait',
         icons: [
           {
             src: 'manifest-icon-192.maskable.png',
