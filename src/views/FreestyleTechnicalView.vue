@@ -23,17 +23,17 @@
     </div>
 
     <div class="grid anim-up">
-      <button class="skill-btn miss-btn" @click="addCount('misses')" :disabled="isLocked">
+      <button class="skill-btn miss-btn" @pointerdown.prevent="addCount('misses', $event)" :disabled="isLocked">
         <div class="block-label">MISSES</div>
         <div class="block-number">{{ counts.misses }}</div>
       </button>
 
-      <button class="skill-btn break-btn" @click="addCount('breaks')" :disabled="isLocked">
+      <button class="skill-btn break-btn" @pointerdown.prevent="addCount('breaks', $event)" :disabled="isLocked">
         <div class="block-label">BREAKS</div>
         <div class="block-number">{{ counts.breaks }}</div>
       </button>
 
-      <button id="spaceBtn" class="skill-btn space-btn" @click="addCount('space')" :disabled="isLocked">
+      <button id="spaceBtn" class="skill-btn space-btn" @pointerdown.prevent="addCount('space', $event)" :disabled="isLocked">
         <div class="block-label">SPACE VIOLATION</div>
         <div class="block-number">{{ counts.space }}</div>
       </button>
@@ -67,7 +67,6 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db } from '../firebase'
-// [CLEANUP] Removed unused imports
 import { doc, getDoc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore'
 
 const route = useRoute()
@@ -96,13 +95,11 @@ const history = ref([])
 
 onMounted(async () => {
     if(!entryCode) return
-    // MIGRATE: competition/{station}/entries
-    // const sId = station || '1'
 
     // TESTER MODE
     if (route.query.test === 'true') {
         heat.value = "TEST"
-        return // Skip Firebase
+        return 
     }
 
     const docRef = doc(db, "competition", sId, "entries", entryCode)
@@ -111,7 +108,6 @@ onMounted(async () => {
         const data = snap.data()
         heat.value = data.heat
         
-        // Locking & Restoration Logic
         if (data.status === 'done' || data.status_technical === true) {
             isLocked.value = true
             await restoreScore()
@@ -121,35 +117,41 @@ onMounted(async () => {
 
 const restoreScore = async () => {
     try {
-        // Consolidated Read: Direct Doc Request
         const docRef = doc(db, "results_freestyle", entryCode)
         const snap = await getDoc(docRef)
         
         if (snap.exists()) {
             const data = snap.data()
-            // Check for new consolidated format first
             if (data.technical) {
                  counts.value.misses = data.technical.misses || 0
                  counts.value.breaks = data.technical.breaks || 0
                  counts.value.space = data.technical.space_violation || 0
             } 
-            // Fallback to legacy check (if user didn't wipe, but ideally we are clean slate)
             else if (data.judge_type === 'technical') {
                  counts.value.misses = data.misses || 0
                  counts.value.breaks = data.breaks || 0
                  counts.value.space = data.space_violation || 0
             }
-        } else {
-             // Try Legacy Query just in case? No, let's stick to clean migration or assume user knows.
-             // Actually, the user asked to "combine into 1 like consolidated", implying new data.
         }
     } catch (e) {
         console.error("Failed to restore score", e)
     }
 }
 
-const addCount = (type) => {
+// 🟢 UPDATED: Instant Tap Animation Logic
+const addCount = (type, event) => {
     if(isLocked.value) return
+
+    // Visual Animation (Direct DOM)
+    if (event) {
+        const btn = event.currentTarget || event.target.closest('button');
+        if (btn) {
+            btn.classList.remove('animate-flash');
+            void btn.offsetWidth; // Force Reflow
+            btn.classList.add('animate-flash');
+        }
+    }
+
     history.value.push({ type, oldVal: counts.value[type] })
     counts.value[type]++
     if (navigator.vibrate) navigator.vibrate(50) 
@@ -164,7 +166,6 @@ const undo = () => {
 }
 
 const resetScore = () => {
-    // Unlock and Reset
     isLocked.value = false
     counts.value = { misses: 0, breaks: 0, space: 0 }
     history.value = []
@@ -186,7 +187,6 @@ const submitScore = async () => {
     try {
         const payload = {
             entry_code: entryCode,
-            // Consolidate under 'technical' key
             technical: {
                 misses: counts.value.misses,
                 breaks: counts.value.breaks,
@@ -195,17 +195,12 @@ const submitScore = async () => {
                 judge_key: sessionStorage.getItem('gbrsa_access_key') || 'unknown',
                 updated_at: serverTimestamp()
             },
-            
-            // Top-level metadata for easier indexing (optional but good practice)
             station: station,
-            created_at: serverTimestamp() // This will update on every write, acceptable
+            created_at: serverTimestamp() 
         }
 
-        // CONSOLIDATED WRITE: setDoc with merge
-        // This creates the doc if missing, or updates just the 'technical' field if exists
         await setDoc(doc(db, "results_freestyle", entryCode), payload, { merge: true })
 
-        // TESTER MODE
         if (route.query.test === 'true') {
              isSuccess.value = true
              setTimeout(() => {
@@ -215,9 +210,7 @@ const submitScore = async () => {
              return
         }
 
-        // const sId = station || '1'
         const pRef = doc(db, "competition", sId, "entries", entryCode)
-        // Update Judge Specific Status (and keep global status if already done)
         await updateDoc(pRef, { 
             status_technical: true 
         })
@@ -477,16 +470,28 @@ const submitScore = async () => {
       border: none;
       border-radius: 16px;
       box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-      transition: transform 0.1s;
+      /* 🟢 UPDATED: No movement transition to avoid conflict */
       cursor: pointer;
     }
     
+    /* 🟢 KEYFRAME ANIMATION */
+    @keyframes flash-brightness {
+      0% { filter: brightness(1); transform: scale(1); }
+      30% { filter: brightness(1.3) saturate(1.2); transform: scale(1); }
+      100% { filter: brightness(1); transform: scale(1); }
+    }
+
+    /* 🟢 CLASS FOR JS TO TOGGLE */
+    .skill-btn.animate-flash {
+      animation: flash-brightness 0.15s ease-out forwards;
+    }
+
+    /* 🟢 UPDATED: NO MOVEMENT (Transform Removed from Active) */
     .skill-btn:active {
-      transform: scale(0.96);
-      opacity: 1;
-      filter: brightness(1.3) saturate(1.1);
+      transform: none; 
       transition: none;
     }
+    
     .skill-btn:disabled {
         opacity: 1 !important; /* Keep full opacity for viewing */
         cursor: not-allowed;
