@@ -12,7 +12,7 @@
         <span class="val-heat">{{ entry.heat }}</span>
     </div>
 
-    <div class="card-main" :class="{ 'is-dimmed': showStamp }">
+    <div class="card-main">
         
         <div class="card-top">
             <span class="badge-event">{{ entry.event }}</span>
@@ -78,7 +78,7 @@ const isScratch = computed(() => props.entry.status === 'scratch')
 const isRejump = computed(() => props.entry.status === 'rejump')
 const isDq = computed(() => props.entry.status === 'dq')
 
-// UPDATED: 'isDone' is now considered a Locked state
+// Lock logic: Done cards are now locked too
 const isLocked = computed(() => isScratch.value || isDq.value || isDone.value)
 
 const statusClass = computed(() => {
@@ -123,7 +123,6 @@ const handleClick = () => {
   if (isDrag) return
   if (Date.now() - startTime > 600) return 
   
-  // Shake if Locked (Includes Done, Scratch, DQ)
   if (isLocked.value) {
      const el = document.activeElement
      if(el) {
@@ -155,7 +154,7 @@ const handleClick = () => {
   box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
   transition: transform 0.1s;
   text-align: left;
-  color: white;
+  color: white; /* Ensures text remains white */
   box-sizing: border-box; 
 }
 .station-card:active { transform: scale(0.98); }
@@ -182,10 +181,8 @@ const handleClick = () => {
   justify-content: space-between;
   transition: opacity 0.3s;
   min-width: 0;
+  /* Removed opacity/filter rules here */
 }
-.card-main.is-dimmed .name-container,
-.card-main.is-dimmed .card-bottom,
-.card-main.is-dimmed .badge-event { opacity: 0.3; filter: grayscale(100%); }
 
 /* Top Row */
 .card-top { display: flex; justify-content: space-between; align-items: center; }
