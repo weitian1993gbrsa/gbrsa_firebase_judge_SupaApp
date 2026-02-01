@@ -75,7 +75,6 @@
 </template>
 
 <script setup>
-// ... (Your existing script is fine) ...
 const appVersion = __APP_VERSION__
 
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue' 
@@ -140,14 +139,10 @@ const handleLogin = async (isSilent = false) => {
         }
         
         loading.value = true 
-
-        // --- NEW LOGIC ADDED HERE ---
         if (role === 'super_admin') {
             localStorage.setItem('gbrsa_access_key', key);
             await safeNavigate('/keys'); 
         }
-        // ----------------------------
-        
         else if (role === 'admin') { 
             localStorage.setItem('gbrsa_access_key', key); 
             localStorage.setItem('admin_authorized', 'true'); 
@@ -194,7 +189,7 @@ const handleLogin = async (isSilent = false) => {
         if (navigator.vibrate) navigator.vibrate(200)
     }
 }
-const startScan = async () => { /* ... existing ... */ showScanner.value = true; isScannerInit.value = true; await nextTick(); if (html5QrCode) { try { if (html5QrCode.isScanning) await html5QrCode.stop(); html5QrCode.clear() } catch (e) {} } html5QrCode = new Html5Qrcode("reader"); const config = { fps: 20, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0, videoConstraints: { facingMode: "environment", focusMode: "continuous" } }; try { await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, (err) => {}).then(() => isScannerInit.value = false) } catch (err) { try { const devices = await Html5Qrcode.getCameras(); if (devices && devices.length) { const backCam = devices.find(d => d.label.toLowerCase().includes('back')) || devices[0]; await html5QrCode.start(backCam.id, config, onScanSuccess, (err)=>{}); isScannerInit.value = false } else { throw new Error("No camera found") } } catch (finalErr) { showScanner.value = false; if (html5QrCode) html5QrCode.clear() } } }
+const startScan = async () => { showScanner.value = true; isScannerInit.value = true; await nextTick(); if (html5QrCode) { try { if (html5QrCode.isScanning) await html5QrCode.stop(); html5QrCode.clear() } catch (e) {} } html5QrCode = new Html5Qrcode("reader"); const config = { fps: 20, qrbox: { width: 250, height: 250 }, aspectRatio: 1.0, videoConstraints: { facingMode: "environment", focusMode: "continuous" } }; try { await html5QrCode.start({ facingMode: "environment" }, config, onScanSuccess, (err) => {}).then(() => isScannerInit.value = false) } catch (err) { try { const devices = await Html5Qrcode.getCameras(); if (devices && devices.length) { const backCam = devices.find(d => d.label.toLowerCase().includes('back')) || devices[0]; await html5QrCode.start(backCam.id, config, onScanSuccess, (err)=>{}); isScannerInit.value = false } else { throw new Error("No camera found") } } catch (finalErr) { showScanner.value = false; if (html5QrCode) html5QrCode.clear() } } }
 const stopScan = () => { if(html5QrCode) html5QrCode.stop().then(() => { html5QrCode.clear(); showScanner.value = false }).catch(() => showScanner.value = false); else showScanner.value = false }
 const onScanSuccess = async (decodedText) => {
     // 1. Stop Scanner UI
