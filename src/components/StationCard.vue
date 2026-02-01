@@ -44,7 +44,9 @@
             
             <div class="status-icon">
                 <svg v-if="isDone" class="icon-check" viewBox="0 0 24 24" fill="currentColor"><path d="M20.285 2l-11.285 11.567-5.286-5.011-3.714 3.716 9 8.728 15-15.285z"/></svg>
+                
                 <svg v-else-if="isLocked" class="icon-lock" viewBox="0 0 24 24" fill="currentColor"><path d="M18 10v-4c0-3.313-2.687-6-6-6s-6 2.687-6 6v4h-3v14h18v-14h-3zm-10-4c0-2.206 1.794-4 4-4s4 1.794 4 4v4h-8v-4z"/></svg>
+                
                 <svg v-else class="icon-play" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
             </div>
         </div>
@@ -75,7 +77,9 @@ const isDone = computed(() => {
 const isScratch = computed(() => props.entry.status === 'scratch')
 const isRejump = computed(() => props.entry.status === 'rejump')
 const isDq = computed(() => props.entry.status === 'dq')
-const isLocked = computed(() => isScratch.value || isDq.value)
+
+// UPDATED: 'isDone' is now considered a Locked state
+const isLocked = computed(() => isScratch.value || isDq.value || isDone.value)
 
 const statusClass = computed(() => {
   if (isScratch.value) return 'is-scratch'
@@ -85,10 +89,9 @@ const statusClass = computed(() => {
   return 'is-pending'
 })
 
-// ADDED: Include isDone in showStamp
+// Visual Stamp Logic
 const showStamp = computed(() => isScratch.value || isDq.value || isRejump.value || isDone.value)
 
-// ADDED: 'COMPLETED' text
 const stampText = computed(() => {
   if (isDq.value) return 'DQ' 
   if (isScratch.value) return 'SCRATCH'
@@ -120,6 +123,7 @@ const handleClick = () => {
   if (isDrag) return
   if (Date.now() - startTime > 600) return 
   
+  // Shake if Locked (Includes Done, Scratch, DQ)
   if (isLocked.value) {
      const el = document.activeElement
      if(el) {
@@ -206,7 +210,7 @@ const handleClick = () => {
 .name-row { display: flex; align-items: center; width: 100%; }
 .icon-user { width: 14px; height: 14px; margin-right: 6px; opacity: 0.8; flex-shrink: 0; }
 .name-text {
-  font-size: 18px; /* Default Size */
+  font-size: 18px; 
   font-weight: 700; line-height: 1.2;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
 }
@@ -224,7 +228,6 @@ const handleClick = () => {
 .status-icon svg { width: 18px; height: 18px; opacity: 0.9; }
 
 /* Colors */
-/* ADDED: Blue color for Completed badge */
 .station-card.is-done .status-alert-badge { color: #2563eb; } 
 .station-card.is-dq .status-alert-badge { color: #dc2626; }
 .station-card.is-rejump .status-alert-badge { color: #ea580c; }
