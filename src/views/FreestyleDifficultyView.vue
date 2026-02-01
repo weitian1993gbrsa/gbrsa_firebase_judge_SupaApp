@@ -26,30 +26,30 @@
     </div>
 
     <div class="grid anim-up">
-      <button class="skill-btn" :class="{ 'is-pressed': pressedKeys[1] }" @pointerdown.prevent="addCount(1)" :disabled="isLocked">
+      <button class="skill-btn" @pointerdown.prevent="addCount(1, $event)" :disabled="isLocked">
         <div class="level-label">Level 1</div>
         <div class="count-num">{{ counts[1] }}</div>
       </button>
 
-      <button class="skill-btn" :class="{ 'is-pressed': pressedKeys[0.5] }" @pointerdown.prevent="addCount(0.5)" :disabled="isLocked">
+      <button class="skill-btn" @pointerdown.prevent="addCount(0.5, $event)" :disabled="isLocked">
         <div class="level-label">Level 0.5</div>
         <div class="count-num">{{ counts[0.5] }}</div>
       </button>
 
-      <button class="skill-btn" :class="{ 'is-pressed': pressedKeys[4] }" @pointerdown.prevent="addCount(4)" :disabled="isLocked">
+      <button class="skill-btn" @pointerdown.prevent="addCount(4, $event)" :disabled="isLocked">
         <div class="level-label">Level 4</div>
         <div class="count-num">{{ counts[4] }}</div>
       </button>
 
-      <button class="skill-btn" :class="{ 'is-pressed': pressedKeys[2] }" @pointerdown.prevent="addCount(2)" :disabled="isLocked">
+      <button class="skill-btn" @pointerdown.prevent="addCount(2, $event)" :disabled="isLocked">
         <div class="level-label">Level 2</div>
         <div class="count-num">{{ counts[2] }}</div>
       </button>
 
       <button 
         class="skill-btn level7" 
-        :class="{ 'dq-pressing': isLongPressing, 'is-pressed': pressedKeys[7] }"
-        @click="addCount(7)" 
+        :class="{ 'dq-pressing': isLongPressing }"
+        @click="addCount(7, $event)" 
         @touchstart.passive="startDqTimer"
         @touchend="cancelDqTimer"
         @mousedown="startDqTimer"
@@ -63,22 +63,22 @@
         <div class="dq-progress" v-if="isLongPressing"></div>
       </button>
 
-      <button class="skill-btn" :class="{ 'is-pressed': pressedKeys[5] }" @pointerdown.prevent="addCount(5)" :disabled="isLocked">
+      <button class="skill-btn" @pointerdown.prevent="addCount(5, $event)" :disabled="isLocked">
         <div class="level-label">Level 5</div>
         <div class="count-num">{{ counts[5] }}</div>
       </button>
 
-      <button class="skill-btn" :class="{ 'is-pressed': pressedKeys[3] }" @pointerdown.prevent="addCount(3)" :disabled="isLocked">
+      <button class="skill-btn" @pointerdown.prevent="addCount(3, $event)" :disabled="isLocked">
         <div class="level-label">Level 3</div>
         <div class="count-num">{{ counts[3] }}</div>
       </button>
 
-      <button class="skill-btn level8" :class="{ 'is-pressed': pressedKeys[8] }" @pointerdown.prevent="addCount(8)" :disabled="isLocked">
+      <button class="skill-btn level8" @pointerdown.prevent="addCount(8, $event)" :disabled="isLocked">
         <div class="level-label">Level 8</div>
         <div class="count-num">{{ counts[8] }}</div>
       </button>
 
-      <button class="skill-btn" :class="{ 'is-pressed': pressedKeys[6] }" @pointerdown.prevent="addCount(6)" :disabled="isLocked">
+      <button class="skill-btn" @pointerdown.prevent="addCount(6, $event)" :disabled="isLocked">
         <div class="level-label">Level 6</div>
         <div class="count-num">{{ counts[6] }}</div>
       </button>
@@ -135,7 +135,7 @@ const isLocked = ref(false)
 const counts = reactive({
     0.5:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0
 })
-const pressedKeys = reactive({}) 
+// Removed: pressedKeys (Replaced by direct DOM manipulation)
 
 const lastAction = ref(null)
 
@@ -225,21 +225,37 @@ const restoreScore = async () => {
     }
 }
 
-const addCount = (lvl) => {
+// 🟢 ULTRA-FAST DOM UPDATE
+const addCount = (lvl, event) => {
     if(isLocked.value) return
-
     if (isDq.value) return
 
     if(dqTriggered.value) {
         dqTriggered.value = false 
         return
     }
-    
-    // VISUAL ANIMATION LOGIC (Reactive - No Scale)
-    pressedKeys[lvl] = true
-    setTimeout(() => {
-        pressedKeys[lvl] = false
-    }, 150) // 150ms flash animation
+
+    // Direct DOM Manipulation for Zero Latency
+    if (event) {
+        const btn = event.currentTarget || event.target.closest('button');
+        if (btn) {
+            // 1. Clear any existing timer to prevent clearing "too early" from a previous tap
+            if (btn._flashTimer) clearTimeout(btn._flashTimer);
+
+            // 2. Force remove class then add it back to restart any CSS transitions/logic
+            btn.classList.remove('is-pressed');
+            // void btn.offsetWidth; // Optional: Force reflow if using CSS animation, not needed for simple opacity/filter
+            
+            // 3. Add class immediately
+            btn.classList.add('is-pressed');
+
+            // 4. Set new timer to clear it
+            btn._flashTimer = setTimeout(() => {
+                btn.classList.remove('is-pressed');
+                btn._flashTimer = null;
+            }, 100); 
+        }
+    }
 
     counts[lvl]++
     lastAction.value = { lvl }
@@ -539,12 +555,12 @@ const submitScore = async () => {
   cursor: pointer;
 }
 
-/* 🟢 UPDATED: NO MOVEMENT, JUST FLASH */
+/* 🟢 UPDATED: NO MOVEMENT (Transform Removed) */
 .skill-btn:active, 
 .skill-btn.is-pressed { 
-  transform: none; /* No scaling */
-  filter: brightness(1.2) saturate(1.1); 
-  transition: none; /* Instant color change */
+  transform: none; /* Stay solid in place */
+  filter: brightness(1.2) saturate(1.1); /* Only lighting changes */
+  transition: none; 
 }
 
 .skill-btn:disabled { opacity: 1 !important; filter: grayscale(1); cursor: not-allowed; }
