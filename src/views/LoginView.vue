@@ -343,7 +343,7 @@ const safeNavigate = async (routeParams) => { const navPromise = router.push(rou
 /* === FOOTER (COMPACT) === */
 .foot { 
   margin-top: auto; /* Pushes to bottom if space permits */
-  padding-bottom: 0.5rem;
+  padding-bottom: 2rem;
   text-align: center;
   width: 100%;
   display: flex;
