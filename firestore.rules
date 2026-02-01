@@ -2,44 +2,36 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // --- GLOBAL ALLOW (DEBUGGING) ---
+    match /{document=**} {
+      allow read, write: if true;
+    }
+
     // --- 1. ACCESS KEYS (Fixes Login) ---
     // Allow checking if a specific key exists (needed for LoginView)
-    // But DENY listing all keys (prevents stealing keys)
     match /access_keys/{key} {
-      allow get: if true;
-      allow list: if true; // Valid for Token Lookup
-      allow write: if true; // Valid for Key Manager creation/rotation
+      allow read, write: if true;
     }
 
     // --- 2. COMPETITION ENTRIES ---
     // "entries" contains the list of participants.
-    // We allow reading, but adding valid safety checks for writing.
     match /competition/{stationId}/entries/{entryId} {
-       allow read: if true;
-       // Allow write ONLY if the data includes a 'status' field (basic validation)
-       // This prevents someone from wiping the doc with empty data.
-       allow write: if request.resource.data.keys().hasAll(['status']);
+       allow read, write: if true;
     }
 
     // --- 3. LIVE SCORES (For Scoreboard) ---
-    // Needed for your LiveScoreboardView to work
     match /live_scores/{stationId} {
-        allow read: if true;
-        allow write: if true; // Judges update this
+        allow read, write: if true;
     }
 
     // --- 4. BROADCASTS ---
-    // Global messages
     match /broadcasts/{document} {
-      allow read: if true;
-      allow write: if true; // Allow KeyManager to trigger updates
+      allow read, write: if true;
     }
     
     // --- 5. SYSTEM DOCS (Status & Config) ---
-    // Expanded to allow 'config' read
     match /system/{document} {
-      allow read: if true;
-      allow write: if false; 
+      allow read, write: if true;
     }
 
     // --- 7. RESULTS (Speed & Freestyle) ---

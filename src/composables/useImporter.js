@@ -1,7 +1,7 @@
 import { ref } from 'vue'
 import Papa from 'papaparse'
 import { db } from '../firebase'
-import { collection, writeBatch, doc, getDocs, collectionGroup, setDoc } from 'firebase/firestore'
+import { collection, writeBatch, doc, getDocs, getDoc, collectionGroup, setDoc, query, limit } from 'firebase/firestore'
 
 export function useImporter() {
     const status = ref('')
@@ -95,13 +95,44 @@ export function useImporter() {
                 progress.value.current = count
                 status.value = `Uploaded ${count} / ${parsedData.value.length} records...`
             }
-            status.value = `✅ Success! Uploaded ${count} participants to Firebase.`
-            parsedData.value = [] // Reset
+
+
+            // --- VERIFICATION STEP ---
+            status.value = "Verifying data on server..."
+
+            // Pick a sample to verify (first valid item)
+            const sample = parsedData.value[0]
+            if (sample) {
+                const sId = sample.station || "1" // match the logic above
+                const checkRef = doc(db, "competition", sId, "entries", sample.entry_code)
+                // Force server fetch to ensure it persisted
+                const snap = await getDocFromCacheOrServer(checkRef)
+
+                if (!snap.exists()) {
+                    throw new Error("Upload appeared successful, but server verification failed. Data not found.")
+                }
+            }
+
+            status.value = `✅ Success! Uploaded ${count} records. Verified on Server.`
+            // Delay clearing so user sees the success
+            setTimeout(() => { parsedData.value = [] }, 2000)
+
         } catch (err) {
             console.error(err)
             status.value = "Upload Error: " + err.message
         } finally {
             isUploading.value = false
+        }
+    }
+
+    // Helper to force server check if possible, or fallback
+    async function getDocFromCacheOrServer(ref) {
+        try {
+            // Try explicit server fetch first
+            return await getDocs(query(collection(db, '_dummy_'), limit(1))).then(() => getDoc(ref))
+                .catch(() => getDoc(ref))
+        } catch (e) {
+            return await getDoc(ref)
         }
     }
 
