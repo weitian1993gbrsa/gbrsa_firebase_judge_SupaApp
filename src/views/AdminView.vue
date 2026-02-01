@@ -1728,14 +1728,14 @@ const sendForceLogout = async () => {
     overflow: hidden; /* Prevent layout expansion */
 }
 
-/* REMOVED height: auto to maintain fixed viewport on tablets */
-/* @media (max-width: 1024px) {
+/* Add this Media Query */
+@media (max-width: 1024px) {
     .admin-layout {
-        height: auto;
-        min-height: 100vh;
-        overflow: auto;
+        height: auto;       /* Let content define height */
+        min-height: 100vh;  /* Ensure it fills at least the screen */
+        overflow-y: auto;   /* Enable vertical scrolling */
     }
-} */
+}
 
 /* HEADER */
 
@@ -1894,8 +1894,18 @@ const sendForceLogout = async () => {
     box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
     min-height: 0; /* Crucial for scrolling inside flex container */
 }
-.table-scroll-container { flex: 1; overflow: auto; }
-.data-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.table-scroll-container {
+    flex: 1;
+    overflow: auto; /* Allow both X and Y scrolling */
+    width: 100%;    /* Ensure it takes full width */
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto; /* Allow natural column widths */
+    min-width: 900px;   /* Force scrollbar if screen is narrower than 900px */
+}
 .data-table th { 
     background: #0f172a; 
     position: sticky; 
@@ -2410,8 +2420,10 @@ const sendForceLogout = async () => {
 .action-card.red:hover .icon-circle { background: #ef4444; color: white; }
 
 
-@media (max-width: 900px) {
-    .ops-row-4 { grid-template-columns: 1fr 1fr; }
+@media (max-width: 768px) {
+    .ops-row-4 {
+        grid-template-columns: 1fr 1fr; /* 2x2 grid instead of 1x4 */
+    }
 }
 
 .tag-btn:hover {
@@ -2694,5 +2706,15 @@ const sendForceLogout = async () => {
 .cancel-link:hover {
     color: white;
     text-decoration: underline;
+}
+@media (max-width: 768px) {
+    .table-panel, .dashboard-container {
+        margin: 0.5rem;
+        padding: 1rem;
+    }
+    .header {
+        padding: 1rem;
+        flex-wrap: wrap; /* Allow header items to wrap */
+    }
 }
 </style>

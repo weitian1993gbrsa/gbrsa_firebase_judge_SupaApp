@@ -35,11 +35,20 @@ service cloud.firestore {
       allow write: if true; // Allow KeyManager to trigger updates
     }
     
-    // --- 5. SYSTEM STATUS ---
-    // Used to check if system is "LOCKED"
-    match /system/status {
+    // --- 5. SYSTEM DOCS (Status & Config) ---
+    // Expanded to allow 'config' read
+    match /system/{document} {
       allow read: if true;
       allow write: if false; 
+    }
+
+    // --- 7. RESULTS (Speed & Freestyle) ---
+    // Required for AdminView and Judges
+    match /results_speed/{document} {
+        allow read, write: if true;
+    }
+    match /results_freestyle/{document} {
+        allow read, write: if true;
     }
 
     // --- 6. STATION LOCKS ---
