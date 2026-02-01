@@ -1,11 +1,5 @@
 <template>
   <div class="key-manager-layout">
-    <header class="view-header">
-      <div class="header-content">
-        <h1 class="page-title">Access Key Manager</h1>
-        <p class="page-subtitle">Manage system access, roles, and lanes.</p>
-      </div>
-    </header>
 
     <div class="dashboard-container">
       <div class="glass-panel">
@@ -159,16 +153,25 @@
     </div>
 
     <div class="modal-backdrop" v-if="qrModal.open" @click.self="qrModal.open = false">
-      <div class="modal-window qr-window">
-        <h3>Login QR Code</h3>
-        <div class="qr-display">
-          <img :src="qrModal.url" alt="QR Code" />
+      <div class="qr-window glass-card">
+        <div class="qr-header">
+            <h3>Login Access</h3>
+            <p>Scan to authenticate device</p>
         </div>
-        
-        <div style="display:flex; gap:10px;">
-             <button class="btn-primary full-width" @click="qrModal.open = false">Done</button>
-             <button class="btn-rotate" @click="rotateToken" title="Invalidate old QR and simple generate new one">
-                ↻
+
+        <div class="qr-frame">
+            <div class="active-scan-line"></div>
+            <div class="qr-display">
+                <img :src="qrModal.url" alt="QR Code" />
+            </div>
+        </div>
+
+        <div class="qr-actions">
+             <button class="btn-refresh" @click="rotateToken">
+                <span class="icon-refresh">↻</span> Generate New
+             </button>
+             <button class="btn-done" @click="qrModal.open = false">
+                Done
              </button>
         </div>
       </div>
@@ -426,19 +429,23 @@ const onDrop = async (e, dropI) => {
 .panel-title { margin: 0; font-size: 1.1rem; font-weight: 700; color: #e2e8f0; }
 
 .btn-add {
-  background: #3b82f6;
-  color: white;
+  background: linear-gradient(135deg, #facc15 0%, #eab308 100%);
+  color: #0f172a;
   border: none;
   border-radius: 8px;
   padding: 0.6rem 1.2rem;
-  font-weight: 600;
+  font-weight: 700;
   cursor: pointer;
   display: flex;
   align-items: center;
   gap: 8px;
   transition: all 0.2s;
+  box-shadow: 0 4px 6px -1px rgba(234, 179, 8, 0.3);
 }
-.btn-add:hover { background: #2563eb; transform: translateY(-1px); }
+.btn-add:hover { 
+  transform: translateY(-1px); 
+  box-shadow: 0 10px 15px -3px rgba(234, 179, 8, 0.4); 
+}
 .icon-plus { font-size: 1.2rem; line-height: 1; }
 
 .btn-nuke {
@@ -611,20 +618,145 @@ const onDrop = async (e, dropI) => {
   display: flex; justify-content: flex-end; gap: 1rem;
 }
 .btn-rotate {
-    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
-    color: #e2e8f0; width: 48px; border-radius: 8px; cursor: pointer; font-size: 1.2rem;
+    background: rgba(255,255,255,0.05); 
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #94a3b8; 
+    width: 50px; /* Match height of primary button roughly */
+    border-radius: 8px; 
+    cursor: pointer; 
+    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: all 0.2s;
 }
-.btn-rotate:hover { background: rgba(255,255,255,0.2); color: white; transform: rotate(180deg); }
+.btn-rotate:hover { 
+    background: rgba(255,255,255,0.1); 
+    color: #facc15; 
+    border-color: #facc15;
+    transform: rotate(180deg);
+    box-shadow: 0 0 10px rgba(234, 179, 8, 0.2);
+}
 .btn-text { background: none; border: none; color: #94a3b8; cursor: pointer; font-weight: 600; }
-.btn-primary { background: #3b82f6; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 8px; font-weight: 600; cursor: pointer; }
-.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* QR Styles */
-.qr-window { text-align: center; padding: 2rem; max-width: 350px; }
-.qr-display { background: white; padding: 1rem; border-radius: 12px; margin: 1rem auto; display: inline-block; }
-.qr-display img { width: 200px; height: 200px; display: block; }
-.qr-code-label { font-family: monospace; font-size: 1.25rem; font-weight: 700; color: #facc15; margin-bottom: 1.5rem; }
+.btn-primary { 
+    background: linear-gradient(135deg, #facc15 0%, #eab308 100%); 
+    color: #0f172a; 
+    border: none; 
+    padding: 0.75rem 1.5rem; 
+    border-radius: 8px; 
+    font-weight: 700; 
+    cursor: pointer; 
+    box-shadow: 0 4px 6px -1px rgba(234, 179, 8, 0.3);
+    transition: all 0.2s;
+}
+.btn-primary:active { transform: scale(0.98); }
+.btn-primary:hover {
+    box-shadow: 0 10px 15px -3px rgba(234, 179, 8, 0.4);
+    transform: translateY(-1px);
+}
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; transform: none; background: #64748b; color: #cbd5e1; }
+
+/* QR Styles (Premium) */
+.qr-window { 
+  position: relative;
+  text-align: center; 
+  padding: 0;
+  width: 90%; 
+  max-width: 380px;
+  background: rgba(15, 23, 42, 0.85); /* Deep Dark Blue Glass */
+  backdrop-filter: blur(16px);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255,255,255,0.05);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalPop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.qr-header {
+    background: rgba(255,255,255,0.02);
+    padding: 1.5rem 1.5rem 0.5rem 1.5rem;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.qr-header h3 { margin:0; font-size:1.25rem; font-weight:700; color: white; letter-spacing:0.02em; }
+.qr-header p { margin:0.25rem 0 0 0; font-size:0.85rem; color:#94a3b8; }
+
+.qr-frame {
+    padding: 2rem;
+    position: relative;
+    display: flex;
+    justify-content: center;
+}
+
+.qr-display { 
+    background: white; 
+    padding: 12px; 
+    border-radius: 16px; 
+    position: relative;
+    box-shadow: 0 0 30px rgba(59, 130, 246, 0.15); /* Soft Blue Glow */
+}
+.qr-display img { width: 220px; height: 220px; display: block; border-radius: 4px; }
+
+/* Scan Line Animation */
+.active-scan-line {
+    position: absolute;
+    top: 2rem; left: 50%; transform: translateX(-50%);
+    width: 244px; height: 4px;
+    background: #facc15;
+    box-shadow: 0 0 15px rgba(250, 204, 21, 0.6);
+    border-radius: 50%;
+    z-index: 10;
+    opacity: 0.8;
+    animation: scanMove 2s ease-in-out infinite alternate;
+    pointer-events: none;
+}
+@keyframes scanMove { 0% { top: 2.5rem; opacity: 0; } 15% { opacity: 1; } 85% { opacity: 1; } 100% { top: calc(100% - 2.5rem); opacity: 0; } }
+
+.qr-actions {
+    display: flex;
+    padding: 1rem 1.5rem 1.5rem 1.5rem;
+    gap: 1rem;
+    background: rgba(0,0,0,0.2);
+}
+
+.btn-done {
+    flex: 2;
+    background: linear-gradient(135deg, #facc15 0%, #eab308 100%);
+    color: #0f172a;
+    border: none;
+    border-radius: 12px;
+    padding: 0.85rem;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(234, 179, 8, 0.2);
+    transition: all 0.2s;
+}
+.btn-done:hover { transform: translateY(-2px); box-shadow: 0 10px 20px rgba(234, 179, 8, 0.3); }
+.btn-done:active { transform: scale(0.97); }
+
+.btn-refresh {
+    flex: 1;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #94a3b8;
+    border-radius: 12px;
+    padding: 0.85rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.2s;
+}
+.btn-refresh:hover { background: rgba(255,255,255,0.1); color: white; border-color: rgba(255,255,255,0.2); }
+.icon-refresh { font-size: 1.2rem; line-height: 1; }
+
+@keyframes modalPop { from { opacity: 0; transform: scale(0.95) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
 .full-width { width: 100%; }
 
 @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }

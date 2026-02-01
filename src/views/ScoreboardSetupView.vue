@@ -182,21 +182,21 @@ h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: 0.05em; margin: 0; }
 .btn-launch {
     width: 100%;
     padding: 1.25rem;
-    background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    background: linear-gradient(135deg, #facc15 0%, #eab308 100%);
     border: none;
     border-radius: 12px;
-    color: white;
+    color: #0f172a;
     font-weight: 900;
     font-size: 1.1rem;
     letter-spacing: 0.1em;
     cursor: pointer;
     transition: all 0.2s;
     text-transform: uppercase;
-    box-shadow: 0 10px 15px -3px rgba(37, 99, 235, 0.3);
+    box-shadow: 0 10px 15px -3px rgba(234, 179, 8, 0.3);
 }
 .btn-launch:hover {
     transform: translateY(-2px);
-    box-shadow: 0 20px 25px -5px rgba(37, 99, 235, 0.4);
+    box-shadow: 0 20px 25px -5px rgba(234, 179, 8, 0.4);
 }
 .btn-launch:active { transform: scale(0.98); }
 
