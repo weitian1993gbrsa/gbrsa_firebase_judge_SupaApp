@@ -42,12 +42,15 @@
               :key="k.id"
               class="list-row"
               :class="{ 'is-dragging': dragIndex === index }"
-              draggable="true"
-              @dragstart="onDragStart($event, index)"
               @dragover.prevent="onDragOver($event)"
               @drop="onDrop($event, index)"
             >
-              <div class="col col-handle" title="Hold to drag">
+              <div 
+                class="col col-handle" 
+                title="Hold to drag"
+                draggable="true"
+                @dragstart="onDragStart($event, index)"
+              >
                 <div class="drag-grip">
                   <span></span><span></span><span></span>
                 </div>
@@ -349,7 +352,11 @@ const rotateToken = async () => {
 }
 
 // Drag
-const onDragStart = (e, i) => { dragIndex.value = i; e.dataTransfer.effectAllowed = 'move' }
+const onDragStart = (e, i) => { 
+    if (navigator.vibrate) navigator.vibrate(50); // Haptic feedback on pick up
+    dragIndex.value = i; 
+    e.dataTransfer.effectAllowed = 'move' 
+}
 const onDragOver = (e) => { e.dataTransfer.dropEffect = 'move' }
 const onDrop = async (e, dropI) => {
     const startI = dragIndex.value

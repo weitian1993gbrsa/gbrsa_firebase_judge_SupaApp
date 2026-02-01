@@ -10,11 +10,19 @@ const {
 } = useRegisterSW({
   onRegistered(r) {
     console.log(`[PWA] Service Worker Registered (v${appVersion})`)
-    // Check for updates every 10 minutes
+    
+    // 1. Check every 15 seconds (Aggressive for Live Events)
     r && setInterval(async () => {
-       console.log('[PWA] Checking for updates...')
        await r.update()
-    }, 10 * 60 * 1000)
+    }, 15 * 1000)
+
+    // 2. Check immediately when user switches back to this tab
+    document.addEventListener('visibilitychange', async () => {
+        if (!document.hidden && r) {
+            console.log('[PWA] Tab Visible - Checking...')
+            await r.update()
+        }
+    })
   }
 })
 
