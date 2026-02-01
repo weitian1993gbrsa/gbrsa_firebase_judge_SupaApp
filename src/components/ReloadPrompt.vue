@@ -2,10 +2,21 @@
 import { useRegisterSW } from 'virtual:pwa-register/vue'
 import { ref, computed } from 'vue'
 
+const appVersion = __APP_VERSION__
+
 const {
   needRefresh,
   updateServiceWorker
-} = useRegisterSW()
+} = useRegisterSW({
+  onRegistered(r) {
+    console.log(`[PWA] Service Worker Registered (v${appVersion})`)
+    // Check for updates every 10 minutes
+    r && setInterval(async () => {
+       console.log('[PWA] Checking for updates...')
+       await r.update()
+    }, 10 * 60 * 1000)
+  }
+})
 
 const isUpdating = ref(false)
 
@@ -44,6 +55,9 @@ const handleUpdate = async () => {
       <div class="title">{{ isUpdating ? 'Updating App...' : 'Update Required' }}</div>
       <div class="subtitle">
         {{ isUpdating ? 'Applying changes and restarting...' : 'A new version of the app is available.' }}
+      </div>
+      <div v-if="!isUpdating" style="font-size:0.8rem; color:#94a3b8; padding-top:4px;">
+        Current Ver: {{ appVersion }}
       </div>
     </div>
 

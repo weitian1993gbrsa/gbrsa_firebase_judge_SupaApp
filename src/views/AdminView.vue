@@ -341,7 +341,10 @@
     </div>
 
     <footer class="footer flex justify-between items-center px-6">
-        <span>© 2026 GBRSA</span>
+        <div class="flex items-center gap-3">
+            <span>© 2026 GBRSA</span>
+            <span class="text-xs text-slate-400 font-mono border border-slate-600 px-1 rounded">v{{ appVersion }}</span>
+        </div>
         <span class="text-xs text-gray-500">Designed and Developed by Rynns TENG</span>
     </footer>
 
@@ -459,6 +462,8 @@ import { faCircleUser } from '@fortawesome/free-solid-svg-icons'
 import { useConfig } from '../composables/useConfig'
 
 const { config, getEventLabel } = useConfig()
+
+const appVersion = __APP_VERSION__ // Injected by Vite
 
 const SystemImporter = defineAsyncComponent(() => import('../components/SystemImporter.vue'))
 
