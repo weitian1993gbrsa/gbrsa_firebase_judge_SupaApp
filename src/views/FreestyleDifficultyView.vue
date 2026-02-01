@@ -26,22 +26,22 @@
     </div>
 
     <div class="grid anim-up">
-      <button class="skill-btn" @pointerdown.prevent="addCount(1)" :disabled="isLocked">
+      <button class="skill-btn" @pointerdown.prevent="addCount(1, $event)" :disabled="isLocked">
         <div class="level-label">Level 1</div>
         <div class="count-num">{{ counts[1] }}</div>
       </button>
 
-      <button class="skill-btn" @pointerdown.prevent="addCount(0.5)" :disabled="isLocked">
+      <button class="skill-btn" @pointerdown.prevent="addCount(0.5, $event)" :disabled="isLocked">
         <div class="level-label">Level 0.5</div>
         <div class="count-num">{{ counts[0.5] }}</div>
       </button>
 
-      <button class="skill-btn" @pointerdown.prevent="addCount(4)" :disabled="isLocked">
+      <button class="skill-btn" @pointerdown.prevent="addCount(4, $event)" :disabled="isLocked">
         <div class="level-label">Level 4</div>
         <div class="count-num">{{ counts[4] }}</div>
       </button>
 
-      <button class="skill-btn" @pointerdown.prevent="addCount(2)" :disabled="isLocked">
+      <button class="skill-btn" @pointerdown.prevent="addCount(2, $event)" :disabled="isLocked">
         <div class="level-label">Level 2</div>
         <div class="count-num">{{ counts[2] }}</div>
       </button>
@@ -49,7 +49,7 @@
       <button 
         class="skill-btn level7" 
         :class="{ 'dq-pressing': isLongPressing }"
-        @click="addCount(7)" 
+        @click="addCount(7, $event)" 
         @touchstart.passive="startDqTimer"
         @touchend="cancelDqTimer"
         @mousedown="startDqTimer"
@@ -63,22 +63,22 @@
         <div class="dq-progress" v-if="isLongPressing"></div>
       </button>
 
-      <button class="skill-btn" @pointerdown.prevent="addCount(5)" :disabled="isLocked">
+      <button class="skill-btn" @pointerdown.prevent="addCount(5, $event)" :disabled="isLocked">
         <div class="level-label">Level 5</div>
         <div class="count-num">{{ counts[5] }}</div>
       </button>
 
-      <button class="skill-btn" @pointerdown.prevent="addCount(3)" :disabled="isLocked">
+      <button class="skill-btn" @pointerdown.prevent="addCount(3, $event)" :disabled="isLocked">
         <div class="level-label">Level 3</div>
         <div class="count-num">{{ counts[3] }}</div>
       </button>
 
-      <button class="skill-btn level8" @pointerdown.prevent="addCount(8)" :disabled="isLocked">
+      <button class="skill-btn level8" @pointerdown.prevent="addCount(8, $event)" :disabled="isLocked">
         <div class="level-label">Level 8</div>
         <div class="count-num">{{ counts[8] }}</div>
       </button>
 
-      <button class="skill-btn" @pointerdown.prevent="addCount(6)" :disabled="isLocked">
+      <button class="skill-btn" @pointerdown.prevent="addCount(6, $event)" :disabled="isLocked">
         <div class="level-label">Level 6</div>
         <div class="count-num">{{ counts[6] }}</div>
       </button>
@@ -223,18 +223,32 @@ const restoreScore = async () => {
     }
 }
 
-const addCount = (lvl) => {
+// 🟢 NEW: Updated to accept event for animation
+const addCount = (lvl, event) => {
     if(isLocked.value) return
 
-    if (isDq.value) {
-        return; 
-    }
+    if (isDq.value) return
 
     if(dqTriggered.value) {
         dqTriggered.value = false 
         return
     }
     
+    // VISUAL ANIMATION LOGIC
+    if (event && event.target) {
+        const btn = event.target.closest('button')
+        if (btn) {
+            // Force reset in case of rapid tapping
+            btn.classList.remove('is-pressed')
+            // Force a reflow to restart animation (optional, but reliable)
+            void btn.offsetWidth 
+            btn.classList.add('is-pressed')
+            setTimeout(() => {
+                btn.classList.remove('is-pressed')
+            }, 100) // 100ms flash
+        }
+    }
+
     counts[lvl]++
     lastAction.value = { lvl }
     if(navigator.vibrate) navigator.vibrate(50)
@@ -533,11 +547,14 @@ const submitScore = async () => {
   cursor: pointer;
 }
 
-.skill-btn:active { 
-  transform: scale(0.96);
+/* 🟢 UPDATED: Force Animation for 'is-pressed' */
+.skill-btn:active, 
+.skill-btn.is-pressed { 
+  transform: scale(0.95);
   filter: brightness(1.2) saturate(1.1); 
-  transition: transform 0.05s; /* Snappy response */
+  transition: none; /* Instant change */
 }
+
 .skill-btn:disabled { opacity: 1 !important; filter: grayscale(1); cursor: not-allowed; }
 
 .level7, .level8 {
