@@ -135,7 +135,6 @@ const isLocked = ref(false)
 const counts = reactive({
     0.5:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0
 })
-// Removed: pressedKeys (Replaced by direct DOM manipulation)
 
 const lastAction = ref(null)
 
@@ -225,7 +224,7 @@ const restoreScore = async () => {
     }
 }
 
-// 🟢 ULTRA-FAST DOM UPDATE
+// 🟢 BULLETPROOF ANIMATION TRIGGER
 const addCount = (lvl, event) => {
     if(isLocked.value) return
     if (isDq.value) return
@@ -235,25 +234,18 @@ const addCount = (lvl, event) => {
         return
     }
 
-    // Direct DOM Manipulation for Zero Latency
+    // Direct DOM Manipulation to Trigger CSS Animation
     if (event) {
         const btn = event.currentTarget || event.target.closest('button');
         if (btn) {
-            // 1. Clear any existing timer to prevent clearing "too early" from a previous tap
-            if (btn._flashTimer) clearTimeout(btn._flashTimer);
-
-            // 2. Force remove class then add it back to restart any CSS transitions/logic
-            btn.classList.remove('is-pressed');
-            // void btn.offsetWidth; // Optional: Force reflow if using CSS animation, not needed for simple opacity/filter
+            // 1. Remove class
+            btn.classList.remove('animate-flash');
             
-            // 3. Add class immediately
-            btn.classList.add('is-pressed');
-
-            // 4. Set new timer to clear it
-            btn._flashTimer = setTimeout(() => {
-                btn.classList.remove('is-pressed');
-                btn._flashTimer = null;
-            }, 100); 
+            // 2. Force Reflow (Magic Trick: Tells browser to apply the 'remove' immediately)
+            void btn.offsetWidth; 
+            
+            // 3. Add class back to start animation from 0%
+            btn.classList.add('animate-flash');
         }
     }
 
@@ -551,16 +543,20 @@ const submitScore = async () => {
   border: none;
   border-radius: 16px;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-  transition: transform 0.1s;
+  /* TRANSITION REMOVED TO PREVENT CONFLICTS */
   cursor: pointer;
 }
 
-/* 🟢 UPDATED: NO MOVEMENT (Transform Removed) */
-.skill-btn:active, 
-.skill-btn.is-pressed { 
-  transform: none; /* Stay solid in place */
-  filter: brightness(1.2) saturate(1.1); /* Only lighting changes */
-  transition: none; 
+/* 🟢 KEYFRAME ANIMATION */
+@keyframes flash-brightness {
+  0% { filter: brightness(1); transform: scale(1); }
+  30% { filter: brightness(1.3) saturate(1.2); transform: scale(1); }
+  100% { filter: brightness(1); transform: scale(1); }
+}
+
+/* 🟢 CLASS FOR JS TO TOGGLE */
+.skill-btn.animate-flash {
+  animation: flash-brightness 0.15s ease-out forwards;
 }
 
 .skill-btn:disabled { opacity: 1 !important; filter: grayscale(1); cursor: not-allowed; }
