@@ -135,7 +135,6 @@ const isLocked = ref(false)
 const counts = reactive({
     0.5:0, 1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0
 })
-// NEW: Reactive object to track animation states
 const pressedKeys = reactive({}) 
 
 const lastAction = ref(null)
@@ -226,7 +225,6 @@ const restoreScore = async () => {
     }
 }
 
-// 🟢 NEW: Cleaned up addCount
 const addCount = (lvl) => {
     if(isLocked.value) return
 
@@ -237,7 +235,7 @@ const addCount = (lvl) => {
         return
     }
     
-    // VISUAL ANIMATION LOGIC (Reactive)
+    // VISUAL ANIMATION LOGIC (Reactive - No Scale)
     pressedKeys[lvl] = true
     setTimeout(() => {
         pressedKeys[lvl] = false
@@ -541,12 +539,12 @@ const submitScore = async () => {
   cursor: pointer;
 }
 
-/* 🟢 UPDATED: Force Animation for 'is-pressed' */
+/* 🟢 UPDATED: NO MOVEMENT, JUST FLASH */
 .skill-btn:active, 
 .skill-btn.is-pressed { 
-  transform: scale(0.95);
+  transform: none; /* No scaling */
   filter: brightness(1.2) saturate(1.1); 
-  transition: none; /* Instant change */
+  transition: none; /* Instant color change */
 }
 
 .skill-btn:disabled { opacity: 1 !important; filter: grayscale(1); cursor: not-allowed; }
