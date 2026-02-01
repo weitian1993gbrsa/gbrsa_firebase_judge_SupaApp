@@ -46,8 +46,6 @@
           </button>
         </div>
 
-        <div class="version-tag">v{{ appVersion }}</div>
-
         <div class="judge-error" :style="{ opacity: errorMsg ? 1 : 0 }">
           {{ errorMsg || 'Wrong Key Code' }}
         </div>
@@ -55,7 +53,8 @@
     </div>
 
     <footer class="foot">
-      © 2026 GB ROPE SKIPPING ACADEMY, MALAYSIA
+      <div class="ver-text">v{{ appVersion }}</div>
+      <div class="copy-text">© 2026 GB ROPE SKIPPING ACADEMY, MALAYSIA</div>
     </footer>
 
     <div v-if="showScanner" class="qr-modal-overlay">
@@ -297,7 +296,9 @@ const safeNavigate = async (routeParams) => { const navPromise = router.push(rou
   border: 1px solid rgba(255, 255, 255, 0.5);
   border-radius: 24px;
   /* Compact Padding */
-  padding: 2rem;
+  border-radius: 24px;
+  /* Compact Padding: Top/Sides 2rem, Bottom 1rem */
+  padding: 2rem 2rem 1.5rem 2rem;
   box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1);
   text-align: center;
 }
@@ -343,10 +344,22 @@ const safeNavigate = async (routeParams) => { const navPromise = router.push(rou
 .foot { 
   margin-top: auto; /* Pushes to bottom if space permits */
   padding-bottom: 0.5rem;
-  color: #94a3b8; 
-  font-size: 0.75rem; 
   text-align: center;
   width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.ver-text {
+  font-size: 0.8rem;
+  color: #d97706; /* Amber-600 */
+  font-weight: 600;
+  font-family: monospace;
+  letter-spacing: 0.05em;
+}
+.copy-text {
+  color: #94a3b8; 
+  font-size: 0.75rem; 
 }
 
 /* === MOBILE COMPACT MODE (Key Fix) === */
@@ -378,13 +391,4 @@ const safeNavigate = async (routeParams) => { const navPromise = router.push(rou
 .scanner-loader { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #000; color: white; z-index: 10; gap: 1rem; }
 .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #3b82f6; animation: spin 1s ease-in-out infinite; }
 @keyframes scanMove { 0% { top: 5%; } 100% { top: 95%; } }
-
-.version-tag {
-  margin-top: 0.75rem;
-  font-size: 0.8rem;
-  color: #d97706; /* Amber-600 */
-  font-weight: 600;
-  font-family: monospace;
-  letter-spacing: 0.05em;
-}
 </style>
