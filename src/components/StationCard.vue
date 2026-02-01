@@ -85,11 +85,15 @@ const statusClass = computed(() => {
   return 'is-pending'
 })
 
-const showStamp = computed(() => isScratch.value || isDq.value || isRejump.value)
+// ADDED: Include isDone in showStamp
+const showStamp = computed(() => isScratch.value || isDq.value || isRejump.value || isDone.value)
+
+// ADDED: 'COMPLETED' text
 const stampText = computed(() => {
   if (isDq.value) return 'DQ' 
   if (isScratch.value) return 'SCRATCH'
   if (isRejump.value) return 'RE-JUMP'
+  if (isDone.value) return 'COMPLETED'
   return ''
 })
 
@@ -154,7 +158,7 @@ const handleClick = () => {
 
 /* Sidebar */
 .card-sidebar {
-  width: 55px; /* Default Width */
+  width: 55px;
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
@@ -220,9 +224,12 @@ const handleClick = () => {
 .status-icon svg { width: 18px; height: 18px; opacity: 0.9; }
 
 /* Colors */
+/* ADDED: Blue color for Completed badge */
+.station-card.is-done .status-alert-badge { color: #2563eb; } 
 .station-card.is-dq .status-alert-badge { color: #dc2626; }
 .station-card.is-rejump .status-alert-badge { color: #ea580c; }
 .station-card.is-scratch .status-alert-badge { background: #334155; color: #cbd5e1; }
+
 .station-card.is-pending { background: linear-gradient(135deg, #10b981, #047857); }
 .station-card.is-done { background: linear-gradient(135deg, #3b82f6, #1d4ed8); opacity: 0.9; }
 .station-card.is-rejump { background: linear-gradient(135deg, #f97316, #c2410c); }
@@ -242,11 +249,11 @@ const handleClick = () => {
   .card-main { padding: 6px 10px; }
 
   /* 3. Smaller Fonts for Mobile */
-  .name-text { font-size: 16px; } /* Drop from 18px to 16px */
-  .name-text.is-long { font-size: 13px; } /* Drop from 14px to 13px */
+  .name-text { font-size: 16px; }
+  .name-text.is-long { font-size: 13px; }
   .icon-user { width: 12px; height: 12px; margin-right: 4px; }
   
-  /* 4. Prevent Overlap in Top Row */
+  /* 4. Prevent Overlap */
   .badge-event { max-width: 100px; font-size: 9px; }
   
   /* 5. Dense Mode adjustments */
