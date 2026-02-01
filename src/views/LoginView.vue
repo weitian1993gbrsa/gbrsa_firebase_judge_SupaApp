@@ -46,6 +46,8 @@
           </button>
         </div>
 
+        <div class="version-tag">v{{ appVersion }}</div>
+
         <div class="judge-error" :style="{ opacity: errorMsg ? 1 : 0 }">
           {{ errorMsg || 'Wrong Key Code' }}
         </div>
@@ -74,6 +76,8 @@
 
 <script setup>
 // ... (Your existing script is fine) ...
+const appVersion = __APP_VERSION__
+
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue' 
 import { useRouter } from 'vue-router'
 import { db } from '../firebase'
@@ -379,4 +383,13 @@ const safeNavigate = async (routeParams) => { const navPromise = router.push(rou
 .scanner-loader { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #000; color: white; z-index: 10; gap: 1rem; }
 .spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #3b82f6; animation: spin 1s ease-in-out infinite; }
 @keyframes scanMove { 0% { top: 5%; } 100% { top: 95%; } }
+
+.version-tag {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: #d97706; /* Amber-600 */
+  font-weight: 600;
+  font-family: monospace;
+  letter-spacing: 0.05em;
+}
 </style>
