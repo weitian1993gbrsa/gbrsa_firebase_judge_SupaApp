@@ -6,7 +6,11 @@
     @pointerdown="handlePointerDown"
     @pointermove="handlePointerMove"
     @pointerup="handlePointerUp"
+    @pointerleave="handlePointerCancel"
+    @contextmenu.prevent
   >
+    <div class="long-press-bar" :style="{ width: pressProgress + '%' }"></div>
+
     <div class="card-sidebar">
         <span class="label-heat">HEAT</span>
         <span class="val-heat">{{ entry.heat }}</span>
@@ -55,7 +59,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, onUnmounted } from 'vue'
 
 const props = defineProps({
   entry: { type: Object, required: true },
@@ -77,8 +81,6 @@ const isDone = computed(() => {
 const isScratch = computed(() => props.entry.status === 'scratch')
 const isRejump = computed(() => props.entry.status === 'rejump')
 const isDq = computed(() => props.entry.status === 'dq')
-
-// Lock logic: Done cards are now locked too
 const isLocked = computed(() => isScratch.value || isDq.value || isDone.value)
 
 const statusClass = computed(() => {
@@ -89,7 +91,6 @@ const statusClass = computed(() => {
   return 'is-pending'
 })
 
-// Visual Stamp Logic
 const showStamp = computed(() => isScratch.value || isDq.value || isRejump.value || isDone.value)
 
 const stampText = computed(() => {
@@ -105,25 +106,74 @@ const nameList = computed(() => {
     .filter(n => n && String(n).trim() !== "")
 })
 
-// --- Interaction Logic ---
+// --- Interaction & Long Press Logic ---
 let startX = 0, startY = 0, startTime = 0, isDrag = false
+let longPressTimer = null
+let animationFrame = null
+const pressProgress = ref(0)
+const LONG_PRESS_DURATION = 2000 // 2 seconds
+
+const resetPress = () => {
+    if (longPressTimer) clearTimeout(longPressTimer)
+    if (animationFrame) cancelAnimationFrame(animationFrame)
+    longPressTimer = null
+    pressProgress.value = 0
+}
+
 const handlePointerDown = (e) => {
+  if (e.button !== 0) return // Left click only
+
   startX = e.clientX || (e.touches ? e.touches[0].clientX : 0)
   startY = e.clientY || (e.touches ? e.touches[0].clientY : 0)
   startTime = Date.now()
   isDrag = false
+  
+  // If card is locked, start long press detection
+  if (isLocked.value) {
+      const startPressTime = Date.now()
+      
+      // Animation loop for progress bar
+      const animate = () => {
+          const elapsed = Date.now() - startPressTime
+          const p = Math.min((elapsed / LONG_PRESS_DURATION) * 100, 100)
+          pressProgress.value = p
+          
+          if (p < 100) {
+              animationFrame = requestAnimationFrame(animate)
+          }
+      }
+      animationFrame = requestAnimationFrame(animate)
+
+      // Actual Trigger Timer
+      longPressTimer = setTimeout(() => {
+          // Time's up! Force unlock and enter
+          emit('select', props.entry)
+          resetPress()
+          // Prevent the subsequent 'click' from firing its shake logic
+          isDrag = true // Hack: treating it as a drag prevents click handler
+      }, LONG_PRESS_DURATION)
+  }
 }
+
 const handlePointerMove = (e) => {
   const currentX = e.clientX || (e.touches ? e.touches[0].clientX : 0)
   const currentY = e.clientY || (e.touches ? e.touches[0].clientY : 0)
-  if (Math.abs(currentX - startX) > 15 || Math.abs(currentY - startY) > 15) isDrag = true
+  if (Math.abs(currentX - startX) > 15 || Math.abs(currentY - startY) > 15) {
+      isDrag = true
+      resetPress() // Cancel long press if moved
+  }
 }
-const handlePointerUp = () => {}
+
+const handlePointerUp = () => resetPress()
+const handlePointerCancel = () => resetPress()
+
 const handleClick = () => {
   if (isDrag) return
-  if (Date.now() - startTime > 600) return 
   
+  // Normal Click Logic
   if (isLocked.value) {
+     // If we got here, it wasn't a long press (timer cancelled)
+     // So we shake to indicate "Locked"
      const el = document.activeElement
      if(el) {
          el.animate([
@@ -133,8 +183,12 @@ const handleClick = () => {
      }
      return
   }
+  
+  // Not locked? Enter immediately
   emit('select', props.entry)
 }
+
+onUnmounted(() => resetPress())
 </script>
 
 <style scoped>
@@ -154,10 +208,23 @@ const handleClick = () => {
   box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
   transition: transform 0.1s;
   text-align: left;
-  color: white; /* Ensures text remains white */
+  color: white; 
   box-sizing: border-box; 
+  /* Disable standard text selection */
+  user-select: none; 
+  -webkit-user-select: none;
 }
 .station-card:active { transform: scale(0.98); }
+
+/* --- Long Press Progress Bar --- */
+.long-press-bar {
+    position: absolute;
+    bottom: 0; left: 0;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.7);
+    z-index: 10;
+    transition: width 0.1s linear;
+}
 
 /* Sidebar */
 .card-sidebar {
@@ -179,9 +246,7 @@ const handleClick = () => {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: opacity 0.3s;
   min-width: 0;
-  /* Removed opacity/filter rules here */
 }
 
 /* Top Row */
