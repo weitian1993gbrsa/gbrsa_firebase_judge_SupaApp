@@ -85,9 +85,7 @@ const statusClass = computed(() => {
   return 'is-pending'
 })
 
-// Show stamp for these statuses
 const showStamp = computed(() => isScratch.value || isDq.value || isRejump.value)
-
 const stampText = computed(() => {
   if (isDq.value) return 'DQ' 
   if (isScratch.value) return 'SCRATCH'
@@ -95,7 +93,6 @@ const stampText = computed(() => {
   return ''
 })
 
-// --- Name Logic ---
 const nameList = computed(() => {
   return [props.entry.name1, props.entry.name2, props.entry.name3, props.entry.name4]
     .filter(n => n && String(n).trim() !== "")
@@ -134,11 +131,11 @@ const handleClick = () => {
 </script>
 
 <style scoped>
-/* Base Card Style */
+/* ================= DEFAULT (DESKTOP) ================= */
 .station-card {
   display: flex;
   width: 100%;
-  height: 124px; /* Fixed Height restored */
+  height: 124px;
   margin: 10px 0;
   padding: 0;
   border: none;
@@ -153,141 +150,107 @@ const handleClick = () => {
   color: white;
   box-sizing: border-box; 
 }
-
 .station-card:active { transform: scale(0.98); }
 
-/* === SIDEBAR (HEAT) === */
+/* Sidebar */
 .card-sidebar {
-  width: 55px;
+  width: 55px; /* Default Width */
   flex-shrink: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   background: rgba(0,0,0,0.25);
-  align-self: stretch; 
 }
+.label-heat { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; opacity: 0.8; }
+.val-heat { font-size: 26px; font-weight: 800; line-height: 1; }
 
-.label-heat {
-  font-size: 9px; font-weight: 700; letter-spacing: 0.1em; opacity: 0.8;
-}
-.val-heat {
-  font-size: 26px; font-weight: 800; line-height: 1;
-}
-
-/* === MAIN CONTENT PANEL === */
+/* Main Content */
 .card-main {
   flex: 1;
   padding: 8px 12px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  transition: opacity 0.3s, filter 0.3s;
-  min-width: 0; /* Important for text-overflow to work in flex child */
+  transition: opacity 0.3s;
+  min-width: 0;
 }
+.card-main.is-dimmed .name-container,
+.card-main.is-dimmed .card-bottom,
+.card-main.is-dimmed .badge-event { opacity: 0.3; filter: grayscale(100%); }
 
-/* --- THE STATUS BADGE --- */
+/* Top Row */
+.card-top { display: flex; justify-content: space-between; align-items: center; }
+.badge-event {
+  background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 6px;
+  font-size: 10px; font-weight: 700;
+  max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.meta-id { font-family: monospace; font-size: 11px; opacity: 0.7; font-weight: 600; }
 .status-alert-badge {
     font-size: 13px; font-weight: 900; text-transform: uppercase;
     padding: 4px 10px; border-radius: 6px; letter-spacing: 0.05em;
     box-shadow: 0 2px 4px rgba(0,0,0,0.2);
     background: white; color: #333; 
 }
-.station-card.is-dq .status-alert-badge { color: #dc2626; }
-.station-card.is-rejump .status-alert-badge { color: #ea580c; }
-.station-card.is-scratch .status-alert-badge { background: #334155; color: #cbd5e1; }
 
-/* Dimming Effect */
-.card-main.is-dimmed .name-container,
-.card-main.is-dimmed .card-bottom,
-.card-main.is-dimmed .badge-event {
-    opacity: 0.3; filter: grayscale(100%);
-}
-
-
-/* Top Row */
-.card-top {
-  display: flex; justify-content: space-between; align-items: center;
-}
-.badge-event {
-  background: rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 6px;
-  font-size: 10px; font-weight: 700;
-  max-width: 150px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.meta-id {
-  font-family: monospace; font-size: 11px; opacity: 0.7; font-weight: 600;
-}
-
-/* Names Area - Vertical List */
+/* Names */
 .name-container {
   display: flex; flex-direction: column; justify-content: center;
   flex: 1; margin: 4px 0; gap: 2px;
 }
-
-.name-row {
-    display: flex; 
-    align-items: center;
-    width: 100%;
-}
-
-.icon-user {
-    width: 14px; height: 14px; margin-right: 6px; opacity: 0.8; flex-shrink: 0;
-}
-
+.name-row { display: flex; align-items: center; width: 100%; }
+.icon-user { width: 14px; height: 14px; margin-right: 6px; opacity: 0.8; flex-shrink: 0; }
 .name-text {
   font-size: 18px; /* Default Size */
-  font-weight: 700; 
-  line-height: 1.2;
-  white-space: nowrap; /* Force single line */
-  overflow: hidden;
-  text-overflow: ellipsis; /* Add dots if still too long */
+  font-weight: 700; line-height: 1.2;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
 }
-
-/* Shrink font for long names */
-.name-text.is-long {
-    font-size: 14px;
-}
-
-/* Dense mode for 3+ names (Vertical still) */
+.name-text.is-long { font-size: 14px; }
 .name-container.is-dense .name-text { font-size: 14px; }
-.name-container.is-dense .name-text.is-long { font-size: 12px; } /* Even smaller for dense+long */
-.name-container.is-dense .icon-user { width: 12px; height: 12px; }
 
-
-/* Bottom Row */
-.card-bottom {
-  display: flex; justify-content: space-between; align-items: center; height: 18px;
-}
+/* Bottom */
+.card-bottom { display: flex; justify-content: space-between; align-items: center; height: 18px; }
 .team-name { 
     font-size: 11px; opacity: 0.8; font-weight: 500; 
     display: flex; align-items: center; gap: 4px;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    max-width: 85%;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 85%;
 }
-.icon-team { width: 12px; height: 12px; opacity: 0.7; flex-shrink: 0;}
-
+.icon-team { width: 12px; height: 12px; opacity: 0.7; flex-shrink: 0; }
 .status-icon svg { width: 18px; height: 18px; opacity: 0.9; }
 
+/* Colors */
+.station-card.is-dq .status-alert-badge { color: #dc2626; }
+.station-card.is-rejump .status-alert-badge { color: #ea580c; }
+.station-card.is-scratch .status-alert-badge { background: #334155; color: #cbd5e1; }
+.station-card.is-pending { background: linear-gradient(135deg, #10b981, #047857); }
+.station-card.is-done { background: linear-gradient(135deg, #3b82f6, #1d4ed8); opacity: 0.9; }
+.station-card.is-rejump { background: linear-gradient(135deg, #f97316, #c2410c); }
+.station-card.is-dq { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+.station-card.is-scratch { background: #64748b; cursor: not-allowed; }
 
-/* === COLOR THEMES === */
-/* PENDING (READY) - Vibrant Green */
-.station-card.is-pending {
-  background: linear-gradient(135deg, #10b981, #047857);
-}
-/* DONE - Calm Blue */
-.station-card.is-done {
-  background: linear-gradient(135deg, #3b82f6, #1d4ed8); opacity: 0.9;
-}
-/* REJUMP - Orange */
-.station-card.is-rejump {
-  background: linear-gradient(135deg, #f97316, #c2410c);
-}
-/* DQ - Strong Red */
-.station-card.is-dq {
-  background: linear-gradient(135deg, #ef4444, #b91c1c);
-}
-/* SCRATCH - Muted Grey */
-.station-card.is-scratch {
-  background: #64748b; cursor: not-allowed;
+
+/* ================= MOBILE OPTIMIZATION ================= */
+@media (max-width: 600px) {
+  /* 1. Shrink Height & Sidebar */
+  .station-card { height: 116px; margin: 8px 0; }
+  .card-sidebar { width: 44px; } 
+  .val-heat { font-size: 22px; }
+  .label-heat { font-size: 8px; letter-spacing: 0px; }
+
+  /* 2. Tighter Main Content */
+  .card-main { padding: 6px 10px; }
+
+  /* 3. Smaller Fonts for Mobile */
+  .name-text { font-size: 16px; } /* Drop from 18px to 16px */
+  .name-text.is-long { font-size: 13px; } /* Drop from 14px to 13px */
+  .icon-user { width: 12px; height: 12px; margin-right: 4px; }
+  
+  /* 4. Prevent Overlap in Top Row */
+  .badge-event { max-width: 100px; font-size: 9px; }
+  
+  /* 5. Dense Mode adjustments */
+  .name-container.is-dense .name-text { font-size: 13px; }
+  .name-container.is-dense .name-text.is-long { font-size: 11px; }
 }
 </style>
