@@ -387,8 +387,8 @@ const safeNavigate = async (routeParams) => { const navPromise = router.push(rou
 .scanner-wrapper { position: relative; width: 100%; border-radius: 12px; overflow: hidden; background: #000; }
 .qr-reader-box { width: 100%; min-height: 250px; }
 .scan-overlay { position: absolute; inset: 0; pointer-events: none; border: 2px solid rgba(255, 255, 255, 0.3); border-radius: 12px; }
-.scan-line { position: absolute; width: 100%; height: 3px; background: #3b82f6; box-shadow: 0 0 10px #3b82f6; top: 10%; animation: scanMove 1.5s ease-in-out infinite alternate; opacity: 0.8; }
+.scan-line { position: absolute; width: 100%; height: 3px; background: #facc15; box-shadow: 0 0 10px #facc15; top: 10%; animation: scanMove 1.5s ease-in-out infinite alternate; opacity: 0.8; }
 .scanner-loader { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #000; color: white; z-index: 10; gap: 1rem; }
-.spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #3b82f6; animation: spin 1s ease-in-out infinite; }
+.spinner { width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #facc15; animation: spin 1s ease-in-out infinite; }
 @keyframes scanMove { 0% { top: 5%; } 100% { top: 95%; } }
 </style>
