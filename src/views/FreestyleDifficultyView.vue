@@ -1,6 +1,5 @@
 <template>
   <div class="wrapper judge-theme" :class="{ 'form-locked': isLocked }">
-    <!-- Header -->
     <header class="judge-header">
       <button class="btn-back" @click="goBack">
         <svg fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -17,7 +16,6 @@
       </button>
     </header>
 
-    <!-- Controls -->
     <div class="control-row">
       <button class="btn-undo" :class="{ hidden: !lastAction }" @click="undo" :disabled="isLocked">Undo</button>
       <div class="total-card">
@@ -27,26 +25,23 @@
       <button class="btn-reset" @click="reset">Reset</button>
     </div>
 
-    <!-- Levels Grid (Legacy Order) -->
     <div class="grid anim-up">
-      <!-- Row 1: 1, 0.5, 4 -->
-      <button class="skill-btn" @click="addCount(1)" :disabled="isLocked">
+      <button class="skill-btn" @pointerdown.prevent="addCount(1)" :disabled="isLocked">
         <div class="level-label">Level 1</div>
         <div class="count-num">{{ counts[1] }}</div>
       </button>
 
-      <button class="skill-btn" @click="addCount(0.5)" :disabled="isLocked">
+      <button class="skill-btn" @pointerdown.prevent="addCount(0.5)" :disabled="isLocked">
         <div class="level-label">Level 0.5</div>
         <div class="count-num">{{ counts[0.5] }}</div>
       </button>
 
-      <button class="skill-btn" @click="addCount(4)" :disabled="isLocked">
+      <button class="skill-btn" @pointerdown.prevent="addCount(4)" :disabled="isLocked">
         <div class="level-label">Level 4</div>
         <div class="count-num">{{ counts[4] }}</div>
       </button>
 
-      <!-- Row 2: 2, 7, 5 -->
-      <button class="skill-btn" @click="addCount(2)" :disabled="isLocked">
+      <button class="skill-btn" @pointerdown.prevent="addCount(2)" :disabled="isLocked">
         <div class="level-label">Level 2</div>
         <div class="count-num">{{ counts[2] }}</div>
       </button>
@@ -68,34 +63,31 @@
         <div class="dq-progress" v-if="isLongPressing"></div>
       </button>
 
-      <button class="skill-btn" @click="addCount(5)" :disabled="isLocked">
+      <button class="skill-btn" @pointerdown.prevent="addCount(5)" :disabled="isLocked">
         <div class="level-label">Level 5</div>
         <div class="count-num">{{ counts[5] }}</div>
       </button>
 
-      <!-- Row 3: 3, 8, 6 -->
-      <button class="skill-btn" @click="addCount(3)" :disabled="isLocked">
+      <button class="skill-btn" @pointerdown.prevent="addCount(3)" :disabled="isLocked">
         <div class="level-label">Level 3</div>
         <div class="count-num">{{ counts[3] }}</div>
       </button>
 
-      <button class="skill-btn level8" @click="addCount(8)" :disabled="isLocked">
+      <button class="skill-btn level8" @pointerdown.prevent="addCount(8)" :disabled="isLocked">
         <div class="level-label">Level 8</div>
         <div class="count-num">{{ counts[8] }}</div>
       </button>
 
-      <button class="skill-btn" @click="addCount(6)" :disabled="isLocked">
+      <button class="skill-btn" @pointerdown.prevent="addCount(6)" :disabled="isLocked">
         <div class="level-label">Level 6</div>
         <div class="count-num">{{ counts[6] }}</div>
       </button>
     </div>
   
-    <!-- Locked Stamp -->
     <Teleport to="body">
        <div v-if="isLocked" class="locked-stamp">COMPLETED</div>
     </Teleport>
 
-    <!-- Overlay -->
     <Teleport to="body">
         <div class="overlay" :class="{ show: isSubmitting, success: isSuccess }">
             <div class="overlay-card">
@@ -120,7 +112,6 @@
 import { ref, computed, reactive, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db } from '../firebase'
-// [CLEANUP] Removed unused imports (collection, addDoc, query, where, getDocs, orderBy, limit)
 import { doc, getDoc, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 
 const route = useRoute()
@@ -187,20 +178,14 @@ const triggerDq = () => {
     isLongPressing.value = false
     isDq.value = true
     dqTriggered.value = true
-    if(navigator.vibrate) navigator.vibrate([200, 100, 200]) // distinct vibration
-    // submitScore() REMOVED: Manual submit only
+    if(navigator.vibrate) navigator.vibrate([200, 100, 200]) 
 }
 
 onMounted(async () => {
     if(entryCode) {
-        // MIGRATE: station scoped
-        // Note: 'station' param is required. StationView passes it.
-        // const sId = station || '1' 
-
-        // TESTER MODE
         if (route.query.test === 'true') {
              heat.value = "TEST"
-             return // Skip Firebase
+             return 
         }
 
         const snap = await getDoc(doc(db, "competition", sId, "entries", entryCode))
@@ -241,19 +226,15 @@ const restoreScore = async () => {
 const addCount = (lvl) => {
     if(isLocked.value) return
 
-    // [FIX] Strict DQ Rule: If DQ, scoring is disabled.
     if (isDq.value) {
-        return; // Jumper is DQ, so ignore all score taps.
+        return; 
     }
 
     if(dqTriggered.value) {
-        dqTriggered.value = false // Reset for next interaction
+        dqTriggered.value = false 
         return
     }
     
-    // Old logic removal
-    // if (isDq.value) isDq.value = false
-
     counts[lvl]++
     lastAction.value = { lvl }
     if(navigator.vibrate) navigator.vibrate(50)
@@ -274,7 +255,7 @@ const undo = () => {
 const reset = () => {
     isLocked.value = false
     isDq.value = false
-    dqTriggered.value = false // Fix: Clear this so next tap works
+    dqTriggered.value = false 
     Object.keys(counts).forEach(k => counts[k] = 0)
     lastAction.value = null
     if(navigator.vibrate) navigator.vibrate(100)
@@ -301,7 +282,6 @@ const submitScore = async () => {
             created_at: serverTimestamp()
         }
 
-        // TESTER MODE
         if (route.query.test === 'true') {
              isSuccess.value = true
              setTimeout(() => {
@@ -311,7 +291,6 @@ const submitScore = async () => {
              return
         }
 
-        // CONSOLIDATED WRITE
         await setDoc(doc(db, "results_freestyle", entryCode), payload, { merge: true })
         
         const sId = station || '1'
