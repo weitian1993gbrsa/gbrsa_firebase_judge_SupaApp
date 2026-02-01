@@ -29,7 +29,7 @@
             <button 
                 class="re-btn-half" 
                 :class="{ disabled: values[cat.key] >= 4 }"
-                @click="addScore(cat.key, 0.5)"
+                @pointerdown.prevent="addScore(cat.key, 0.5, $event)"
                 :disabled="isLocked || values[cat.key] >= 4"
             >
                 <span class="re-btn-label">{{ cat.label }}</span>
@@ -45,7 +45,7 @@
             <button 
                 class="re-btn-full" 
                 :class="{ disabled: values[cat.key] >= 4 }"
-                @click="addScore(cat.key, 1)"
+                @pointerdown.prevent="addScore(cat.key, 1, $event)"
                 :disabled="isLocked || values[cat.key] >= 4"
             >
                 <span class="re-btn-label">{{ cat.label }}</span>
@@ -84,7 +84,7 @@
 import { ref, reactive, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db } from '../firebase'
-import { doc, getDoc, collection, addDoc, setDoc, serverTimestamp, updateDoc, query, where, getDocs, orderBy, limit } from 'firebase/firestore'
+import { doc, getDoc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore'
 
 const route = useRoute()
 const router = useRouter()
@@ -118,26 +118,19 @@ const values = reactive({
 const history = ref([])
 
 const missing = computed(() => {
-    // Logic from legacy: completed(v) -> Math.floor(v)
-    // missing = 12 - total_completed
     const total = Math.floor(values.power) + Math.floor(values.multiples) + Math.floor(values.manipulation)
     return 12 - total
 })
 
 const formatValue = (v) => {
-    // 1.5 -> "1.5", 1.0 -> "1"
     return v.toFixed(1).replace(/\.0$/, "")
 }
 
 onMounted(async () => {
     if(entryCode) {
-        // MIGRATE: competition/{station}/entries
-        // const sId = station || '1'
-
-        // TESTER MODE
         if (route.query.test === 'true') {
              heat.value = "TEST"
-             return // Skip Firebase
+             return 
         }
 
         const snap = await getDoc(doc(db, "competition", sId, "entries", entryCode))
@@ -172,14 +165,24 @@ const restoreScore = async () => {
     }
 }
 
-const addScore = (key, val) => {
+// 🟢 UPDATED: Instant Tap Animation Logic
+const addScore = (key, val, event) => {
     if(isLocked.value) return
-    if(values[key] >= 4) return // Max 4 check
+    if(values[key] >= 4) return 
+
+    // Visual Animation (Direct DOM)
+    if (event) {
+        const btn = event.currentTarget || event.target.closest('button');
+        if (btn) {
+            btn.classList.remove('animate-flash');
+            void btn.offsetWidth; // Force Reflow
+            btn.classList.add('animate-flash');
+        }
+    }
 
     const prev = values[key]
     const next = Math.min(prev + val, 4)
     
-    // Only update if changed
     if (next !== prev) {
         history.value.push({ key, prev })
         values[key] = next
@@ -197,7 +200,6 @@ const undo = () => {
 }
 
 const resetScore = () => {
-    // Unlock and Reset
     isLocked.value = false
     values.power = 0
     values.multiples = 0
@@ -217,22 +219,17 @@ const submitScore = async () => {
         const payload = {
             entry_code: entryCode,
             re: {
-                // Save structured values
                 values: { ...values },
-                
                 score: Math.floor(values.power) + Math.floor(values.multiples) + Math.floor(values.manipulation),
                 judge_key: sessionStorage.getItem('gbrsa_access_key') || 'unknown',
                 updated_at: serverTimestamp()
             },
-            
             station: station,
             created_at: serverTimestamp()
         }
 
-        // CONSOLIDATED WRITE
         await setDoc(doc(db, "results_freestyle", entryCode), payload, { merge: true })
         
-        // TESTER MODE
         if (route.query.test === 'true') {
              isSuccess.value = true
              setTimeout(() => {
@@ -435,7 +432,6 @@ const submitScore = async () => {
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
   padding: 1rem;
-  /* CHANGED: Optimized padding to remove dead space but keep safe area */
   padding-bottom: calc(1rem + env(safe-area-inset-bottom));
   display: flex;
   flex-direction: column;
@@ -451,7 +447,6 @@ const submitScore = async () => {
   margin: 0 auto;
   width: 100%;
   min-height: 100%;
-  /* CHANGED: Removed extra bottom padding */
   padding-bottom: 0;
 }
 
@@ -510,11 +505,24 @@ const submitScore = async () => {
 .re-btn-half { background: linear-gradient(135deg, #f87171 0%, #dc2626 100%); }
 .re-btn-full { background: linear-gradient(135deg, #34d399 0%, #059669 100%); }
 
+/* 🟢 KEYFRAME ANIMATION */
+@keyframes flash-brightness {
+  0% { filter: brightness(1); transform: scale(1); }
+  30% { filter: brightness(1.3) saturate(1.2); transform: scale(1); }
+  100% { filter: brightness(1); transform: scale(1); }
+}
+
+/* 🟢 CLASS FOR JS TO TOGGLE */
+.re-btn-half.animate-flash, .re-btn-full.animate-flash {
+  animation: flash-brightness 0.15s ease-out forwards;
+}
+
+/* 🟢 UPDATED: NO MOVEMENT */
 .re-btn-half:active, .re-btn-full:active { 
-  transform: scale(0.96); 
-  filter: brightness(1.3) saturate(1.1); 
+  transform: none; 
   transition: none;
 }
+
 .disabled { opacity: 0.2; pointer-events: none; filter: grayscale(1); }
 
 .re-btn-label {
@@ -532,8 +540,6 @@ const submitScore = async () => {
   font-weight: 900;
   letter-spacing: 0.5px;
 }
-
-/* REMOVED: .bottom-spacer { height: 20px; } */
 
 /* OVERLAY */
 .overlay {
