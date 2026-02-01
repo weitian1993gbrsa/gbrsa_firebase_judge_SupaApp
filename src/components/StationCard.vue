@@ -1,4 +1,3 @@
-
 <template>
   <button 
     class="station-card" 
@@ -9,18 +8,22 @@
     @pointerup="handlePointerUp"
   >
     <div class="card-inner">
-      <!-- Header -->
       <div class="card-header">
         <span class="badge badge-heat">Heat {{ entry.heat }}</span>
         <span class="badge badge-event">{{ entry.event }}</span>
       </div>
 
-      <!-- Body: Names -->
       <div class="card-body">
-         <div class="name" v-html="formattedNames"></div>
+         <div class="name-list" :class="{ 'is-dense': nameList.length > 1 }">
+            <div v-for="(name, index) in nameList" :key="index" class="name-row">
+               <svg class="icon-user" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" />
+               </svg>
+               <span class="name-text">{{ name }}</span>
+            </div>
+         </div>
       </div>
 
-      <!-- Footer -->
       <div class="card-footer">
         <div class="team">
           <svg style="width:14px;height:14px;margin-right:6px;opacity:0.75;vertical-align:text-bottom;" viewBox="0 0 20 20" fill="currentColor">
@@ -34,8 +37,7 @@
         </div>
       </div>
 
-      <!-- Stamp -->
-       <div v-if="showStamp" class="card-stamp" :class="{ 'is-dq': isDq, 'is-rejump': isRejump }">
+      <div v-if="showStamp" class="card-stamp" :class="{ 'is-dq': isDq, 'is-rejump': isRejump }">
           {{ stampText }}
        </div>
     </div>
@@ -47,22 +49,18 @@ import { computed } from 'vue'
 
 const props = defineProps({
   entry: { type: Object, required: true },
-  judgeType: { type: String, default: '' } // New Prop
+  judgeType: { type: String, default: '' }
 })
 
 const emit = defineEmits(['select'])
 
-// Status Logic
+// --- Status Logic ---
 const isDone = computed(() => {
-  // Global Done
   if (props.entry.status === 'done' || props.entry.status === 'completed') return true
-  
-  // Per-Judge Done
   if (props.judgeType) {
       const field = `status_${props.judgeType}`
       if (props.entry[field] === 'done' || props.entry[field] === true) return true
   }
-  
   return false
 })
 
@@ -86,14 +84,13 @@ const stampText = computed(() => {
   return 'COMPLETED'
 })
 
-// Names formatting (match legacy formatNames function)
-const formattedNames = computed(() => {
-  const names = [props.entry.name1, props.entry.name2, props.entry.name3, props.entry.name4].filter(n => n && String(n).trim() !== "")
-  const icon = `<svg style="width:12px;height:12px;margin-right:4px;opacity:0.7;vertical-align:middle;" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd" /></svg>`
-  return names.map(n => `<div style="margin-bottom:2px;display:flex;align-items:center;">${icon}<span style="vertical-align:middle;">${n}</span></div>`).join("")
+// --- Name Logic ---
+const nameList = computed(() => {
+  return [props.entry.name1, props.entry.name2, props.entry.name3, props.entry.name4]
+    .filter(n => n && String(n).trim() !== "")
 })
 
-// Legacy Status Labels with EXACT SVGs
+// --- Legacy Status Labels ---
 const statusHtml = computed(() => {
   if (isDone.value) {
       return `<span>Done</span> <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>`
@@ -110,7 +107,7 @@ const statusHtml = computed(() => {
   return `<span>Judge</span> <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"/></svg>`
 })
 
-// --- Interaction Logic (Fast Tap vs Scroll) ---
+// --- Interaction Logic ---
 let startX = 0, startY = 0, startTime = 0, isDrag = false
 
 const handlePointerDown = (e) => {
@@ -118,32 +115,27 @@ const handlePointerDown = (e) => {
   startY = e.clientY || (e.touches ? e.touches[0].clientY : 0)
   startTime = Date.now()
   isDrag = false
-  console.log("[StationCard] PointerDown", { startX, startY })
 }
 const handlePointerMove = (e) => {
   const currentX = e.clientX || (e.touches ? e.touches[0].clientX : 0)
   const currentY = e.clientY || (e.touches ? e.touches[0].clientY : 0)
   if (Math.abs(currentX - startX) > 15 || Math.abs(currentY - startY) > 15) {
-      if (!isDrag) console.log("[StationCard] Drag Detected")
       isDrag = true
   }
 }
-const handlePointerUp = (e) => {
-  // Logic handled in click, but we can prevent default if needed
-}
+const handlePointerUp = () => {}
 const handleClick = () => {
-  console.log("[StationCard] Click", { isDrag, timeDelta: Date.now() - startTime })
   if (isDrag) return
-  if (Date.now() - startTime > 600) return // Long press
+  if (Date.now() - startTime > 600) return 
   
   if (isScratch.value || isDq.value) {
      const el = document.activeElement
      if(el) {
          el.animate([
-            { transform: 'translateX(0)' },
-            { transform: 'translateX(4px)' },
-            { transform: 'translateX(-4px)' },
-            { transform: 'translateX(0)' }
+            { transform: 'translateX(0)', offset: 0 },
+            { transform: 'translateX(4px)', offset: 0.25 },
+            { transform: 'translateX(-4px)', offset: 0.75 },
+            { transform: 'translateX(0)', offset: 1 }
          ], { duration: 300 })
      }
      return
@@ -172,11 +164,9 @@ const handleClick = () => {
     }
 
     .station-card:active {
-      background: #f1f5f9;
+      transform: scale(0.99); 
       box-shadow: 0 2px 10px -2px rgba(0, 0, 0, 0.05);
     }
-
-    /* Color Configurations */
 
     /* REJUMP = ORANGE */
     .station-card.is-rejump {
@@ -184,40 +174,20 @@ const handleClick = () => {
       color: white;
       border: 2px solid #fdba74;
     }
+    .station-card.is-rejump .badge { background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(4px); border: 1px solid rgba(255, 255, 255, 0.1); color: white; }
 
-    .station-card.is-rejump .name,
-    .station-card.is-rejump .team,
-    .station-card.is-rejump .meta-id,
-    .station-card.is-rejump .meta-status {
-      color: white;
-    }
-
-    .station-card.is-rejump .badge {
-      background: rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(4px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: white;
-    }
-
-    /* SCRATCH = GREY (LOCKED) */
+    /* SCRATCH = GREY */
     .station-card.is-scratch {
       background: rgba(100, 116, 139, 0.4);
       color: white;
       cursor: not-allowed;
       border: 1px solid rgba(148, 163, 184, 0.2);
     }
-
-    .station-card.is-scratch .name,
-    .station-card.is-scratch .team,
+    .station-card.is-scratch .name-text, 
+    .station-card.is-scratch .team, 
     .station-card.is-scratch .meta-id,
-    .station-card.is-scratch .meta-status {
-      color: #e2e8f0;
-    }
-
-    .station-card.is-scratch .badge {
-      background: rgba(0, 0, 0, 0.2);
-      color: #cbd5e1;
-    }
+    .station-card.is-scratch .meta-status { color: #e2e8f0; }
+    .station-card.is-scratch .badge { background: rgba(0, 0, 0, 0.2); color: #cbd5e1; }
 
     /* DQ = RED */
     .station-card.is-dq {
@@ -226,59 +196,28 @@ const handleClick = () => {
       border: 2px solid #f87171;
       cursor: not-allowed;
     }
+    .station-card.is-dq .badge { background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(4px); border: 1px solid rgba(255, 255, 255, 0.1); color: white; }
 
-    .station-card.is-dq .name,
-    .station-card.is-dq .team,
-    .station-card.is-dq .meta-id,
-    .station-card.is-dq .meta-status {
-      color: white;
-    }
-
-    .station-card.is-dq .badge {
-      background: rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(4px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: white;
-    }
-
-    /* PENDING = GREEN GRADIENT */
+    /* PENDING = GREEN */
     .station-card.is-pending {
       background: linear-gradient(135deg, #22c55e 0%, #15803d 100%);
       color: white;
     }
+    .station-card.is-pending .badge { background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(4px); border: 1px solid rgba(255, 255, 255, 0.1); color: white; }
 
-    .station-card.is-pending .name,
-    .station-card.is-pending .team,
-    .station-card.is-pending .meta-id,
-    .station-card.is-pending .meta-status {
-      color: white;
-    }
-
-    .station-card.is-pending .badge {
-      background: rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(4px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: white;
-    }
-
-    /* DONE = BLUE GRADIENT */
+    /* DONE = BLUE */
     .station-card.is-done {
       background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
       color: white;
     }
+    .station-card.is-done .badge { background: rgba(255, 255, 255, 0.2); backdrop-filter: blur(4px); border: 1px solid rgba(255, 255, 255, 0.1); color: white; }
 
-    .station-card.is-done .name,
-    .station-card.is-done .team,
-    .station-card.is-done .meta-id,
-    .station-card.is-done .meta-status {
-      color: white;
-    }
-
-    .station-card.is-done .badge {
-      background: rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(4px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      color: white;
+    /* Universal Text Color Overrides for Colored Cards */
+    .station-card:not(.is-scratch) .name-text,
+    .station-card:not(.is-scratch) .team,
+    .station-card:not(.is-scratch) .meta-id,
+    .station-card:not(.is-scratch) .meta-status {
+        color: white;
     }
 
     .card-inner {
@@ -287,7 +226,6 @@ const handleClick = () => {
       z-index: 20;
     }
 
-    /* Header: Technical Context */
     .card-header {
       display: flex;
       justify-content: space-between;
@@ -321,20 +259,40 @@ const handleClick = () => {
       color: #334155;
     }
 
-    /* Body: Name Hero */
-    .card-body {
-      margin-bottom: 16px;
-    }
+    /* === NAME STYLES === */
+    .card-body { margin-bottom: 16px; }
+    
+    .name-list { display: flex; flex-direction: column; gap: 2px; }
+    
+    .name-row { display: flex; align-items: center; }
 
-    .station-card :deep(.name) {
+    /* Default (1 name) */
+    .name-text {
       font-size: 18px;
       font-weight: 850;
       letter-spacing: -0.015em;
-      color: #111827;
       line-height: 1.2;
     }
 
-    /* Footer: Multi-Context */
+    /* ⚡ DENSE MODE (2+ names) ⚡ */
+    /* Updated Logic: If more than 1 name, use smaller font */
+    .name-list.is-dense .name-text {
+      font-size: 15px; 
+    }
+    
+    .name-list.is-dense .icon-user {
+       width: 11px;
+       height: 11px;
+    }
+
+    .icon-user {
+        width: 12px; 
+        height: 12px; 
+        margin-right: 4px; 
+        opacity: 0.7;
+    }
+
+    /* Footer */
     .card-footer {
       display: flex;
       justify-content: space-between;
@@ -346,7 +304,6 @@ const handleClick = () => {
     .station-card .team {
       font-size: 12px;
       font-weight: 700;
-      color: #475569;
       display: flex;
       align-items: center;
     }
@@ -375,7 +332,7 @@ const handleClick = () => {
       letter-spacing: 0.02em;
     }
     
-    /* ⭐ COMPLETED STAMP OVERLAY */
+    /* STAMP */
     .card-stamp {
       position: absolute;
       top: 50%;

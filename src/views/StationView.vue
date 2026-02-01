@@ -66,10 +66,10 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db } from '../firebase'
+// 🟢 CHANGE 1: Import 'where'
 import { collection, query, where, onSnapshot } from 'firebase/firestore'
 import StationCard from '../components/StationCard.vue'
 
-// import { SPEED_EVENTS, FREESTYLE_EVENTS } from '../constants'
 import { useConfig } from '../composables/useConfig'
 
 const { config } = useConfig()
@@ -101,31 +101,46 @@ const eventMode = computed(() => {
 
 const goHome = () => router.push('/')
 
-// Realtime Listener
+// 🟢 CHANGE 2: Efficient "Server-Side" Filtering
 const subscribe = () => {
   if (unsubscribe) unsubscribe()
   loading.value = true
   
-  // MIGRATE: competition/{stationId}/entries
-  const qSafe = query(collection(db, "competition", String(stationId.value), "entries")) 
+  // 1. Determine which events to fetch
+  // This ensures we ONLY download "Speed" events if we are in "Speed" mode.
+  let targetEvents = []
+  if (eventMode.value === 'speed') {
+      targetEvents = config.value.speedEvents || []
+  } else {
+      targetEvents = config.value.freestyleEvents || []
+  }
+
+  // Safety: Firestore 'in' query crashes if list is empty.
+  if (targetEvents.length === 0) {
+      console.warn("No events defined for this mode. Nothing to fetch.")
+      participants.value = []
+      loading.value = false
+      return
+  }
+  
+  // Safety: Firestore 'in' query limit is 30. 
+  // If you have >30 events, you must slice it or use the "Category" fix mentioned previously.
+  if (targetEvents.length > 30) {
+      console.warn("Warning: Too many events for a single query. Truncating to 30.")
+      targetEvents = targetEvents.slice(0, 30)
+  }
+
+  // 2. The Query
+  const qSafe = query(
+      collection(db, "competition", String(stationId.value), "entries"),
+      where("event", "in", targetEvents) // <--- THIS SAVES YOUR DATA
+  ) 
 
   unsubscribe = onSnapshot(qSafe, (snapshot) => {
     const list = []
     snapshot.forEach(doc => {
-      const d = doc.data()
-      // Filter by Event Mode (Speed vs Freestyle)
-      const pEvent = String(d.event || '').trim()
-      
-      let matchesMode = false
-      if (eventMode.value === 'speed') {
-          matchesMode = config.value.speedEvents.includes(pEvent)
-      } else {
-          matchesMode = config.value.freestyleEvents.includes(pEvent)
-      }
-      
-      if (matchesMode) {
-          list.push({ ...d, id: doc.id })
-      }
+      // We already filtered on the server, so we can just push everything we get.
+      list.push({ ...doc.data(), id: doc.id })
     })
     
     // Sort logic: Heat (asc) -> ID (asc)
@@ -143,17 +158,14 @@ const subscribe = () => {
 }
 
 const onCardSelect = (entry) => {
-  console.log("Card Clicked:", entry.entry_code, entry.status) // DEBUG
+  console.log("Card Clicked:", entry.entry_code, entry.status) 
   if (entry.status === 'scratch' || entry.status === 'dq') {
-      console.log("Blocked: Scratch/DQ")
       return
   }
 
-  const currentEvent = route.query.event || eventMode.value // Fallback to computed mode
+  const currentEvent = route.query.event || eventMode.value 
   const currentJudgeType = route.query.judgeType 
   
-  console.log("Nav Logic:", { currentEvent, currentJudgeType }) // DEBUG
-
   const q = { 
       ...route.query, 
       entry: entry.entry_code,
@@ -174,7 +186,6 @@ const onCardSelect = (entry) => {
       } else if (currentJudgeType === 're') {
           router.push({ path: '/judge/freestyle/re', query: q })
       } else {
-           console.log("[Station] Freestyle default -> difficulty")
            router.push({ path: '/judge/freestyle/difficulty', query: q })
       }
   } else {
@@ -193,8 +204,11 @@ onUnmounted(() => {
   if (unsubscribe) unsubscribe()
 })
 
+// No need to filter again in computed, but we keep it for safety
 const filteredParticipants = computed(() => participants.value)
-const fetchData = () => subscribe() // Manual refresh
+
+// 🟢 CHANGE 3: Remove manual refresh or keep it strictly for connection retry
+const fetchData = () => subscribe() 
 
 </script>
 
@@ -333,7 +347,7 @@ const fetchData = () => subscribe() // Manual refresh
       touch-action: pan-y;
       -webkit-overflow-scrolling: touch;
       padding: 1rem;
-      padding-bottom: calc(80px + env(safe-area-inset-bottom));
+      padding-bottom: calc(20px + env(safe-area-inset-bottom));
       width: 100%;
       max-width: 900px;
       margin: 0 auto;
