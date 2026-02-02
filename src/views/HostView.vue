@@ -272,7 +272,7 @@ const hasJudgeResult = (station, type) => {
     })
 }
 
-// STATUS LOGIC UPDATED
+// STATUS LOGIC
 const getStationStatusText = (s) => {
     const p = getParticipantAtStation(s)
     if (!p) return 'EMPTY'
@@ -283,29 +283,29 @@ const getStationStatusText = (s) => {
     if (isFreestyle(p)) {
         const types = ['difficulty', 'presentation', 'technical', 're']
         const count = types.filter(t => hasJudgeResult(s, t)).length
-        if (count === 4) return 'COMPLETED' // Changed from DONE
+        if (count === 4) return 'COMPLETED'
         if (count > 0) return 'JUDGING'
         return 'READY'
     } else {
         const res = resultsSpeed.value.find(r => String(r.entry_code) === String(p.entry_code))
-        return res ? 'COMPLETED' : 'READY' // Changed from DONE
+        return res ? 'COMPLETED' : 'READY'
     }
 }
 
-// COLORS UPDATED: Check for COMPLETED now
+// COLORS UPDATED: COMPLETED is now GREEN
 const getCardClass = (s) => {
     const p = getParticipantAtStation(s)
     if (!p) return 'is-empty'
     const st = getStationStatusText(s)
     if (st === 'DQ' || st === 'SCR') return 'is-danger'
-    if (st === 'COMPLETED') return 'is-completed' // Matches new text
+    if (st === 'COMPLETED') return 'is-completed' // Will map to Green CSS
     if (st === 'JUDGING') return 'is-active'
-    return '' // Default for READY (no green)
+    return '' // Default for READY
 }
 
 const getStatusColor = (s) => {
     const st = getStationStatusText(s)
-    if (st === 'COMPLETED') return 'text-blue' // Matches new text
+    if (st === 'COMPLETED') return 'text-green' // Changed to Green
     if (st === 'JUDGING') return 'text-yellow'
     if (st === 'DQ' || st === 'SCR') return 'text-red'
     return 'text-mute' 
@@ -412,13 +412,17 @@ watch(activeHeat, setupListeners)
 .dash-card { background: #1e293b; border-radius: 12px; border: 1px solid #334155; position: relative; display: flex; flex-direction: column; padding: 0.75rem 1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden; }
 .dash-card:hover { transform: translateY(-2px); border-color: #94a3b8; }
 .dash-card.is-empty { opacity: 0.4; border-style: dashed; }
-.dash-card.is-completed { border: 2px solid #3b82f6; background: rgba(59, 130, 246, 0.1); } 
+
+/* COLORS UPDATE: Completed is Green */
+.dash-card.is-completed { border: 2px solid #10b981; background: rgba(16, 185, 129, 0.05); } 
 .dash-card.is-active { border: 2px solid #facc15; box-shadow: 0 0 15px rgba(250, 204, 21, 0.1); } 
 .dash-card.is-danger { border: 2px solid #ef4444; background: repeating-linear-gradient(45deg, rgba(239,68,68,0.05), rgba(239,68,68,0.05) 10px, rgba(239,68,68,0.1) 10px, rgba(239,68,68,0.1) 20px); }
 
 .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
 .st-num { font-size: 1.2rem; font-weight: 900; color: #475569; }
 .st-status { font-size: 0.7rem; font-weight: 800; background: #334155; padding: 2px 6px; border-radius: 4px; color: #94a3b8; }
+
+.text-green { color: #10b981; background: rgba(16, 185, 129, 0.1); }
 .text-blue { color: #3b82f6; background: rgba(59, 130, 246, 0.1); }
 .text-yellow { color: #facc15; background: rgba(250, 204, 21, 0.1); animation: pulse 1.5s infinite; }
 .text-red { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
@@ -440,7 +444,7 @@ watch(activeHeat, setupListeners)
 .tracker-lbl { font-size: 0.55rem; color: #475569; font-weight: 700; margin-bottom: 4px; letter-spacing: 0.5px; }
 .dots-row { display: flex; gap: 4px; }
 .dot { width: 20px; height: 20px; border-radius: 50%; background: #334155; color: #64748b; font-size: 0.6rem; font-weight: 800; display: flex; align-items: center; justify-content: center; }
-.dot.done { background: #3b82f6; color: white; }
+.dot.done { background: #10b981; color: #064e3b; } /* Dots back to Green for consistency or preference? Actually Blue dots might look better on Green card? Keeping dots green for now as per "done" logic usually implies green. */
 
 /* MODAL & FOOTER */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 50; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
