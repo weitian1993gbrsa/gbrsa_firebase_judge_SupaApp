@@ -298,14 +298,14 @@ const getCardClass = (s) => {
     if (!p) return 'is-empty'
     const st = getStationStatusText(s)
     if (st === 'DQ' || st === 'SCR') return 'is-danger'
-    if (st === 'COMPLETED') return 'is-completed' // Will map to Green CSS
+    if (st === 'COMPLETED') return 'is-completed' 
     if (st === 'JUDGING') return 'is-active'
     return '' // Default for READY
 }
 
 const getStatusColor = (s) => {
     const st = getStationStatusText(s)
-    if (st === 'COMPLETED') return 'text-green' // Changed to Green
+    if (st === 'COMPLETED') return 'text-green' // Green
     if (st === 'JUDGING') return 'text-yellow'
     if (st === 'DQ' || st === 'SCR') return 'text-red'
     return 'text-mute' 
@@ -433,7 +433,16 @@ watch(activeHeat, setupListeners)
 
 .entry-row { display: flex; gap: 6px; margin-bottom: 4px; }
 .entry-pill { background: #334155; font-family: monospace; font-size: 0.8rem; padding: 1px 6px; border-radius: 4px; color: #94a3b8; }
-.div-pill { background: #2563eb; font-size: 0.7rem; font-weight: 700; padding: 1px 6px; border-radius: 4px; color: white; }
+
+/* DIVISION PILL: Now Yellow (#facc15) with Dark Text (#0f172a) */
+.div-pill { 
+    background: #facc15; 
+    color: #0f172a; 
+    font-size: 0.7rem; 
+    font-weight: 700; 
+    padding: 1px 6px; 
+    border-radius: 4px; 
+}
 
 .p-name { font-size: 1rem; font-weight: 700; color: white; line-height: 1.2; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .p-name.is-long { font-size: 0.85rem; }
@@ -444,7 +453,7 @@ watch(activeHeat, setupListeners)
 .tracker-lbl { font-size: 0.55rem; color: #475569; font-weight: 700; margin-bottom: 4px; letter-spacing: 0.5px; }
 .dots-row { display: flex; gap: 4px; }
 .dot { width: 20px; height: 20px; border-radius: 50%; background: #334155; color: #64748b; font-size: 0.6rem; font-weight: 800; display: flex; align-items: center; justify-content: center; }
-.dot.done { background: #10b981; color: #064e3b; } /* Dots back to Green for consistency or preference? Actually Blue dots might look better on Green card? Keeping dots green for now as per "done" logic usually implies green. */
+.dot.done { background: #10b981; color: #064e3b; } /* Dots back to Green to match Completed color */
 
 /* MODAL & FOOTER */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 50; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
