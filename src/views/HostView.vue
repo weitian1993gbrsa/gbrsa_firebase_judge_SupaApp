@@ -272,7 +272,7 @@ const hasJudgeResult = (station, type) => {
     })
 }
 
-// STATUS LOGIC
+// STATUS LOGIC UPDATED
 const getStationStatusText = (s) => {
     const p = getParticipantAtStation(s)
     if (!p) return 'EMPTY'
@@ -283,32 +283,32 @@ const getStationStatusText = (s) => {
     if (isFreestyle(p)) {
         const types = ['difficulty', 'presentation', 'technical', 're']
         const count = types.filter(t => hasJudgeResult(s, t)).length
-        if (count === 4) return 'DONE'
+        if (count === 4) return 'COMPLETED' // Changed from DONE
         if (count > 0) return 'JUDGING'
         return 'READY'
     } else {
         const res = resultsSpeed.value.find(r => String(r.entry_code) === String(p.entry_code))
-        return res ? 'DONE' : 'READY'
+        return res ? 'COMPLETED' : 'READY' // Changed from DONE
     }
 }
 
-// COLORS UPDATED: Removed Green for Ready
+// COLORS UPDATED: Check for COMPLETED now
 const getCardClass = (s) => {
     const p = getParticipantAtStation(s)
     if (!p) return 'is-empty'
     const st = getStationStatusText(s)
     if (st === 'DQ' || st === 'SCR') return 'is-danger'
-    if (st === 'DONE') return 'is-completed'
+    if (st === 'COMPLETED') return 'is-completed' // Matches new text
     if (st === 'JUDGING') return 'is-active'
-    return '' // Removed 'is-ready' class, falls back to default
+    return '' // Default for READY (no green)
 }
 
 const getStatusColor = (s) => {
     const st = getStationStatusText(s)
-    if (st === 'DONE') return 'text-blue'
+    if (st === 'COMPLETED') return 'text-blue' // Matches new text
     if (st === 'JUDGING') return 'text-yellow'
     if (st === 'DQ' || st === 'SCR') return 'text-red'
-    return 'text-mute' // Replaces 'text-green' for READY
+    return 'text-mute' 
 }
 
 const openStationModal = (s) => selectedStation.value = s
@@ -358,7 +358,6 @@ const generateAnnouncementPreview = async (eventName) => {
         const entries = eventSnap.docs.map(d => ({...d.data(), entry_code: d.id}))
         if (entries.length === 0) { alert("No participants found."); return }
         
-        // (Full PDF logic preserved implicitly)
         alert("Generating PDF for " + eventName) 
     } catch (err) { alert("Export failed: " + err.message) } finally {
         isExporting.value = false; exportEvent.value = ''
