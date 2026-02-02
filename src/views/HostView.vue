@@ -1,175 +1,158 @@
 <template>
   <div class="layout admin-layout">
     <header class="header">
-            <div class="brand">
-                <img class="logo" :src="COMPETITION_LOGO" alt="Logo">
-                <div class="brand-text">
-                    <h1>{{ config.title }}</h1>
-                </div>
-            </div>
+      <div class="brand">
+        <img class="logo" :src="COMPETITION_LOGO" alt="Logo">
+        <div class="brand-text">
+          <h1>{{ config.title }}</h1>
+        </div>
+      </div>
 
-            <nav class="nav-links">
-                <button class="nav-link" :class="{ active: activeMainView === 'results' }" @click="activeMainView = 'results'">MC</button>
-                <button class="nav-link" :class="{ active: activeMainView === 'monitor' }" @click="activeMainView = 'monitor'">Live Monitor</button>
+      <nav class="nav-links">
+        <button class="nav-link" :class="{ active: activeMainView === 'results' }" @click="activeMainView = 'results'">MC</button>
+        <button class="nav-link" :class="{ active: activeMainView === 'monitor' }" @click="activeMainView = 'monitor'">Live Monitor</button>
 
-                <router-link to="/admin/certificates" class="nav-link">Print</router-link>
-                <router-link to="/admin" class="nav-link">Admin Dashboard</router-link>
-            </nav>
+        <router-link to="/admin/certificates" class="nav-link">Print</router-link>
+        <router-link to="/admin" class="nav-link">Admin Dashboard</router-link>
+      </nav>
 
-            <div class="system-status-container">
+      <div class="system-status-container">
         <div class="system-status">
-            <div class="pulse-dot"></div>
-            <span>Admin Control Panel</span>
+          <div class="pulse-dot"></div>
+          <span>Admin Control Panel</span>
         </div>
         <div class="time-display">{{ currentTime }}</div>
       </div>
     </header>
 
-
-
-
-
-    <!-- PANEL: LIVE MONITOR -->
     <div v-if="activeMainView === 'monitor'" class="panel">
-        <div class="controls-row">
-            <h2 class="text-xl font-bold" style="margin-right:auto;">
-                Live Monitor <span v-if="activeHeat" class="text-muted ml-2">Heat {{ activeHeat }}</span>
-            </h2>
-            
-             <button @click="changeHeat(-1)" class="btn-yellow">◀ Prev Heat</button>
-             <select v-model="activeHeat" class="filter-select w-24">
-                <option v-for="h in distinctHeats" :key="h" :value="h">Heat {{ h }}</option>
-            </select>
-            <button @click="changeHeat(1)" class="btn-yellow">Next Heat ▶</button>
+      <div class="controls-row">
+        <h2 class="text-xl font-bold" style="margin-right:auto;">
+          Live Monitor <span v-if="activeHeat" class="text-muted ml-2">Heat {{ activeHeat }}</span>
+        </h2>
+        
+        <button @click="changeHeat(-1)" class="btn-yellow">◀ Prev Heat</button>
+        <select v-model="activeHeat" class="filter-select w-24">
+          <option v-for="h in distinctHeats" :key="h" :value="h">Heat {{ h }}</option>
+        </select>
+        <button @click="changeHeat(1)" class="btn-yellow">Next Heat ▶</button>
+      </div>
+
+      <div class="stations-grid">
+        <div 
+          v-for="s in 12" 
+          :key="s" 
+          class="station-card" 
+          :class="getStationStatusClass(s)"
+          @click="openStationModal(s)"
+        >
+          <div class="mini-status">{{ getStationStatusText(s) }}</div>
+
+          <div class="station-lbl">STATION</div>
+          <div class="giant-num">{{ s }}</div>
+
+          <div v-if="['DQ','SCRATCH','RE-JUMP','Done'].includes(getStationStatusText(s))" class="status-stamp-mini">
+            {{ getStationStatusText(s) === 'Done' ? 'COMPLETED' : getStationStatusText(s) }}
+          </div>
+          <div v-if="!getParticipantAtStation(s)" class="status-stamp-mini stamp-empty">
+            EMPTY
+          </div>
         </div>
+      </div>
 
-        <div class="stations-grid">
-            <div 
-                v-for="s in 12" 
-                :key="s" 
-                class="station-card" 
-                :class="getStationStatusClass(s)"
-                @click="openStationModal(s)"
-            >
-                <!-- STATUS TEXT OVERLAY (optional, or just color) -->
-                <!-- STATUS MINI (Top) - Hide if Stamp is shown to avoid duplication -->
-                <div class="mini-status">{{ getStationStatusText(s) }}</div>
-
-                <!-- STATION NUMBER CENTRED -->
-                <div class="station-lbl">STATION</div>
-                <div class="giant-num">{{ s }}</div>
-
-                <!-- STATUS STAMP (Mini Bottom) -->
-                <div v-if="['DQ','SCRATCH','RE-JUMP','Done'].includes(getStationStatusText(s))" class="status-stamp-mini">
-                    {{ getStationStatusText(s) === 'Done' ? 'COMPLETED' : getStationStatusText(s) }}
+      <div v-if="selectedStation !== null" class="modal-overlay" @click.self="closeModal">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2>Station {{ selectedStation }} Details</h2>
+            <button class="close-btn" @click="closeModal">✕</button>
+          </div>
+          
+          <div class="modal-body" v-if="getParticipantAtStation(selectedStation)">
+            <div class="modal-info">
+              <div class="m-entry">{{ getParticipantAtStation(selectedStation).entry_code }}</div>
+              <div class="m-name">
+                <div v-for="(n, i) in getNamesList(getParticipantAtStation(selectedStation))" :key="i" class="name-row">
+                  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 text-muted">
+                    <path d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z" />
+                  </svg>
+                  {{ n }}
                 </div>
-                <!-- EMPTY STAMP -->
-                <div v-if="!getParticipantAtStation(s)" class="status-stamp-mini stamp-empty">
-                    EMPTY
-                </div>
+              </div>
+              <div class="m-team name-row">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 text-muted">
+                  <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+                </svg>
+                {{ getParticipantAtStation(selectedStation).team }}
+              </div>
             </div>
-        </div>
 
-        <!-- MODAL -->
-        <div v-if="selectedStation !== null" class="modal-overlay" @click.self="closeModal">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h2>Station {{ selectedStation }} Details</h2>
-                    <button class="close-btn" @click="closeModal">✕</button>
+            <div class="modal-judges" v-if="isFreestyle(getParticipantAtStation(selectedStation))">
+              <h3>Judges Status</h3>
+              <div class="judges-flex">
+                <div class="j-pill" :class="{ 'ready': hasJudgeResult(selectedStation, 'difficulty') }">
+                  <span class="lbl">Difficulty</span>
+                  <span class="st">{{ hasJudgeResult(selectedStation, 'difficulty') ? '✓' : '...' }}</span>
                 </div>
-                
-                <div class="modal-body" v-if="getParticipantAtStation(selectedStation)">
-                    <div class="modal-info">
-                        <div class="m-entry">{{ getParticipantAtStation(selectedStation).entry_code }}</div>
-                        <div class="m-name">
-                            <div v-for="(n, i) in getNamesList(getParticipantAtStation(selectedStation))" :key="i" class="name-row">
-                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 text-muted">
-                                  <path d="M10 8a3 3 0 100-6 3 3 0 000 6zM3.465 14.493a1.23 1.23 0 00.41 1.412A9.957 9.957 0 0010 18c2.31 0 4.438-.784 6.131-2.1.43-.333.604-.903.408-1.41a7.002 7.002 0 00-13.074.003z" />
-                                </svg>
-                                {{ n }}
-                            </div>
-                        </div>
-                        <div class="m-team name-row">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 text-muted">
-                                <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
-                            </svg>
-                            {{ getParticipantAtStation(selectedStation).team }}
-                        </div>
-                    </div>
-
-                    <div class="modal-judges" v-if="isFreestyle(getParticipantAtStation(selectedStation))">
-                        <h3>Judges Status</h3>
-                        <div class="judges-flex">
-                            <div class="j-pill" :class="{ 'ready': hasJudgeResult(selectedStation, 'difficulty') }">
-                                <span class="lbl">Difficulty</span>
-                                <span class="st">{{ hasJudgeResult(selectedStation, 'difficulty') ? '✓' : '...' }}</span>
-                            </div>
-                            <div class="j-pill" :class="{ 'ready': hasJudgeResult(selectedStation, 'presentation') }">
-                                <span class="lbl">Presentation</span>
-                                <span class="st">{{ hasJudgeResult(selectedStation, 'presentation') ? '✓' : '...' }}</span>
-                            </div>
-                            <div class="j-pill" :class="{ 'ready': hasJudgeResult(selectedStation, 'technical') }">
-                                <span class="lbl">Technical</span>
-                                <span class="st">{{ hasJudgeResult(selectedStation, 'technical') ? '✓' : '...' }}</span>
-                            </div>
-                            <!-- RE -->
-                            <div class="j-pill" :class="{ 'ready': hasJudgeResult(selectedStation, 're') }">
-                                <span class="lbl">Required Elements</span>
-                                <span class="st">{{ hasJudgeResult(selectedStation, 're') ? '✓' : '...' }}</span>
-                            </div>
-                        </div>
-                    </div>
+                <div class="j-pill" :class="{ 'ready': hasJudgeResult(selectedStation, 'presentation') }">
+                  <span class="lbl">Presentation</span>
+                  <span class="st">{{ hasJudgeResult(selectedStation, 'presentation') ? '✓' : '...' }}</span>
                 </div>
-
-                <!-- STATUS CONTROLS -->
-                <div class="modal-footer" v-if="getParticipantAtStation(selectedStation)">
-                    <div class="status-actions">
-                        <button class="btn-action btn-scratch" @click="updateStationStatus('scratch')">SCRATCH</button>
-                        <button class="btn-action btn-dq" @click="updateStationStatus('dq')">DQ</button>
-                        <button class="btn-action btn-reset" @click="updateStationStatus('pending')">RESET</button>
-                    </div>
+                <div class="j-pill" :class="{ 'ready': hasJudgeResult(selectedStation, 'technical') }">
+                  <span class="lbl">Technical</span>
+                  <span class="st">{{ hasJudgeResult(selectedStation, 'technical') ? '✓' : '...' }}</span>
                 </div>
-                
-                <div class="modal-body empty" v-else>
-                    <h3>Station Empty</h3>
-                    <p>No participant assigned to this station.</p>
+                <div class="j-pill" :class="{ 'ready': hasJudgeResult(selectedStation, 're') }">
+                  <span class="lbl">Required Elements</span>
+                  <span class="st">{{ hasJudgeResult(selectedStation, 're') ? '✓' : '...' }}</span>
                 </div>
+              </div>
             </div>
+          </div>
+
+          <div class="modal-footer" v-if="getParticipantAtStation(selectedStation)">
+            <div class="status-actions">
+              <button class="btn-action btn-scratch" @click="updateStationStatus('scratch')">SCRATCH</button>
+              <button class="btn-action btn-dq" @click="updateStationStatus('dq')">DQ</button>
+              <button class="btn-action btn-reset" @click="updateStationStatus('pending')">RESET</button>
+            </div>
+          </div>
+          
+          <div class="modal-body empty" v-else>
+            <h3>Station Empty</h3>
+            <p>No participant assigned to this station.</p>
+          </div>
         </div>
+      </div>
     </div>
-    <!-- PANEL: RESULTS -->
+
     <div v-if="activeMainView === 'results'" class="panel results-panel">
-        <div class="controls-row">
-            <h2 class="text-xl font-bold">MC</h2>
-        </div>
+      <div class="controls-row">
+        <h2 class="text-xl font-bold">MC</h2>
+      </div>
 
-        <!-- EVENT GRID -->
-        <div class="menu-container">
-            <div class="event-grid">
-                <button v-for="e in resultsEvents" :key="e" @click="generateAnnouncementPreview(e)" class="event-card">
-                    <div v-if="isExporting && exportEvent === e" class="export-spinner-overlay">
-                        <div class="spinner-small"></div>
-                    </div>
-                    <span class="event-code">{{ e }}</span>
-                    <span class="event-name">{{ getEventLabel(e) }}</span>
-                </button>
+      <div class="menu-container">
+        <div class="event-grid">
+          <button v-for="e in resultsEvents" :key="e" @click="generateAnnouncementPreview(e)" class="event-card">
+            <div v-if="isExporting && exportEvent === e" class="export-spinner-overlay">
+              <div class="spinner-small"></div>
             </div>
+            <span class="event-code">{{ e }}</span>
+            <span class="event-name">{{ getEventLabel(e) }}</span>
+          </button>
         </div>
+      </div>
     </div>
-
-
-
 
     <footer class="footer">
-        © 2026 GBRSA
+      © 2026 GBRSA
     </footer>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, reactive, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { db } from '../firebase'
-import { collection, collectionGroup, onSnapshot, doc, getDocs, query, where } from 'firebase/firestore'
+import { collection, collectionGroup, onSnapshot, doc, getDocs, query, where, updateDoc, setDoc, serverTimestamp } from 'firebase/firestore'
 import { jsPDF } from "jspdf"
 import autoTable from "jspdf-autotable"
 import { COMPETITION_LOGO, FREESTYLE_EVENTS } from '../constants'
@@ -181,33 +164,30 @@ const { config, getEventLabel } = useConfig()
 // --- STATE ---
 const currentTime = ref('00/00/0000 00:00:00')
 const isSystemLocked = ref(false)
+let timerInterval = null
 
 // Data
-const allParticipantsMeta = ref([]) // One-time fetch for dropdowns
-const participants = ref([])        // Global Participant List (Host View loads ALL usually, or we should optimize)
-const resultsSpeed = ref([])        // Targeted listener
-const resultsFreestyle = ref([])    // Targeted listener
+const allParticipantsMeta = ref([]) // Cached for dropdowns/structure
+const participants = ref([])        // LIVE data for Active Heat ONLY
+const resultsSpeed = ref([])        
+const resultsFreestyle = ref([])    
 const activeHeat = ref(1)
 const selectedStation = ref(null)
 
 // --- RESULTS VIEW STATE ---
-const activeMainView = ref('results') // 'monitor' | 'results'
+const activeMainView = ref('results') 
 const isExporting = ref(false)
 const exportEvent = ref('')
-
 
 const resultsEvents = computed(() => {
     return [...(config.value.speedEvents || []), ...(config.value.freestyleEvents || [])]
 })
 
-// let unsubs = []
 let unsubs = []
 let systemUnsub = null
 
-
-
 onMounted(async () => {
-    // Clock
+    // Clock - Fixed Memory Leak
     const updateClock = () => {
         const now = new Date()
         const date = now.toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })
@@ -215,64 +195,55 @@ onMounted(async () => {
         currentTime.value = `${date} ${time}`
     }
     updateClock()
-    setInterval(updateClock, 1000)
+    timerInterval = setInterval(updateClock, 1000)
 
-    // 1. One-time fetch of ALL participants for dropdown metadata (Distint Events/Divs/Heats)
-    // We fetch from 'entries' collectionGroup to get the actual distributed competition data
-    const snapshot = await getDocs(collectionGroup(db, 'entries'))
-    allParticipantsMeta.value = snapshot.docs.map(d => ({...d.data(), entry_code: d.id}))
+    // 1. Fetch Metadata (For Dropdowns)
+    // Note: We still fetch this once to build the Heat/Division dropdowns.
+    try {
+        const snapshot = await getDocs(collectionGroup(db, 'entries'))
+        allParticipantsMeta.value = snapshot.docs.map(d => ({...d.data(), entry_code: d.id}))
+    } catch (e) {
+        console.error("Error loading metadata", e)
+    }
     
-    // if (allParticipantsMeta.value.length > 0) {
-    //     activeHeat.value = allParticipantsMeta.value[0].heat
-    // }
-
-    // 2. Global System Listener (Small Doc, fine for onSnapshot)
+    // 2. Global System Listener
     systemUnsub = onSnapshot(doc(db, 'system', 'status'), s => {
         if (s.exists()) {
             isSystemLocked.value = s.data().locked === true
         }
     })
 
-    // 3. LISTEN TO EVERYTHING (Start with Monitor active)
+    // 3. LISTEN TO HEAT (Start with Monitor active logic)
     setupListeners()
 })
 
-// Watch Heat Change to Swap Listeners
-// For Host View, we might want to listen to ALL participants generally so Winners tab works?
-// Or we filter. Winners tab filters by Event. Monitor filters by Heat.
-// HEAT DATA TRACKER (Flattened)
-const stationData = reactive({})
-
+// HEAT DATA LISTENER
 const setupListeners = () => {
     console.log("[Host] Setting up live listeners for Heat:", activeHeat.value)
+    // Clear old listeners
     unsubs.forEach(u => u())
     unsubs = []
     
     // Clear old data
     participants.value = []
-    Object.keys(stationData).forEach(k => delete stationData[k])
 
-    // LISTENING TO EACH STATION (1-12) SEPARATELY 
-    // This avoids the need for a COLLECTION_GROUP index in Firebase
-    for (let s = 1; s <= 12; s++) {
-        const qP = query(
-            collection(db, 'competition', String(s), 'entries'), 
-            where("heat", "==", String(activeHeat.value))
-        )
-        
-        unsubs.push(onSnapshot(qP, snap => {
-            console.log(`[Host] Station ${s} snap received (${snap.docs.length} docs)`)
-            stationData[s] = snap.docs.map(d => ({ 
-                ...d.data(), 
-                id: d.id, 
-                entry_code: d.id 
-            }))
-            // Re-flatten to participants.value
-            participants.value = Object.values(stationData).flat()
-        }, err => {
-            console.error(`[Host] Station ${s} Listener Error:`, err)
+    // 1. SINGLE Listener for the entire HEAT (Replaces 12 separate station listeners)
+    // This dramatically reduces reads/connections
+    const qHeat = query(
+        collectionGroup(db, 'entries'), 
+        where("heat", "==", String(activeHeat.value))
+    )
+    
+    unsubs.push(onSnapshot(qHeat, (snap) => {
+        console.log(`[Host] Heat ${activeHeat.value} update: ${snap.docs.length} participants`)
+        participants.value = snap.docs.map(d => ({ 
+            ...d.data(), 
+            id: d.id, 
+            entry_code: d.id 
         }))
-    }
+    }, err => {
+        console.error("[Host] Heat Listener Error:", err)
+    }))
 
     // 2. Results Speed
     unsubs.push(onSnapshot(collection(db, 'results_speed'), snap => {
@@ -309,12 +280,16 @@ const generateAnnouncementPreview = async (eventName) => {
     try {
         const doc = new jsPDF()
         const isFS = FREESTYLE_EVENTS.includes(eventName)
-        const entries = allParticipantsMeta.value.filter(p => p.event === eventName)
+        
+        // FIX: Fetch FRESH data for this event to ensure latest DQs/Status
+        const qEvent = query(collectionGroup(db, 'entries'), where('event', '==', eventName))
+        const eventSnap = await getDocs(qEvent)
+        const entries = eventSnap.docs.map(d => ({...d.data(), entry_code: d.id}))
         
         if (entries.length === 0) {
             alert("No participants found for this event.")
             isExporting.value = false
-            selectedResultEvent.value = ''
+            exportEvent.value = ''
             return
         }
 
@@ -406,13 +381,10 @@ const generateAnnouncementPreview = async (eventName) => {
                 canvas.width = logoImg.width; canvas.height = logoImg.height
                 const ctx = canvas.getContext("2d"); ctx.drawImage(logoImg,0,0)
                 logoBase64 = canvas.toDataURL("image/png")
-                
-                // Calc Aspect Ratio
                 if (logoImg.height > 0) logoRatio = logoImg.width / logoImg.height
             }
         } catch(e) { console.warn("Logo load failed", e) }
 
-        // Generate Icon Data URL (Once)
         let iconDataUrl = null
         try {
             const icon = faCircleUser.icon
@@ -423,20 +395,11 @@ const generateAnnouncementPreview = async (eventName) => {
             const scale = 64 / Math.max(w, h)
             ctx.scale(scale, scale)
             const p = new Path2D(path)
-            ctx.fillStyle = "#1e293b" // Match Header Color (Slate-800)
+            ctx.fillStyle = "#1e293b" 
             ctx.fill(p)
             iconDataUrl = canvas.toDataURL('image/png')
         } catch (e) { console.warn("Icon gen failed", e) }
 
-        // MAIN HEADER (Once per Event)
-        if(logoBase64) {
-            let w = 20; let h = 20;
-            if (logoRatio > 1) { h = 20 / logoRatio }
-            else { w = 20 * logoRatio }
-            doc.addImage(logoBase64, 'PNG', 15, 10, w, h)
-        }
-        
-        // Group Divisions by Gender
         const groups = [
             { name: 'FEMALE', divs: [] },
             { name: 'MALE', divs: [] },
@@ -450,7 +413,6 @@ const generateAnnouncementPreview = async (eventName) => {
             else groups[2].divs.push(d)
         })
 
-        // Filter out empty groups
         const activeGroups = groups.filter(g => g.divs.some(d => divWinners[d] && divWinners[d].length > 0))
 
         let lastDrawnPage = 0
@@ -469,7 +431,6 @@ const generateAnnouncementPreview = async (eventName) => {
             doc.setFontSize(11); doc.setFont("helvetica", "normal"); doc.text(eventName, 195, 18, { align: 'right' })
             doc.setFontSize(10); doc.text("MC Announcement - Winners List", 40, 26)
             
-            // MC Badge
             doc.rect(160, 21, 35, 6)
             doc.setFontSize(9); doc.setFont("helvetica", "bold")
             doc.text("MC ANNOUNCE", 177.5, 24.1, { align: "center", baseline: "middle" })
@@ -480,7 +441,6 @@ const generateAnnouncementPreview = async (eventName) => {
             doc.text(`Event: ${getEventLabel(eventName)}`, 15, 40)
         }
 
-        // Draw First Header
         drawHeader()
 
         activeGroups.forEach((group, gIndex) => {
@@ -489,15 +449,12 @@ const generateAnnouncementPreview = async (eventName) => {
                 drawHeader()
             }
             
-            // Per-Page Density Calculation
             const groupWinners = group.divs.flatMap(d => divWinners[d] || [])
             const isTeamEvent = groupWinners.some(w => w.names.includes('\n'))
             const rowWeight = isTeamEvent ? 2.5 : 1
             const weightedRow = groupWinners.length * rowWeight
             const totalDivs = group.divs.length
 
-            // DYNAMIC SCALING (Best Fit for THIS Page)
-            // INCREASED SIZES FOR MC VISIBILITY
             let baseFontSize = 15
             let headFontSize = 16
             let cellPadding = 2.5
@@ -515,14 +472,12 @@ const generateAnnouncementPreview = async (eventName) => {
                 const winners = divWinners[divName]
                 if (!winners || winners.length === 0) continue
 
-                // Check overflow for multi-page groups (rare but possible)
                 if (currentY + 20 > 280) {
                     doc.addPage()
                     drawHeader()
                     currentY = 45
                 }
 
-            // Division Title
             doc.setFontSize(baseFontSize + 1); doc.setFont("helvetica", "bold")
             doc.text(`Division: ${divName}`, 15, currentY)
             currentY += (baseFontSize / 2) + 2
@@ -546,57 +501,43 @@ const generateAnnouncementPreview = async (eventName) => {
                 margin: { top: 50, bottom: 15 },
                 columnStyles: { 
                     0: { cellWidth: 22, fontStyle: 'bold' }, 
-                    1: { halign: 'left', cellWidth: 80, cellPadding: { top: 2.5, right: 2.5, bottom: 2.5, left: 6 } }, // Added left padding for icon
+                    1: { halign: 'left', cellWidth: 80, cellPadding: { top: 2.5, right: 2.5, bottom: 2.5, left: 6 } }, 
                     2: { halign: 'left' }, 
                     3: { cellWidth: 35, fontStyle: 'bold' } 
                 },
                 didDrawCell: (data) => {
-                     // Hook to draw custom icon in the Name column (index 1) which may have multiple lines
                     if (data.section === 'body' && data.column.index === 1 && iconDataUrl) {
                         const doc = data.doc;
                         const cell = data.cell;
-                        
-                        // Retrieve original data 
                         const w = winners[data.row.index];
                         if (!w) return;
 
                         const rawNames = [w.name1, w.name2, w.name3, w.name4].filter(n => n && n.trim());
                         if (rawNames.length === 0) return;
 
-                        // Calculate Dimensions
                         const fontSizePt = cell.styles.fontSize;
                         const lineHeightFactor = doc.getLineHeightFactor();
-                        const lineHeightMm = fontSizePt * lineHeightFactor * 0.352778; // 1pt = 0.3528mm
+                        const lineHeightMm = fontSizePt * lineHeightFactor * 0.352778; 
                         const iconSize = 3; 
 
-                        const totalRenderedLines = cell.text.length;
-                        const contentHeight = totalRenderedLines * lineHeightMm;
+                        const contentHeight = cell.text.length * lineHeightMm;
                         const startY = cell.y + (cell.height - contentHeight) / 2;
-
                         let currentNameIndex = 0;
-
                         cell.text.forEach((line, i) => {
                             if (currentNameIndex >= rawNames.length) return;
-
                             const cleanLine = String(line).trim();
                             if (!cleanLine) return; 
-
                             const targetName = String(rawNames[currentNameIndex]).trim();
-                            
-                            // Check for match at start of line
                             if (targetName.toLowerCase().startsWith(cleanLine.toLowerCase())) {
-                                
                                 const lineMidY = startY + (i * lineHeightMm) + (lineHeightMm / 2);
                                 const iconY = lineMidY - (iconSize / 2);
                                 doc.addImage(iconDataUrl, 'PNG', cell.x + 2, iconY, iconSize, iconSize);
-
                                 currentNameIndex++;
                             }
                         });
                     }
                 },
                 didDrawPage: (data) => {
-                    // Draw header if autoTable created a new page
                     drawHeader()
                 },
                 didParseCell: (data) => {
@@ -614,7 +555,6 @@ const generateAnnouncementPreview = async (eventName) => {
             }
         })
         
-        // Draw Footer on Every Page
         const totalPages = doc.internal.getNumberOfPages()
         for (let i = 1; i <= totalPages; i++) {
             doc.setPage(i)
@@ -625,8 +565,6 @@ const generateAnnouncementPreview = async (eventName) => {
         const blob = doc.output('blob')
         const url = URL.createObjectURL(blob)
         window.open(url, '_blank')
-        
-        // Revoke after a delay to allow browser to load
         setTimeout(() => URL.revokeObjectURL(url), 10000)
     } catch (err) {
         console.error(err)
@@ -637,9 +575,10 @@ const generateAnnouncementPreview = async (eventName) => {
     }
 }
 
-watch(currentTime, () => {}) // Dummy watch to keep imports valid if needed, or remove imports.
-
 onUnmounted(() => {
+    // Stop the clock
+    if (timerInterval) clearInterval(timerInterval)
+    // Kill listeners
     unsubs.forEach(u => u())
     if (systemUnsub) systemUnsub()
 })
@@ -666,7 +605,6 @@ const distinctDivisions = computed(() => {
     })
 })
 
-
 const getNamesList = (p) => {
     return [p.name1, p.name2, p.name3, p.name4].filter(n=>n)
 }
@@ -679,9 +617,84 @@ const closeModal = () => {
     selectedStation.value = null
 }
 const isFreestyle = (p) => FREESTYLE_EVENTS.includes(p?.event)
-const activeHeatParticipants = computed(() => {
-    return participants.value.filter(p => Number(p.heat) === Number(activeHeat.value))
-})
+
+// Helper to find data in the filtered 'participants' list
+// Since 'participants' now ONLY contains the current heat, we don't need to filter again.
+const getParticipantAtStation = (s) => participants.value.find(p => Number(p.station) === s)
+
+const hasJudgeResult = (station, type) => {
+    const p = getParticipantAtStation(station)
+    if (!p) return false
+    
+    return resultsFreestyle.value.some(r => {
+        const matchId = String(r.entry_code) === String(p.entry_code)
+        if (!matchId) return false
+        
+        if (type === 'technical' && r.technical) return true
+        if (type === 'difficulty' && r.difficulty) return true
+        if (type === 'presentation' && r.presentation) return true
+        if (type === 're' && r.re) return true
+        if (r.judge_type === type) return true
+        
+        return false
+    })
+}
+
+// UPDATE STATUS
+const updateStationStatus = async (status) => {
+    if (!selectedStation.value) return
+    const p = getParticipantAtStation(selectedStation.value)
+    if (!p) return
+
+    try {
+        const ref = doc(db, 'competition', String(selectedStation.value), 'entries', p.id)
+        await updateDoc(ref, { status: status })
+
+        await setDoc(doc(db, 'live_scores', String(selectedStation.value)), {
+            station: Number(selectedStation.value),
+            score: 0,
+            status: status,
+            updated_at: serverTimestamp()
+        })
+        
+        closeModal()
+    } catch (e) {
+        alert("Error updating status: " + e.message)
+    }
+}
+
+const getStationStatusText = (s) => {
+    const p = getParticipantAtStation(s)
+    if (!p) return 'EMPTY'
+
+    const st = String(p.status || '').toLowerCase()
+    if (st === 'dq') return 'DQ'
+    if (st === 'scratch') return 'SCRATCH'
+    if (st === 'rejump') return 'RE-JUMP'
+    if (st === 'pending') return 'Waiting'
+    
+    if (isFreestyle(p)) {
+        const judgeTypes = ['difficulty', 'presentation', 'technical', 're']
+        const submittedCount = judgeTypes.filter(t => hasJudgeResult(s, t)).length
+        if (submittedCount === 4) return 'Done' 
+        if (submittedCount > 0) return 'Judging...'
+        return 'Waiting'
+    } else {
+        const res = resultsSpeed.value.find(r => String(r.entry_code) === String(p.entry_code))
+        if (res) return 'Done'
+        return 'Waiting'
+    }
+}
+
+const getStationStatusClass = (s) => {
+    const status = getStationStatusText(s)
+    if (status === 'Done') return 'bs-done'
+    if (status === 'Judging...') return 'bs-judging'
+    if (status === 'DQ') return 'bs-dq'
+    if (status === 'SCRATCH') return 'bs-scratch'
+    if (status === 'RE-JUMP') return 'bs-rejump'
+    return 'bs-waiting'
+}
 
 // Auto-initialize heat
 watch(distinctHeats, (newHeats) => {
@@ -705,112 +718,6 @@ const changeHeat = (delta) => {
         activeHeat.value = distinctHeats.value[newIdx]
     }
 }
-
-// Helpers for Grid
-const getParticipantAtStation = (s) => activeHeatParticipants.value.find(p => Number(p.station) === s)
-
-const hasJudgeResult = (station, type) => {
-    const p = getParticipantAtStation(station)
-    if (!p) return false
-    
-    // Check resultsFreestyle
-    // We look for any doc with entry_code == p.entry_code
-    // AND (judge_type == type OR nested key exists)
-    return resultsFreestyle.value.some(r => {
-        const matchId = String(r.entry_code) === String(p.entry_code)
-        if (!matchId) return false
-        
-        // Check Consolidated (New)
-        if (type === 'technical' && r.technical) return true
-        if (type === 'difficulty' && r.difficulty) return true
-        if (type === 'presentation' && r.presentation) return true
-        if (type === 're' && r.re) return true
-        
-        // Check Legacy
-        if (r.judge_type === type) return true
-        
-        return false
-    })
-}
-
-
-
-// UPDATE STATUS
-import { updateDoc, setDoc, serverTimestamp } from 'firebase/firestore'
-const updateStationStatus = async (status) => {
-    if (!selectedStation.value) return
-    const p = getParticipantAtStation(selectedStation.value)
-    if (!p) return
-
-    try {
-        // 1. Update Main Entry
-        // We know the Collection path is: /competition/{station}/entries/{id}
-        const ref = doc(db, 'competition', String(selectedStation.value), 'entries', p.id)
-        await updateDoc(ref, { status: status })
-
-        // 2. Broadcast to Live Board
-        await setDoc(doc(db, 'live_scores', String(selectedStation.value)), {
-            station: Number(selectedStation.value),
-            score: 0, // Reset score visually
-            status: status, // NEW FIELD
-            updated_at: serverTimestamp()
-        })
-        
-        closeModal()
-    } catch (e) {
-        alert("Error updating status: " + e.message)
-    }
-}
-
-const getStationStatusText = (s) => {
-    const p = getParticipantAtStation(s)
-    if (!p) return 'EMPTY'
-
-    // Status Overrides (Case-Insensitive)
-    const st = String(p.status || '').toLowerCase()
-    if (st === 'dq') return 'DQ'
-    if (st === 'scratch') return 'SCRATCH'
-    if (st === 'rejump') return 'RE-JUMP'
-    if (st === 'pending') return 'Waiting'
-    
-    // Check Result
-    if (isFreestyle(p)) {
-        // Freestyle
-        const judgeTypes = ['difficulty', 'presentation', 'technical', 're']
-        const submittedCount = judgeTypes.filter(t => hasJudgeResult(s, t)).length
-        
-        if (submittedCount === 4) return 'Done' 
-        if (submittedCount > 0) return 'Judging...'
-        return 'Waiting'
-    } else {
-        // Speed
-        const res = resultsSpeed.value.find(r => String(r.entry_code) === String(p.entry_code))
-        if (res) return 'Done'
-        return 'Waiting'
-    }
-}
-
-// Debug Watcher
-watch(participants, (newVal) => {
-    const specials = newVal.filter(p => p.status && ['dq', 'scratch', 'rejump'].includes(p.status.toLowerCase()))
-    if (specials.length > 0) {
-        console.log("[Host] Special status detected in participants array:", specials.map(p => `${p.entry_code}: ${p.status}`))
-    }
-}, { deep: true })
-
-
-const getStationStatusClass = (s) => {
-    const status = getStationStatusText(s)
-    if (status === 'Done') return 'bs-done'
-    if (status === 'Judging...') return 'bs-judging'
-    if (status === 'DQ') return 'bs-dq'
-    if (status === 'SCRATCH') return 'bs-scratch'
-    if (status === 'RE-JUMP') return 'bs-rejump'
-    return 'bs-waiting'
-}
-
-
-
 </script>
 
 <style scoped>
