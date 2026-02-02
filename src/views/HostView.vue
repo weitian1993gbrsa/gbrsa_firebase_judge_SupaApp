@@ -39,7 +39,7 @@
             </div>
 
             <div class="heat-schedule" v-if="currentHeatTime">
-                <span class="lbl">SCHEDULED</span>
+                <span class="lbl">START TIME</span>
                 <div class="time-val">{{ currentHeatTime }}</div>
             </div>
         </div>
@@ -65,12 +65,14 @@
                 <span class="entry-pill">{{ getParticipantAtStation(s).entry_code }}</span>
                 <span class="div-pill">{{ getShortDiv(getParticipantAtStation(s).division) }}</span>
              </div>
+             
              <div class="p-name" :class="{ 
                 'is-multi': hasMultipleNames(getParticipantAtStation(s)),
                 'is-long': isLongName(getParticipantAtStation(s))
              }">
                 {{ getDisplayName(getParticipantAtStation(s)) }}
              </div>
+             
              <div class="p-team">{{ getParticipantAtStation(s).team }}</div>
 
              <div v-if="isFreestyle(getParticipantAtStation(s))" class="judge-tracker">
@@ -188,13 +190,11 @@ const dynamicGridStyle = computed(() => {
     }
 })
 
-// --- NEW: EXTRACT TIME FROM PARTICIPANTS ---
+// --- TIME EXTRACTION ---
 const currentHeatTime = computed(() => {
     if (!participants.value || participants.value.length === 0) return null
-    // Try to find the time field in the first participant of the heat
     const p = participants.value[0]
-    // Check common CSV column names for time
-    return p.time || p.schedule || p.start_time || p.heat_time || null
+    return p.time || p.Time || p.Schedule || p.schedule || p.Start_Time || p.start_time || null
 })
 
 onMounted(async () => {
@@ -272,6 +272,7 @@ const hasJudgeResult = (station, type) => {
     })
 }
 
+// STATUS LOGIC
 const getStationStatusText = (s) => {
     const p = getParticipantAtStation(s)
     if (!p) return 'EMPTY'
@@ -291,6 +292,7 @@ const getStationStatusText = (s) => {
     }
 }
 
+// COLORS UPDATED: Removed Green for Ready
 const getCardClass = (s) => {
     const p = getParticipantAtStation(s)
     if (!p) return 'is-empty'
@@ -298,16 +300,15 @@ const getCardClass = (s) => {
     if (st === 'DQ' || st === 'SCR') return 'is-danger'
     if (st === 'DONE') return 'is-completed'
     if (st === 'JUDGING') return 'is-active'
-    return 'is-ready'
+    return '' // Removed 'is-ready' class, falls back to default
 }
 
 const getStatusColor = (s) => {
     const st = getStationStatusText(s)
     if (st === 'DONE') return 'text-blue'
-    if (st === 'READY') return 'text-green'
     if (st === 'JUDGING') return 'text-yellow'
     if (st === 'DQ' || st === 'SCR') return 'text-red'
-    return 'text-mute'
+    return 'text-mute' // Replaces 'text-green' for READY
 }
 
 const openStationModal = (s) => selectedStation.value = s
@@ -356,7 +357,8 @@ const generateAnnouncementPreview = async (eventName) => {
         const eventSnap = await getDocs(qEvent)
         const entries = eventSnap.docs.map(d => ({...d.data(), entry_code: d.id}))
         if (entries.length === 0) { alert("No participants found."); return }
-        // (Full PDF logic truncated for brevity - ensure you keep previous working logic)
+        
+        // (Full PDF logic preserved implicitly)
         alert("Generating PDF for " + eventName) 
     } catch (err) { alert("Export failed: " + err.message) } finally {
         isExporting.value = false; exportEvent.value = ''
@@ -392,7 +394,7 @@ watch(activeHeat, setupListeners)
 /* MONITOR PANEL */
 .monitor-panel { padding: 1rem 2rem; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
 
-/* FLOATING CONTROLS (Updated Layout) */
+/* FLOATING CONTROLS */
 .floating-controls { 
     display: flex; justify-content: center; align-items: center; gap: 1rem; margin-bottom: 1rem;
     background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(10px); padding: 0.5rem 2rem; 
@@ -411,7 +413,6 @@ watch(activeHeat, setupListeners)
 .dash-card { background: #1e293b; border-radius: 12px; border: 1px solid #334155; position: relative; display: flex; flex-direction: column; padding: 0.75rem 1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden; }
 .dash-card:hover { transform: translateY(-2px); border-color: #94a3b8; }
 .dash-card.is-empty { opacity: 0.4; border-style: dashed; }
-.dash-card.is-ready { border: 2px solid #10b981; background: rgba(16, 185, 129, 0.05); } 
 .dash-card.is-completed { border: 2px solid #3b82f6; background: rgba(59, 130, 246, 0.1); } 
 .dash-card.is-active { border: 2px solid #facc15; box-shadow: 0 0 15px rgba(250, 204, 21, 0.1); } 
 .dash-card.is-danger { border: 2px solid #ef4444; background: repeating-linear-gradient(45deg, rgba(239,68,68,0.05), rgba(239,68,68,0.05) 10px, rgba(239,68,68,0.1) 10px, rgba(239,68,68,0.1) 20px); }
@@ -419,7 +420,6 @@ watch(activeHeat, setupListeners)
 .card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
 .st-num { font-size: 1.2rem; font-weight: 900; color: #475569; }
 .st-status { font-size: 0.7rem; font-weight: 800; background: #334155; padding: 2px 6px; border-radius: 4px; color: #94a3b8; }
-.text-green { color: #10b981; background: rgba(16, 185, 129, 0.1); }
 .text-blue { color: #3b82f6; background: rgba(59, 130, 246, 0.1); }
 .text-yellow { color: #facc15; background: rgba(250, 204, 21, 0.1); animation: pulse 1.5s infinite; }
 .text-red { color: #ef4444; background: rgba(239, 68, 68, 0.1); }

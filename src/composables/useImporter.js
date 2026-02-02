@@ -35,16 +35,12 @@ export function useImporter() {
         const entry_code = String(item.entry || item.ENTRY || item.entry_code || item.id || item.ID || "").trim()
 
         // --- NAME MAPPING ---
-        // New format uses a single 'name' cell with potential newlines/tabs
-        // Legacy format used name1, name2, name3, name4
         let names = []
         const rawName = item.name || item.NAME || ""
 
         if (rawName) {
-            // Split by newline, comma, tab, or semicolon
             names = rawName.split(/[\n\r\t,;]+/).map(n => n.trim()).filter(n => n)
         } else {
-            // Fallback to legacy nameX fields
             names = [
                 item.name1 || item.NAME1 || "",
                 item.name2 || item.NAME2 || "",
@@ -65,7 +61,10 @@ export function useImporter() {
             event: (item.event || item.EVENT || "").trim(),
             heat: String(item.heat || item.HEAT || "1").trim(),
             division: (item.division || item.DIVISION || "").trim(),
-            status: (item.status || item.STATUS || "normal").trim()
+            status: (item.status || item.STATUS || "normal").trim(),
+
+            // --- THIS WAS MISSING ---
+            time: (item.time || item.Time || item.TIME || item.Schedule || item.schedule || item["Start Time"] || "").trim()
         }
     }
 
@@ -96,16 +95,12 @@ export function useImporter() {
                 status.value = `Uploaded ${count} / ${parsedData.value.length} records...`
             }
 
-
-            // --- VERIFICATION STEP ---
+            // Verification Step
             status.value = "Verifying data on server..."
-
-            // Pick a sample to verify (first valid item)
             const sample = parsedData.value[0]
             if (sample) {
-                const sId = sample.station || "1" // match the logic above
+                const sId = sample.station || "1"
                 const checkRef = doc(db, "competition", sId, "entries", sample.entry_code)
-                // Force server fetch to ensure it persisted
                 const snap = await getDocFromCacheOrServer(checkRef)
 
                 if (!snap.exists()) {
@@ -113,8 +108,7 @@ export function useImporter() {
                 }
             }
 
-            status.value = `✅ Success! Uploaded ${count} records. Verified on Server.`
-            // Delay clearing so user sees the success
+            status.value = `✅ Success! Uploaded ${count} records. Verified.`
             setTimeout(() => { parsedData.value = [] }, 2000)
 
         } catch (err) {
@@ -125,10 +119,8 @@ export function useImporter() {
         }
     }
 
-    // Helper to force server check if possible, or fallback
     async function getDocFromCacheOrServer(ref) {
         try {
-            // Try explicit server fetch first
             return await getDocs(query(collection(db, '_dummy_'), limit(1))).then(() => getDoc(ref))
                 .catch(() => getDoc(ref))
         } catch (e) {
@@ -142,7 +134,6 @@ export function useImporter() {
         status.value = "Scanning database..."
 
         try {
-            // 1. Get all entries
             const querySnapshot = await getDocs(collectionGroup(db, "entries"))
             const total = querySnapshot.size
 
@@ -154,7 +145,6 @@ export function useImporter() {
 
             status.value = `Found ${total} records. Deleting...`
 
-            // 2. Batch Deletes (Max 500 per batch)
             const batchSize = 400
             const docs = querySnapshot.docs
             const batches = []
@@ -166,9 +156,7 @@ export function useImporter() {
                 batches.push(batch.commit())
             }
 
-            // 3. Wait for all batches
             await Promise.all(batches)
-
             status.value = `✅ Successfully wiped ${total} records.`
         } catch (err) {
             console.error(err)
