@@ -345,9 +345,17 @@ const checkAndAcquireLock = async (sId) => {
              // Special Handover for Practice Mode
              const isPracticeHandover = isTestMode.value && data.user === 'PRACTICE_USER'
              
+             // Check if it is the SAME user (Recovering from crash/refresh)
+             const currentKey = sessionStorage.getItem('gbrsa_access_key')
+             const isSameUser = data.judge_key && currentKey && (data.judge_key === currentKey)
+
              if (isPracticeHandover) {
                  // It's my lock from the previous screen, claim it fully
                  console.log("Judge: Taking over Practice Lock")
+                 await acquireLock(sId)
+             } else if (isSameUser) {
+                 // RECOVERING OWN SESSION
+                 console.log("Judge: Recovering own lock detected")
                  await acquireLock(sId)
              } else {
                  // LOCKED BY SOMEONE ELSE
@@ -375,12 +383,24 @@ const watchLock = (sId) => {
     if (lockUnsub) lockUnsub()
     
     lockUnsub = onSnapshot(doc(db, 'station_locks', String(sId)), (snap) => {
-        // If doc is gone, and we think we have the lock -> WE WERE KICKED
-        if (!snap.exists() && hasLock.value) {
-            console.warn("Lock lost! Auto-exiting...")
-            hasLock.value = false // Prevent delete loop in onUnmounted
-            alert("Session Ended via Remote Unlock")
-            goBack()
+        if (hasLock.value) {
+            // 1. Doc deleted? -> KICKED
+            if (!snap.exists()) {
+                console.warn("Lock lost! Auto-exiting...")
+                hasLock.value = false 
+                alert("Session Ended via Remote Unlock")
+                goBack()
+                return
+            }
+
+            // 2. Doc exists but Session ID mismatch? -> STOLEN (or recovered by self on other device)
+            const data = snap.data()
+            if (data.session_id !== mySessionId) {
+                console.warn("Lock stolen by another session! Auto-exiting...")
+                hasLock.value = false
+                alert("Session Ended: Station taken by another device.")
+                goBack()
+            }
         }
     })
 }
