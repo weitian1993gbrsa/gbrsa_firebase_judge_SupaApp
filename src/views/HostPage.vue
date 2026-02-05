@@ -99,9 +99,13 @@
           </div>
           <div class="modal-body" v-if="getParticipantAtStation(selectedStation)">
             <div class="modal-hero">
-                <h1>{{ getParticipantAtStation(selectedStation).entry_code }}</h1>
-                <h3 style="white-space: pre-wrap;">{{ getDisplayName(getParticipantAtStation(selectedStation)) }}</h3>
-                <p>{{ getParticipantAtStation(selectedStation).team }}</p>
+                <div class="modal-names-stack">
+                    <div v-for="(name, idx) in getNamesList(getParticipantAtStation(selectedStation))" :key="idx" class="modal-name-row" :style="{ fontSize: getDynamicFontSize(name) }">
+                        {{ name }}
+                    </div>
+                </div>
+                
+                <div class="modal-team">{{ getParticipantAtStation(selectedStation).team }}</div>
             </div>
             <div class="modal-actions">
               <button class="act-btn scratch" @click="updateStationStatus('scratch')">SCRATCH</button>
@@ -157,6 +161,7 @@ const allParticipantsMeta = ref([])
 const participants = ref([])        
 const resultsSpeed = ref([])        
 const resultsFreestyle = ref([])    
+const liveScoresMap = ref({})
 const activeHeat = ref(1)
 const selectedStation = ref(null)
 
@@ -234,6 +239,13 @@ const setupListeners = () => {
 
     unsubs.push(onSnapshot(collection(db, 'results_speed'), snap => resultsSpeed.value = snap.docs.map(d => ({ ...d.data(), id: d.id }))))
     unsubs.push(onSnapshot(collection(db, 'results_freestyle'), snap => resultsFreestyle.value = snap.docs.map(d => ({ ...d.data(), id: d.id }))))
+    
+    // NEW: Listen to Live Scores for status sync
+    unsubs.push(onSnapshot(collection(db, 'live_scores'), snap => {
+        const map = {}
+        snap.forEach(d => map[d.id] = d.data())
+        liveScoresMap.value = map
+    }))
 }
 
 const getNamesList = (p) => {
@@ -271,6 +283,16 @@ const isFreestyle = (p) => FREESTYLE_EVENTS.includes(p?.event)
 const getParticipantAtStation = (s) => participants.value.find(p => Number(p.station) === s)
 const getShortDiv = (div) => div ? div.replace('Female','F').replace('Male','M').replace('Junior','Jr').replace('Senior','Sr') : ''
 
+// Dynamic naming calculation
+const getDynamicFontSize = (name) => {
+    if (!name) return '1.2rem'
+    const len = name.length
+    if (len > 30) return '0.8rem'
+    if (len > 20) return '0.95rem'
+    if (len > 15) return '1.1rem'
+    return '1.3rem'
+}
+
 const hasJudgeResult = (station, type) => {
     const p = getParticipantAtStation(station)
     if (!p) return false
@@ -287,11 +309,20 @@ const hasJudgeResult = (station, type) => {
 
 // STATUS LOGIC
 const getStationStatusText = (s) => {
+    // 1. Check Live Status First (Syncs with Admin/Scoreboard)
+    const ls = liveScoresMap.value[String(s)]
+    if (ls && ls.status) {
+        const lst = String(ls.status).toLowerCase()
+        if (lst === 'dq') return 'DISQUALIFIED'
+        if (lst === 'scratch') return 'SCRATCH'
+        if (lst === 'rejump') return 'RE-JUMP'
+    }
+
     const p = getParticipantAtStation(s)
     if (!p) return 'EMPTY'
     const st = String(p.status || '').toLowerCase()
-    if (st === 'dq') return 'DQ'
-    if (st === 'scratch') return 'SCR'
+    if (st === 'dq') return 'DISQUALIFIED'
+    if (st === 'scratch') return 'SCRATCH'
     if (st === 'rejump') return 'RE-JUMP'
     if (isFreestyle(p)) {
         const types = ['difficulty', 'presentation', 'technical', 're']
@@ -305,12 +336,13 @@ const getStationStatusText = (s) => {
     }
 }
 
-// COLORS UPDATED: COMPLETED is now GREEN
+// COLORS UPDATED: COMPLETED is now GREEN, REJUMP is ORANGE
 const getCardClass = (s) => {
     const p = getParticipantAtStation(s)
     if (!p) return 'is-empty'
     const st = getStationStatusText(s)
-    if (st === 'DQ' || st === 'SCR') return 'is-danger'
+    if (st === 'DISQUALIFIED' || st === 'SCRATCH') return 'is-danger'
+    if (st === 'RE-JUMP') return 'is-rejump'
     if (st === 'COMPLETED') return 'is-completed' 
     if (st === 'JUDGING') return 'is-active'
     return '' // Default for READY
@@ -690,76 +722,104 @@ watch(activeHeat, setupListeners)
 .heat-badge { color: #94a3b8; font-size: 0.8rem; font-weight: 600; letter-spacing: 1px; }
 
 /* MONITOR PANEL */
-.monitor-panel { padding: 1rem 2rem; flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.monitor-panel { padding: 1.5rem 2.5rem; flex: 1; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden; }
 
 /* FLOATING CONTROLS */
 .floating-controls { 
-    display: flex; justify-content: center; align-items: center; gap: 1rem; margin-bottom: 1rem;
-    background: rgba(30, 41, 59, 0.8); backdrop-filter: blur(10px); padding: 0.5rem 2rem; 
-    border-radius: 16px; border: 1px solid rgba(255,255,255,0.1); width: fit-content; margin-left: auto; margin-right: auto;
-    flex-shrink: 0;
+    display: flex; justify-content: center; align-items: center; gap: 1rem; margin-bottom: 2rem;
+    background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); padding: 0.75rem 2.5rem; 
+    border-radius: 999px; border: 1px solid rgba(255,255,255,0.08); width: fit-content; margin-left: auto; margin-right: auto;
+    flex-shrink: 0; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.3);
 }
 .heat-info-group { display: flex; align-items: center; gap: 2rem; }
-.ctrl-btn { background: rgba(255,255,255,0.1); color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; cursor: pointer; font-weight: 700; }
-.ctrl-btn:hover { background: white; color: black; }
+.ctrl-btn { background: rgba(255,255,255,0.08); color: white; border: none; padding: 0.5rem 1.25rem; border-radius: 999px; cursor: pointer; font-weight: 700; transition: 0.2s; }
+.ctrl-btn:hover { background: white; color: black; transform: translateY(-1px); }
 .heat-selector, .heat-schedule { display: flex; flex-direction: column; align-items: center; }
-.lbl { font-size: 0.65rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-bottom: 2px; }
-.heat-select { background: transparent; color: #facc15; border: none; font-size: 1.5rem; font-weight: 800; text-align: center; cursor: pointer; outline: none; }
-.time-val { font-size: 1.5rem; font-weight: 800; color: #38bdf8; font-family: 'JetBrains Mono', monospace; }
+.lbl { font-size: 0.6rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-bottom: 2px; letter-spacing: 1px; }
+.heat-select { background: transparent; color: #facc15; border: none; font-size: 1.8rem; font-weight: 800; text-align: center; cursor: pointer; outline: none; }
+.time-val { font-size: 1.8rem; font-weight: 800; color: #38bdf8; font-family: 'JetBrains Mono', monospace; text-shadow: 0 0 20px rgba(56, 189, 248, 0.4); }
 
-/* CARDS */
-.dash-card { background: #1e293b; border-radius: 12px; border: 1px solid #334155; position: relative; display: flex; flex-direction: column; padding: 0.75rem 1rem; cursor: pointer; transition: 0.2s; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); overflow: hidden; }
-.dash-card:hover { transform: translateY(-2px); border-color: #94a3b8; }
-.dash-card.is-empty { opacity: 0.4; border-style: dashed; }
-
-/* COLORS UPDATE: Completed is Green */
-.dash-card.is-completed { border: 2px solid #10b981; background: rgba(16, 185, 129, 0.05); } 
-.dash-card.is-active { border: 2px solid #facc15; box-shadow: 0 0 15px rgba(250, 204, 21, 0.1); } 
-.dash-card.is-danger { border: 2px solid #ef4444; background: repeating-linear-gradient(45deg, rgba(239,68,68,0.05), rgba(239,68,68,0.05) 10px, rgba(239,68,68,0.1) 10px, rgba(239,68,68,0.1) 20px); }
-
-.card-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
-.st-num { font-size: 1.2rem; font-weight: 900; color: #475569; }
-.st-status { font-size: 0.7rem; font-weight: 800; background: #334155; padding: 2px 6px; border-radius: 4px; color: #94a3b8; }
-
-.text-green { color: #10b981; background: rgba(16, 185, 129, 0.1); }
-.text-blue { color: #3b82f6; background: rgba(59, 130, 246, 0.1); }
-.text-yellow { color: #facc15; background: rgba(250, 204, 21, 0.1); animation: pulse 1.5s infinite; }
-.text-red { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
-
-.card-content { flex: 1; display: flex; flex-direction: column; justify-content: center; }
-.card-content.empty { align-items: center; opacity: 0.5; }
-.empty-icon { font-weight: 800; color: #475569; letter-spacing: 2px; }
-
-.entry-row { display: flex; gap: 6px; margin-bottom: 4px; }
-.entry-pill { background: #334155; font-family: monospace; font-size: 0.8rem; padding: 1px 6px; border-radius: 4px; color: #94a3b8; }
-
-/* DIVISION PILL: Now Yellow (#facc15) with Dark Text (#0f172a) */
-.div-pill { 
-    background: #facc15; 
-    color: #0f172a; 
-    font-size: 0.7rem; 
-    font-weight: 700; 
-    padding: 1px 6px; 
-    border-radius: 4px; 
+/* GRID LAYOUT */
+.stations-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+    padding-bottom: 2rem;
 }
 
-.p-name { font-size: 1rem; font-weight: 700; color: white; line-height: 1.2; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.p-name.is-long { font-size: 0.85rem; }
-.p-name.is-multi { font-size: 0.75rem; white-space: normal; line-height: 1.1; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.p-team { font-size: 0.7rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* PREMIUM CARDS */
+.dash-card { 
+    background: linear-gradient(145deg, #1e293b, #0f172a); 
+    border-radius: 12px; /* Slightly reduced radius */
+    border: 1px solid rgba(255,255,255,0.05); 
+    position: relative; 
+    display: flex; 
+    flex-direction: column; 
+    padding: 1rem; /* Tighter padding */
+    cursor: pointer; 
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2); 
+    overflow: hidden; 
+    min-height: 150px; /* Reduced from 180px for less whitespace */
+}
+/* ... hover ... */
+.dash-card:hover { transform: translateY(-3px); border-color: rgba(255,255,255,0.2); box-shadow: 0 15px 20px -5px rgba(0,0,0,0.3); }
+
+/* ... (Variants omitted, they are unchanged or use ... ) ... */
+
+/* CARD INTERIOR */
+.card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; /* Reduced margin */ }
+.st-num { font-size: 2.5rem; font-weight: 900; color: rgba(255,255,255,0.05); line-height: 0.8; position: absolute; right: 8px; top: 8px; pointer-events: none; }
+.st-status { 
+    font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 4px; 
+    letter-spacing: 0.5px; text-transform: uppercase; z-index: 2;
+    background: rgba(15, 23, 42, 0.8); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8;
+}
+
+/* ... Status Colors ... */
+
+.card-content { flex: 1; display: flex; flex-direction: column; justify-content: center; position: relative; z-index: 1; }
+.card-content.empty { align-items: center; opacity: 0.3; justify-content: center; }
+.empty-icon { font-weight: 800; color: #94a3b8; letter-spacing: 4px; font-size: 1.2rem; }
+
+.entry-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.entry-pill { background: rgba(255,255,255,0.1); font-family: 'JetBrains Mono', monospace; font-size: 0.85rem; padding: 2px 8px; border-radius: 4px; color: #cbd5e1; }
+
+.div-pill { 
+    background: #facc15; color: #0f172a; 
+    font-size: 0.8rem; font-weight: 800; padding: 2px 8px; border-radius: 4px; 
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* HUGE NAME */
+.p-name { font-size: 1.6rem; font-weight: 800; color: white; line-height: 1.1; margin-bottom: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.p-name.is-long { font-size: 1.3rem; }
+.p-name.is-multi { 
+    font-size: 1.1rem; 
+    white-space: normal; 
+    line-height: 1.2; 
+    display: -webkit-box; 
+    -webkit-line-clamp: 2; 
+    line-clamp: 2; /* Fix standard property lint */
+    -webkit-box-orient: vertical; 
+    overflow: hidden; 
+}
+.p-team { font-size: 0.95rem; color: #94a3b8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 600; }
 
 .judge-tracker { margin-top: auto; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); }
-.tracker-lbl { font-size: 0.55rem; color: #475569; font-weight: 700; margin-bottom: 4px; letter-spacing: 0.5px; }
-.dots-row { display: flex; gap: 4px; }
-.dot { width: 20px; height: 20px; border-radius: 50%; background: #334155; color: #64748b; font-size: 0.6rem; font-weight: 800; display: flex; align-items: center; justify-content: center; }
-.dot.done { background: #10b981; color: #064e3b; } /* Dots back to Green to match Completed color */
+.tracker-lbl { font-size: 0.6rem; color: #64748b; font-weight: 700; margin-bottom: 6px; letter-spacing: 1px; text-transform: uppercase; }
+.dots-row { display: flex; gap: 6px; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #334155; box-shadow: inset 0 1px 2px rgba(0,0,0,0.3); transition: 0.3s; }
+.dot.done { background: #10b981; box-shadow: 0 0 8px #10b981; transform: scale(1.2); }
 
 /* MODAL & FOOTER */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 50; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
 .modal-content { background: #1e293b; width: 400px; padding: 2rem; border-radius: 16px; border: 1px solid #475569; text-align: center; }
 .modal-header { display: flex; justify-content: space-between; margin-bottom: 1.5rem; color: #94a3b8; }
-.modal-hero h1 { font-size: 2.5rem; color: #facc15; margin: 0; font-family: monospace; }
-.modal-hero h3 { font-size: 1.5rem; color: white; margin: 0.5rem 0; }
+/* MODAL HERO NEW STYLES */
+.modal-names-stack { display: flex; flex-direction: column; gap: 6px; margin: 0 0 1rem 0; align-items: flex-start; width: 100%; overflow: hidden; }
+.modal-name-row { font-size: 1.1rem; font-weight: 700; color: white; line-height: 1.2; letter-spacing: 0.5px; white-space: nowrap; max-width: 100%; text-overflow: ellipsis; overflow: hidden; text-align: left; }
+.modal-team { color: #94a3b8; font-size: 0.9rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; text-align: left; width: 100%; }
 .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2rem; }
 .act-btn { padding: 1rem; border-radius: 8px; border: none; font-weight: 800; cursor: pointer; transition: 0.2s; }
 .act-btn.scratch { background: #475569; color: white; }

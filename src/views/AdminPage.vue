@@ -1009,6 +1009,26 @@ const handleAction = async (row, action, event) => {
 
         // Use stored path (since it can be in any station subcollection)
         await updateDoc(doc(db, row._path), statusUpdate)
+
+        // SYNC LIVE SCORES (For Scoreboard & Host consistency)
+        if (row.station) {
+            const lsRef = doc(db, 'live_scores', String(row.station))
+            if (action === 'reset') {
+                 // Resetting means "Ready" (Normal), not removed from board
+                 await setDoc(lsRef, { 
+                     status: 'normal', 
+                     score: 0,
+                     station: Number(row.station),
+                     updated_at: serverTimestamp()
+                 }, { merge: true })
+            } else {
+                 await setDoc(lsRef, { 
+                     status: statusUpdate.status,
+                     station: Number(row.station),
+                     updated_at: serverTimestamp()
+                 }, { merge: true })
+            }
+        }
         
         // If Rejump/Reset -> Wipe Result
         if (['rejump', 'reset', 'dq'].includes(action)) {
@@ -1019,12 +1039,6 @@ const handleAction = async (row, action, event) => {
              const batch = writeBatch(db)
              snap.forEach(doc => batch.delete(doc.ref))
              
-             // ALSO WIPE LIVE BOARD IF IT EXISTS
-             const sId = String(row.station || '')
-             if (sId) {
-                batch.delete(doc(db, 'live_scores', sId))
-             }
-
              await batch.commit()
         }
     } catch(err) {
@@ -1179,7 +1193,11 @@ const wipeAllData = async () => {
              })
         })
 
-        // 4. Broadcast Wipe Command
+        // 4. Wipe Live Scores (Fixes "Does not reset" issue)
+        const lSnap = await getDocs(collection(db, 'live_scores'))
+        await processInChunks(lSnap.docs, (batch, doc) => batch.delete(doc.ref))
+
+        // 5. Broadcast Wipe Command
         await setDoc(doc(db, "broadcasts", "latest"), {
             type: 'wipe_all',
             timestamp: serverTimestamp()
