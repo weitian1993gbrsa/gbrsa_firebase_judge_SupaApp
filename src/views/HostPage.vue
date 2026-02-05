@@ -10,10 +10,10 @@
 
       <nav class="nav-links">
         <button class="nav-link" :class="{ active: activeMainView === 'results' }" @click="activeMainView = 'results'">
-            MC / Winners
+            ANNOUNCE
         </button>
         <button class="nav-link" :class="{ active: activeMainView === 'monitor' }" @click="activeMainView = 'monitor'">
-            Floor Monitor
+            FLOOR MONITOR
         </button>
       </nav>
 
