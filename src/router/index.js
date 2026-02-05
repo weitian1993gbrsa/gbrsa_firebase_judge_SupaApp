@@ -71,8 +71,8 @@ router.beforeEach(async (to, from, next) => {
             // 3. Importer Access
             if (to.path.startsWith('/importer') && (role === 'importer' || role === 'admin' || role === 'super_admin')) return next();
 
-            // 4. Host Access
-            if (to.path.startsWith('/host') && (role === 'admin' || role === 'super_admin')) return next();
+            // 4. Host Access (Separate from Admin)
+            if (to.path.startsWith('/host') && (role === 'host' || role === 'super_admin')) return next();
 
             return next('/');
 

@@ -12,7 +12,6 @@
             <button class="nav-link" :class="{ active: activeView === 'freestyle' }" @click="switchView('freestyle')">Freestyle</button>
             <button class="nav-link" :class="{ active: activeView === 'broadcast' }" @click="switchView('broadcast')">Broadcast</button>
             <button class="nav-link" :class="{ active: activeView === 'importer' }" @click="switchView('importer')">Import</button>
-            <router-link to="/host" class="nav-link">Host Dashboard</router-link>
       </div>
       <div class="system-status-container">
         <div class="system-status">

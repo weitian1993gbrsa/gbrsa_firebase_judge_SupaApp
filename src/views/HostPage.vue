@@ -16,7 +16,6 @@
         <button class="nav-link" :class="{ active: activeMainView === 'monitor' }" @click="activeMainView = 'monitor'">
             Floor Monitor
         </button>
-        <router-link to="/admin" class="nav-link">Dashboard</router-link>
       </nav>
 
       <div class="system-status-container">
