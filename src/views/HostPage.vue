@@ -253,6 +253,20 @@ const distinctHeats = computed(() => {
     return [...new Set(heats)].sort((a,b)=>a-b)
 })
 
+const distinctDivisions = computed(() => {
+    let list = [...new Set(allParticipantsMeta.value.map(p => p.division))].filter(d => d && d !== 'SYSTEM')
+    const configDivs = config.value.divisions || []
+    list = [...new Set([...configDivs, ...list])]
+    return list.sort((a,b) => {
+        const idxA = configDivs.indexOf(a)
+        const idxB = configDivs.indexOf(b)
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB
+        if (idxA !== -1) return -1
+        if (idxB !== -1) return 1
+        return String(a).localeCompare(String(b), undefined, { numeric: true })
+    })
+})
+
 const isFreestyle = (p) => FREESTYLE_EVENTS.includes(p?.event)
 const getParticipantAtStation = (s) => participants.value.find(p => Number(p.station) === s)
 const getShortDiv = (div) => div ? div.replace('Female','F').replace('Male','M').replace('Junior','Jr').replace('Senior','Sr') : ''
@@ -347,19 +361,305 @@ const calculateScore = (row) => {
 
 const generateAnnouncementPreview = async (eventName) => {
     if (isExporting.value) return
+    
     exportEvent.value = eventName
     isExporting.value = true
+    
     try {
         const doc = new jsPDF()
         const isFS = FREESTYLE_EVENTS.includes(eventName)
-        const qEvent = query(collectionGroup(db, 'entries'), where('event', '==', eventName))
-        const eventSnap = await getDocs(qEvent)
-        const entries = eventSnap.docs.map(d => ({...d.data(), entry_code: d.id}))
-        if (entries.length === 0) { alert("No participants found."); return }
+        const entries = allParticipantsMeta.value.filter(p => p.event === eventName)
         
-        alert("Generating PDF for " + eventName) 
-    } catch (err) { alert("Export failed: " + err.message) } finally {
-        isExporting.value = false; exportEvent.value = ''
+        if (entries.length === 0) {
+            alert("No participants found for this event.")
+            isExporting.value = false
+            return
+        }
+
+        // 1. Group by Division
+        const divWinners = {}
+        for (const divName of distinctDivisions.value) {
+            const divData = entries.filter(p => p.division === divName)
+            if (divData.length === 0) continue
+
+            // 2. Aggregate Results
+            const processed = divData.map(p => {
+                const row = { 
+                    ...p, 
+                    names: [p.name1, p.name2, p.name3, p.name4].filter(n=>n).join('\n'),
+                    finalScore: 0,
+                    hasResult: false
+                }
+                
+                if (isFS) {
+                    const res = resultsFreestyle.value.filter(r => String(r.entry_code) === String(p.entry_code))
+                    if (res.length > 0) {
+                        const merged = { diff: 0, pres: 0, re: 0, miss: 0, break: 0, space: 0 }
+                        const admin = res.find(r => r.judge_type === 'admin')
+                        if (admin) {
+                            merged.diff = admin.difficulty_score || 0
+                            merged.pres = admin.presentation_score || 0
+                            merged.re = admin.re_score || 0
+                            merged.miss = admin.misses || 0
+                            merged.break = admin.breaks || 0
+                            merged.space = admin.space_violation || 0
+                        } else {
+                            res.forEach(r => {
+                                if (r.judge_type === 'difficulty') merged.diff = r.score || 0
+                                if (r.judge_type === 'presentation') merged.pres = r.score || 0
+                                if (r.judge_type === 're') merged.re = 12 - (r.score || 0)
+                                if (r.judge_type === 'technical') {
+                                    merged.miss = r.misses || 0
+                                    merged.break = r.breaks || 0
+                                    merged.space = r.space_violation || 0
+                                }
+                            })
+                        }
+                        row.finalScore = calculateScore({
+                            difficulty_score: merged.diff,
+                            presentation_score: merged.pres,
+                            re_score: merged.re,
+                            misses: merged.miss,
+                            breaks: merged.break,
+                            space_violation: merged.space
+                        })
+                        row.hasResult = true
+                    }
+                } else {
+                    const res = resultsSpeed.value.find(r => String(r.entry_code) === String(p.entry_code))
+                    if (res) {
+                        row.finalScore = Number(res.score) || 0
+                        if (res.false_start) row.finalScore -= 10
+                        row.hasResult = true
+                    }
+                }
+                return row
+            })
+
+            const toRank = processed.filter(r => r.hasResult && !['dq', 'scratch'].includes(String(r.status || '').toLowerCase()))
+            toRank.sort((a,b) => b.finalScore - a.finalScore)
+
+            let lastScore = null
+            let lastPlace = 0
+            toRank.forEach((row, index) => {
+                if (row.finalScore !== lastScore) lastPlace = index + 1
+                row.place = lastPlace
+                lastScore = row.finalScore
+            })
+            divWinners[divName] = toRank.filter(r => r.place <= 5)
+        }
+
+        let logoBase64 = null
+        let logoRatio = 1
+        try {
+            const logoImg = await new Promise((resolve) => {
+                const img = new Image()
+                img.src = COMPETITION_LOGO
+                img.crossOrigin = "Anonymous"
+                img.onload = () => resolve(img)
+                img.onerror = () => resolve(null)
+            })
+            if(logoImg) {
+                const canvas = document.createElement("canvas")
+                canvas.width = logoImg.width; canvas.height = logoImg.height
+                const ctx = canvas.getContext("2d"); ctx.drawImage(logoImg,0,0)
+                logoBase64 = canvas.toDataURL("image/png")
+                if (logoImg.height > 0) logoRatio = logoImg.width / logoImg.height
+            }
+        } catch(e) { console.warn("Logo load failed", e) }
+
+        // Generate Icon Data URL
+        let iconDataUrl = null
+        try {
+            const icon = faCircleUser.icon
+            const [ w, h, , , path ] = icon
+            const canvas = document.createElement('canvas')
+            canvas.width = 64; canvas.height = 64
+            const ctx = canvas.getContext('2d')
+            const scale = 64 / Math.max(w, h)
+            ctx.scale(scale, scale)
+            const p = new Path2D(path)
+            ctx.fillStyle = "#1e293b"
+            ctx.fill(p)
+            iconDataUrl = canvas.toDataURL('image/png')
+        } catch (e) { console.warn("Icon gen failed", e) }
+
+        // Group Divisions by Gender
+        const groups = [
+            { name: 'FEMALE', divs: [] },
+            { name: 'MALE', divs: [] },
+            { name: 'OPEN', divs: [] }
+        ]
+        
+        distinctDivisions.value.forEach(d => {
+            const u = d.toUpperCase()
+            if (u.includes('FEMALE') || u.includes('GIRL')) groups[0].divs.push(d)
+            else if (u.includes('MALE') || u.includes('BOY')) groups[1].divs.push(d)
+            else groups[2].divs.push(d)
+        })
+
+        const activeGroups = groups.filter(g => g.divs.some(d => divWinners[d] && divWinners[d].length > 0))
+
+        let lastDrawnPage = 0
+        const drawHeader = () => {
+             const pg = doc.internal.getCurrentPageInfo().pageNumber
+             if (pg === lastDrawnPage) return
+             lastDrawnPage = pg
+
+             if(logoBase64) {
+                let w = 20; let h = 20;
+                if (logoRatio > 1) { h = 20 / logoRatio }
+                else { w = 20 * logoRatio }
+                doc.addImage(logoBase64, 'PNG', 15, 10, w, h)
+            }
+            doc.setFontSize(12); doc.setFont("helvetica", "bold"); doc.text(config.value.title, 40, 18)
+            doc.setFontSize(11); doc.setFont("helvetica", "normal"); doc.text(eventName, 195, 18, { align: 'right' })
+            doc.setFontSize(10); doc.text("MC Announcement - Winners List", 40, 26)
+            
+            doc.rect(160, 21, 35, 6)
+            doc.setFontSize(9); doc.setFont("helvetica", "bold")
+            doc.text("MC ANNOUNCE", 177.5, 24.1, { align: "center", baseline: "middle" })
+            
+            doc.line(15, 33, 195, 33)
+
+            doc.setFontSize(11); doc.setFont("helvetica", "bold")
+            doc.text(`Event: ${getEventLabel(eventName)}`, 15, 40)
+        }
+
+        drawHeader()
+
+        activeGroups.forEach((group, gIndex) => {
+            if (gIndex > 0) {
+                doc.addPage()
+                drawHeader()
+            }
+            
+            const groupWinners = group.divs.flatMap(d => divWinners[d] || [])
+            const isTeamEvent = groupWinners.some(w => w.names.includes('\n'))
+            const rowWeight = isTeamEvent ? 2.5 : 1
+            const weightedRow = groupWinners.length * rowWeight
+            const totalDivs = group.divs.length
+
+            let baseFontSize = 15
+            let headFontSize = 16
+            let cellPadding = 2.5
+            let spacing = 25
+
+            if (weightedRow > 15 || totalDivs >= 3) {
+                baseFontSize = 12; headFontSize = 13; cellPadding = 1.6; spacing = 20
+            }
+            if (weightedRow > 30 || totalDivs >= 4 || (isTeamEvent && totalDivs >= 3)) {
+                baseFontSize = 10; headFontSize = 11; cellPadding = 1.0; spacing = 10
+            }
+            
+            let currentY = 45
+            for (const divName of group.divs) {
+                const winners = divWinners[divName]
+                if (!winners || winners.length === 0) continue
+
+                if (currentY + 20 > 280) {
+                    doc.addPage()
+                    drawHeader()
+                    currentY = 45
+                }
+
+                doc.setFontSize(baseFontSize + 1); doc.setFont("helvetica", "bold")
+                doc.text(`Division: ${divName}`, 15, currentY)
+                currentY += (baseFontSize / 2) + 2
+
+                const body = winners.map(w => {
+                    let placeStr = String(w.place)
+                    const tieCount = winners.filter(x => x.place === w.place).length
+                    if (tieCount > 1) placeStr += " T"
+                    const scoreStr = isFS ? w.finalScore.toFixed(2) : w.finalScore.toFixed(0)
+                    return [placeStr, w.names, w.team, scoreStr]
+                })
+
+                autoTable(doc, {
+                    head: [['Place', 'Names', 'Team', 'Score']],
+                    body: body,
+                    startY: currentY,
+                    theme: 'grid',
+                    headStyles: { fillColor: [30, 41, 59], textColor: [255, 255, 255], fontStyle: 'bold', fontSize: headFontSize, halign: 'center' },
+                    styles: { fontSize: baseFontSize, cellPadding: cellPadding, halign: 'center', valign: 'middle', textColor: [0,0,0] },
+                    pageBreak: 'auto',
+                    margin: { top: 50, bottom: 15 },
+                    columnStyles: { 
+                        0: { cellWidth: 22, fontStyle: 'bold' }, 
+                        1: { halign: 'left', cellWidth: 80, cellPadding: { top: 2.5, right: 2.5, bottom: 2.5, left: 6 } },
+                        2: { halign: 'left' }, 
+                        3: { cellWidth: 35, fontStyle: 'bold' } 
+                    },
+                    didDrawCell: (data) => {
+                        if (data.section === 'body' && data.column.index === 1 && iconDataUrl) {
+                            const cell = data.cell
+                            const w = winners[data.row.index]
+                            if (!w) return
+
+                            const rawNames = [w.name1, w.name2, w.name3, w.name4].filter(n => n && n.trim())
+                            if (rawNames.length === 0) return
+
+                            const fontSizePt = cell.styles.fontSize
+                            const lineHeightFactor = doc.getLineHeightFactor()
+                            const lineHeightMm = fontSizePt * lineHeightFactor * 0.352778
+                            const iconSize = 3
+
+                            const totalRenderedLines = cell.text.length
+                            const contentHeight = totalRenderedLines * lineHeightMm
+                            const startY = cell.y + (cell.height - contentHeight) / 2
+
+                            let currentNameIndex = 0
+
+                            cell.text.forEach((line, i) => {
+                                if (currentNameIndex >= rawNames.length) return
+                                const cleanLine = String(line).trim()
+                                if (!cleanLine) return
+                                const targetName = String(rawNames[currentNameIndex]).trim()
+                                
+                                if (targetName.toLowerCase().startsWith(cleanLine.toLowerCase())) {
+                                    const lineMidY = startY + (i * lineHeightMm) + (lineHeightMm / 2)
+                                    const iconY = lineMidY - (iconSize / 2)
+                                    doc.addImage(iconDataUrl, 'PNG', cell.x + 2, iconY, iconSize, iconSize)
+                                    currentNameIndex++
+                                }
+                            })
+                        }
+                    },
+                    didDrawPage: () => { drawHeader() },
+                    didParseCell: (data) => {
+                        if (data.section === 'body' && data.column.index === 0) {
+                            const rowIdx = data.row.index
+                            const place = winners[rowIdx].place
+                            if (place === 1) data.cell.styles.fillColor = [255, 215, 0]
+                            else if (place === 2) data.cell.styles.fillColor = [192, 192, 192]
+                            else if (place >= 3 && place <= 5) data.cell.styles.fillColor = [205, 127, 50]
+                            if (place <= 5) data.cell.styles.fontStyle = 'bold'
+                        }
+                    }
+                })
+                currentY = doc.lastAutoTable.finalY + spacing
+            }
+        })
+        
+        // Footer on Every Page
+        const totalPages = doc.internal.getNumberOfPages()
+        for (let i = 1; i <= totalPages; i++) {
+            doc.setPage(i)
+            doc.setFontSize(8); doc.setTextColor(100); doc.setFont("helvetica", "normal")
+            doc.text(`Generated: ${currentTime.value} | Page ${i} of ${totalPages}`, 15, doc.internal.pageSize.getHeight() - 10)
+        }
+
+        const blob = doc.output('blob')
+        const url = URL.createObjectURL(blob)
+        window.open(url, '_blank')
+        setTimeout(() => URL.revokeObjectURL(url), 10000)
+
+    } catch (err) {
+        console.error(err)
+        alert("Export failed: " + err.message)
+    } finally {
+        isExporting.value = false
+        exportEvent.value = ''
     }
 }
 
