@@ -218,13 +218,39 @@ onMounted(async () => {
     })
 
     setupListeners()
+    window.addEventListener('keydown', handleKeyNav)
+    window.addEventListener('touchstart', handleTouchStart)
+    window.addEventListener('touchend', handleTouchEnd)
 })
 
 onUnmounted(() => {
     if (timerInterval) clearInterval(timerInterval)
     unsubs.forEach(u => u())
     if (systemUnsub) systemUnsub()
+    window.removeEventListener('keydown', handleKeyNav)
+    window.removeEventListener('touchstart', handleTouchStart)
+    window.removeEventListener('touchend', handleTouchEnd)
 })
+
+const handleKeyNav = (e) => {
+    if (activeMainView.value !== 'monitor') return 
+    if (e.key === 'ArrowRight') changeHeat(1)
+    if (e.key === 'ArrowLeft') changeHeat(-1)
+}
+
+let touchStartX = 0
+const handleTouchStart = (e) => {
+    if (activeMainView.value !== 'monitor') return
+    touchStartX = e.changedTouches[0].screenX
+}
+const handleTouchEnd = (e) => {
+    if (activeMainView.value !== 'monitor') return
+    const diff = e.changedTouches[0].screenX - touchStartX
+    if (Math.abs(diff) > 50) {
+        if (diff < 0) changeHeat(1) // Swipe Left (drag left) -> Next
+        else changeHeat(-1) // Swipe Right (drag right) -> Prev
+    }
+}
 
 const setupListeners = () => {
     unsubs.forEach(u => u())
