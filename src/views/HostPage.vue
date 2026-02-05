@@ -20,7 +20,6 @@
 
       <div class="system-status-container">
         <div class="time-display">{{ currentTime }}</div>
-        <div class="heat-badge" v-if="activeHeat">HEAT {{ activeHeat }}</div>
       </div>
     </header>
 
@@ -713,10 +712,33 @@ watch(activeHeat, setupListeners)
 .logo { height: 48px; }
 .brand h1 { font-size: 1.4rem; font-weight: 800; margin: 0; color: white; letter-spacing: -0.5px; }
 .badge-live { background: #ef4444; color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 700; }
-.nav-links { display: flex; gap: 0.5rem; background: #0f172a; padding: 4px; border-radius: 999px; }
-.nav-link { background: transparent; border: none; color: #94a3b8; padding: 0.5rem 1.25rem; font-weight: 600; cursor: pointer; border-radius: 999px; transition: 0.2s; display: flex; align-items: center; gap: 8px; text-decoration: none; }
-.nav-link:hover { color: white; background: rgba(255,255,255,0.05); }
-.nav-link.active { background: #facc15; color: #0f172a; box-shadow: 0 2px 10px rgba(250, 204, 21, 0.2); }
+.nav-links { display: flex; gap: 2rem; background: transparent; padding: 0; border-radius: 0; }
+.nav-link { 
+    background: transparent; 
+    border: none; 
+    border-bottom: 2px solid transparent; /* Tab Style */
+    color: #94a3b8; 
+    padding: 0.5rem 0; 
+    font-weight: 700; 
+    cursor: pointer; 
+    border-radius: 0; 
+    transition: 0.2s; 
+    display: flex; 
+    align-items: center; 
+    gap: 8px; 
+    text-decoration: none; 
+    font-size: 0.95rem;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+.nav-link:hover { color: white; background: transparent; }
+.nav-link.active { 
+    background: transparent; 
+    color: #facc15; 
+    border-bottom-color: #facc15; 
+    box-shadow: none; 
+    text-shadow: 0 0 20px rgba(250, 204, 21, 0.4);
+}
 .system-status-container { text-align: right; }
 .time-display { font-family: 'JetBrains Mono', monospace; font-size: 1.2rem; font-weight: 700; color: #facc15; }
 .heat-badge { color: #94a3b8; font-size: 0.8rem; font-weight: 600; letter-spacing: 1px; }
@@ -769,7 +791,7 @@ watch(activeHeat, setupListeners)
 
 /* CARD INTERIOR */
 .card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 0.5rem; /* Reduced margin */ }
-.st-num { font-size: 2.5rem; font-weight: 900; color: rgba(255,255,255,0.05); line-height: 0.8; position: absolute; right: 8px; top: 8px; pointer-events: none; }
+.st-num { font-size: 2.5rem; font-weight: 900; color: rgba(255,255,255,0.1); line-height: 0.8; position: absolute; right: 8px; top: 8px; pointer-events: none; }
 .st-status { 
     font-size: 0.7rem; font-weight: 800; padding: 3px 8px; border-radius: 4px; 
     letter-spacing: 0.5px; text-transform: uppercase; z-index: 2;
