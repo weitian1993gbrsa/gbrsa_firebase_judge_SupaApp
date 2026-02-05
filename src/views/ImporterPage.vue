@@ -6,13 +6,7 @@
           <h1>System Importer</h1>
         </div>
       </div>
-      <div class="system-status-container">
-        <div class="system-status">
-            <div class="pulse-dot"></div>
-            <span>Ready for Data</span>
-        </div>
-        <router-link to="/admin" class="admin-link">← Back to Admin</router-link>
-      </div>
+
     </header>
 
     <div class="panel">
@@ -74,9 +68,7 @@
         </div>
     </div>
     
-    <footer class="footer">
-        © 2026 GBRSA
-    </footer>
+
   </div>
 </template>
 
@@ -267,7 +259,48 @@ const uploadConfig = async () => {
 
 .footer { text-align: center; padding: 1.5rem; color: #94a3b8; font-size: 0.8rem; }
 
+.mb-4 { margin-bottom: 1rem; }
 .text-muted { color: #64748b; }
 .text-sm { font-size: 0.9rem; }
-.mb-4 { margin-bottom: 1rem; }
+
+/* RESPONSIVE LAYOUT */
+/* PC: Side-by-side layout for main importers */
+@media (min-width: 1024px) {
+    .panel {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        max-width: 1200px; /* Expand max width for grid */
+    }
+    .alert-box { margin-bottom: 0; height: 100%; display: flex; flex-direction: column; }
+    .drop-zone { flex: 1; display: flex; flex-direction: column; justify-content: center; } /* Fill height */
+    
+    /* Danger Zone spans full width */
+    .danger-box { grid-column: 1 / -1; margin-top: 8px; height: auto; }
+}
+
+/* TABLET: Reduced padding */
+@media (max-width: 1023px) {
+    .panel { padding: 32px; max-width: 800px; }
+}
+
+/* MOBILE: Stacked \u0026 Compact */
+@media (max-width: 640px) {
+    .header { padding: 0 16px; height: 56px; }
+    .brand h1 { font-size: 1.1rem; }
+    .system-status span { display: none; } /* Hide text on small mobile */
+    
+    .panel { padding: 16px; display: block; } /* Stacked */
+    .alert-box { padding: 20px; border-radius: 12px; margin-bottom: 16px; }
+    
+    .drop-zone { padding: 24px; margin-bottom: 1rem; }
+    .icon-cloud { font-size: 32px; }
+    .drop-text { font-size: 1rem; }
+    
+    .actions-row { padding: 1rem; }
+    .btn-group { flex-direction: column; gap: 8px; }
+    .btn { width: 100%; padding: 0.75rem; }
+    
+    .danger-box h2 { font-size: 1.25rem; }
+}
 </style>
