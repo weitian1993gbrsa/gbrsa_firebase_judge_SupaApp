@@ -169,7 +169,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue'
+import { ref, onMounted, onUnmounted, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db } from '../firebase'
 import { doc, getDoc, updateDoc, collection, setDoc, serverTimestamp, query, where, getDocs, limit, deleteDoc, onSnapshot } from 'firebase/firestore'
@@ -450,16 +450,14 @@ const goBack = () => {
     router.push({ path: '/station', query: params })
 }
 
-const handleTap = async () => {
+const handleTap = () => {
     if(isLocked.value || isTapLocked.value) return
     currentScore.value++
     
-    // Hapic Feedback (Immediate)
+    // Haptic Feedback (Immediate)
     if(navigator.vibrate) navigator.vibrate(15)
 
-    // Animation Trigger (Punchier RE-trigger)
-    isTouched.value = false
-    await nextTick()
+    // Animation Trigger (Instant re-trigger)
     isTouched.value = true
     setTimeout(() => { isTouched.value = false }, 80)
 }
@@ -595,7 +593,6 @@ const updateLiveScore = async (newScore) => {
 }
 
 // Watch Score Changes
-import { watch } from 'vue'
 watch(currentScore, (val) => {
     if (!isLocked.value) {
         updateLiveScore(val)
@@ -741,6 +738,7 @@ watch(currentScore, (val) => {
     .tap-zone {
         width: 100%;
         height: 100%;
+        min-height: 180px;
         background: rgba(255,255,255,0.7);
         backdrop-filter: blur(20px);
         border: 2px solid rgba(255,255,255,0.5);

@@ -2,30 +2,30 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { db } from '../firebase' // Import DB for verification
 import { doc, getDoc } from 'firebase/firestore' // Import Firestore methods
 
-import LoginView from '../views/LoginView.vue'
-import TesterView from '../views/TesterView.vue'
+import LoginPage from '../views/LoginPage.vue'
+import TesterPage from '../views/TesterPage.vue'
 
 const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     routes: [
-        { path: '/', name: 'home', component: LoginView },
+        { path: '/', name: 'home', component: LoginPage },
         { path: '/station', name: 'station', component: () => import('../views/StationView.vue') },
-        { path: '/judge/speed', name: 'judge-speed', component: () => import('../views/SpeedJudgeView.vue') },
-        { path: '/judge/freestyle/difficulty', name: 'judge-freestyle-difficulty', component: () => import('../views/FreestyleDifficultyView.vue') },
-        { path: '/judge/freestyle/technical', name: 'judge-freestyle-technical', component: () => import('../views/FreestyleTechnicalView.vue') },
-        { path: '/judge/freestyle/presentation', name: 'judge-freestyle-presentation', component: () => import('../views/FreestylePresentationView.vue') },
-        { path: '/judge/freestyle/re', name: 'judge-freestyle-re', component: () => import('../views/FreestyleReView.vue') },
+        { path: '/judge/speed', name: 'judge-speed', component: () => import('../views/SpeedJudgeForm.vue') },
+        { path: '/judge/freestyle/difficulty', name: 'judge-freestyle-difficulty', component: () => import('../views/F_DifficultyJudgeForm.vue') },
+        { path: '/judge/freestyle/technical', name: 'judge-freestyle-technical', component: () => import('../views/F_TechnicalJudgeForm.vue') },
+        { path: '/judge/freestyle/presentation', name: 'judge-freestyle-presentation', component: () => import('../views/F_PresentationJudgeForm.vue') },
+        { path: '/judge/freestyle/re', name: 'judge-freestyle-re', component: () => import('../views/F_RequiredElementsJudgeForm.vue') },
         { path: '/importer', name: 'importer', component: () => import('../views/ImporterView.vue') },
-        { path: '/admin', name: 'admin', component: () => import('../views/AdminView.vue') },
+        { path: '/admin', name: 'admin', component: () => import('../views/AdminPage.vue') },
         { path: '/admin/certificates', name: 'certificates', component: () => import('../views/CertificatesView.vue') },
-        { path: '/host', name: 'host', component: () => import('../views/HostView.vue') },
+        { path: '/host', name: 'host', component: () => import('../views/HostPage.vue') },
 
         // --- NEW KEY MANAGER ROUTE ---
         { path: '/keys', name: 'key-manager', component: () => import('../views/KeyManagerView.vue') },
 
         { path: '/practice', name: 'practice', component: () => import('../views/PracticeView.vue') },
 
-        { path: '/tester', name: 'tester', component: TesterView },
+        { path: '/tester', name: 'tester', component: TesterPage },
         { path: '/live', name: 'live-setup', component: () => import('../views/ScoreboardSetupView.vue') },
         { path: '/live/board', name: 'live-scoreboard', component: () => import('../views/LiveScoreboardView.vue') }
     ],
