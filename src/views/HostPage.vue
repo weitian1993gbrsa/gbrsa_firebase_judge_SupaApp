@@ -5,7 +5,6 @@
         <img class="logo" :src="COMPETITION_LOGO" alt="Logo">
         <div class="brand-text">
           <h1>{{ config.title }}</h1>
-          <span class="badge-live">LIVE MONITOR</span>
         </div>
       </div>
 
@@ -20,6 +19,7 @@
 
       <div class="system-status-container">
         <div class="time-display">{{ currentTime }}</div>
+        <div class="location-display">Kuala Lumpur, MY</div>
       </div>
     </header>
 
@@ -739,8 +739,9 @@ watch(activeHeat, setupListeners)
     box-shadow: none; 
     text-shadow: 0 0 20px rgba(250, 204, 21, 0.4);
 }
-.system-status-container { text-align: right; }
-.time-display { font-family: 'JetBrains Mono', monospace; font-size: 1.2rem; font-weight: 700; color: #facc15; }
+.system-status-container { text-align: right; display: flex; flex-direction: column; align-items: flex-end; }
+.time-display { font-family: 'JetBrains Mono', monospace; font-size: 1.2rem; font-weight: 700; color: #facc15; line-height: 1; }
+.location-display { color: #94a3b8; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px; margin-top: 4px; text-transform: uppercase; }
 .heat-badge { color: #94a3b8; font-size: 0.8rem; font-weight: 600; letter-spacing: 1px; }
 
 /* MONITOR PANEL */
@@ -750,11 +751,11 @@ watch(activeHeat, setupListeners)
 .floating-controls { 
     display: flex; justify-content: center; align-items: center; gap: 1rem; margin-bottom: 2rem;
     background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(12px); padding: 0.75rem 2.5rem; 
-    border-radius: 999px; border: 1px solid rgba(255,255,255,0.08); width: fit-content; margin-left: auto; margin-right: auto;
+    border-radius: 16px; border: 1px solid rgba(255,255,255,0.08); width: fit-content; margin-left: auto; margin-right: auto;
     flex-shrink: 0; box-shadow: 0 10px 30px -10px rgba(0,0,0,0.3);
 }
 .heat-info-group { display: flex; align-items: center; gap: 2rem; }
-.ctrl-btn { background: rgba(255,255,255,0.08); color: white; border: none; padding: 0.5rem 1.25rem; border-radius: 999px; cursor: pointer; font-weight: 700; transition: 0.2s; }
+.ctrl-btn { background: rgba(255,255,255,0.08); color: white; border: none; padding: 0.5rem 1.25rem; border-radius: 8px; cursor: pointer; font-weight: 700; transition: 0.2s; }
 .ctrl-btn:hover { background: white; color: black; transform: translateY(-1px); }
 .heat-selector, .heat-schedule { display: flex; flex-direction: column; align-items: center; }
 .lbl { font-size: 0.6rem; color: #94a3b8; font-weight: 700; text-transform: uppercase; margin-bottom: 2px; letter-spacing: 1px; }
