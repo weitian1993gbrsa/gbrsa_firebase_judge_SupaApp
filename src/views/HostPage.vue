@@ -855,7 +855,7 @@ watch(activeHeat, setupListeners)
 .event-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 1rem; }
 .event-card { background: #1e293b; border: 1px solid #334155; padding: 2rem; border-radius: 12px; display: flex; flex-direction: column; align-items: center; gap: 0.5rem; cursor: pointer; position: relative; overflow: hidden; }
 .event-card:hover { border-color: #facc15; transform: translateY(-2px); }
-.event-code { font-size: 1.5rem; font-weight: 800; color: #facc15; }
+.event-code { font-size: 1.2rem; font-weight: 800; color: #facc15; }
 .event-name { font-size: 0.9rem; color: #94a3b8; }
 
 .footer { height: 30px; background: #020617; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; color: #475569; gap: 8px; flex-shrink: 0; }
