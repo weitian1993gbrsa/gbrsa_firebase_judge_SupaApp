@@ -15,13 +15,13 @@ const router = createRouter({
         { path: '/judge/freestyle/technical', name: 'judge-freestyle-technical', component: () => import('../views/F_TechnicalJudgeForm.vue') },
         { path: '/judge/freestyle/presentation', name: 'judge-freestyle-presentation', component: () => import('../views/F_PresentationJudgeForm.vue') },
         { path: '/judge/freestyle/re', name: 'judge-freestyle-re', component: () => import('../views/F_RequiredElementsJudgeForm.vue') },
-        { path: '/importer', name: 'importer', component: () => import('../views/ImporterView.vue') },
+        { path: '/importer', name: 'importer', component: () => import('../views/ImporterPage.vue') },
         { path: '/admin', name: 'admin', component: () => import('../views/AdminPage.vue') },
         { path: '/admin/certificates', name: 'certificates', component: () => import('../views/CertificatesView.vue') },
         { path: '/host', name: 'host', component: () => import('../views/HostPage.vue') },
 
         // --- NEW KEY MANAGER ROUTE ---
-        { path: '/keys', name: 'key-manager', component: () => import('../views/KeyManagerView.vue') },
+        { path: '/keys', name: 'key-manager', component: () => import('../views/KeyManagerPage.vue') },
 
         { path: '/practice', name: 'practice', component: () => import('../views/PracticeView.vue') },
 
