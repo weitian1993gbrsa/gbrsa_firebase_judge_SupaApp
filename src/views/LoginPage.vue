@@ -132,8 +132,8 @@ const handleLogin = async (isSilent = false) => {
         if (!keySnap.exists()) throw new Error("Invalid Access Code")
         const data = keySnap.data()
         const role = data.role
-        // Allow super_admin to bypass lock
-        if (isLocked.value && role !== 'admin' && role !== 'importer' && role !== 'super_admin') {
+        // Allow super_admin, admin, importer, host to bypass lock
+        if (isLocked.value && role !== 'admin' && role !== 'importer' && role !== 'super_admin' && role !== 'host') {
             throw new Error("System is LOCKED by Host")
         }
         

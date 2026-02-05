@@ -113,6 +113,7 @@
             <select v-model="keyModal.role" class="form-select">
               <option value="judge">Judge (Station)</option>
               <option value="admin">Administrator</option>
+              <option value="host">Host (Floor MC)</option>
               <option value="super_admin">Super Admin</option>
               <option value="importer">Data Importer</option>
               <option value="tester">Tester</option>
@@ -195,13 +196,14 @@ let unsub = null
 
 // --- UTILS ---
 const formatRole = (r) => {
-  const map = { 'super_admin': 'Super Admin', 'live_board': 'Live Board', 'practice': 'Practice Mode' }
+  const map = { 'super_admin': 'Super Admin', 'live_board': 'Live Board', 'practice': 'Practice Mode', 'host': 'Host (MC)' }
   return map[r] || r.charAt(0).toUpperCase() + r.slice(1)
 }
 
 const getRoleClass = (r) => {
   if (r === 'judge') return 'role-judge'
   if (r === 'admin' || r === 'super_admin') return 'role-admin'
+  if (r === 'host') return 'role-host'
   if (r === 'live_board') return 'role-live'
   return 'role-gray'
 }
@@ -532,6 +534,7 @@ const onDrop = async (e, dropI) => {
 .role-judge { background: rgba(16, 185, 129, 0.15); color: #34d399; }
 .role-admin { background: rgba(239, 68, 68, 0.15); color: #f87171; }
 .role-live { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
+.role-host { background: rgba(251, 146, 60, 0.15); color: #fb923c; }
 .role-gray { background: rgba(148, 163, 184, 0.15); color: #cbd5e1; }
 
 .info-tags { display: flex; gap: 6px; flex-wrap: wrap; }
