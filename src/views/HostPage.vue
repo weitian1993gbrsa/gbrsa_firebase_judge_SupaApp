@@ -93,27 +93,45 @@
       <div v-if="selectedStation !== null" class="modal-overlay" @click.self="closeModal">
         <div class="modal-content">
           <div class="modal-header">
-            <h2>Station {{ selectedStation }} Control</h2>
+            <h2>Station {{ selectedStation }}</h2>
             <button class="close-btn" @click="closeModal">✕</button>
           </div>
           <div class="modal-body" v-if="getParticipantAtStation(selectedStation)">
-            <div class="modal-hero">
+            <div class="modal-info-section">
+                <div class="modal-label">PARTICIPANT</div>
                 <div class="modal-names-stack">
-                    <div v-for="(name, idx) in getNamesList(getParticipantAtStation(selectedStation))" :key="idx" class="modal-name-row" :style="{ fontSize: getDynamicFontSize(name) }">
+                    <div 
+                        v-for="(name, idx) in getNamesList(getParticipantAtStation(selectedStation))" 
+                        :key="idx" 
+                        class="modal-name-row"
+                        :style="getModalNameStyle(name, getNamesList(getParticipantAtStation(selectedStation)).length)"
+                    >
                         {{ name }}
                     </div>
                 </div>
-                
+            </div>
+            
+            <div class="modal-info-section">
+                <div class="modal-label">TEAM</div>
                 <div class="modal-team">{{ getParticipantAtStation(selectedStation).team }}</div>
             </div>
-            <div class="modal-actions">
-              <button class="act-btn scratch" @click="updateStationStatus('scratch')">SCRATCH</button>
-              <button class="act-btn dq" @click="updateStationStatus('dq')">DQ</button>
-              <button class="act-btn reset" @click="updateStationStatus('pending')">RESET STATUS</button>
+            
+            <div class="modal-info-grid">
+                <div class="modal-info-section">
+                    <div class="modal-label">ENTRY CODE</div>
+                    <div class="modal-value">{{ getParticipantAtStation(selectedStation).entry_code }}</div>
+                </div>
+                <div class="modal-info-section">
+                    <div class="modal-label">DIVISION</div>
+                    <div class="modal-value">{{ getParticipantAtStation(selectedStation).division }}</div>
+                </div>
             </div>
           </div>
           <div class="modal-body" v-else>
-            <p>No participant assigned to Station {{ selectedStation }}.</p>
+            <div class="modal-empty">
+                <div class="empty-icon">EMPTY</div>
+                <p>No participant assigned to this station</p>
+            </div>
           </div>
         </div>
       </div>
@@ -316,6 +334,32 @@ const getDynamicFontSize = (name) => {
     if (len > 20) return '0.95rem'
     if (len > 15) return '1.1rem'
     return '1.3rem'
+}
+
+const getModalNameStyle = (name, count) => {
+    let size = 1.8 // Base size for 1 person
+    
+    // 1. Adjust based on count
+    if (count > 1) size = 1.1
+
+    // 2. Adjust based on length
+    const len = name ? name.length : 0
+    
+    if (count === 1) {
+        // More aggressive scaling for single names
+        if (len > 15) size = 1.5
+        if (len > 25) size = 1.2
+        if (len > 35) size = 1.0
+        if (len > 45) size = 0.8
+    } else {
+        // Existing logic for multiple names
+        if (len > 20) size *= 0.85
+        if (len > 30) size *= 0.85
+    }
+
+    return { 
+        fontSize: `${size}rem` 
+    }
 }
 
 const hasJudgeResult = (station, type) => {
@@ -863,18 +907,126 @@ watch(activeHeat, setupListeners)
 
 /* MODAL & FOOTER */
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 50; display: flex; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
-.modal-content { background: #1e293b; width: 400px; padding: 2rem; border-radius: 16px; border: 1px solid #475569; text-align: center; }
-.modal-header { display: flex; justify-content: space-between; margin-bottom: 1.5rem; color: #94a3b8; }
-/* MODAL HERO NEW STYLES */
-.modal-names-stack { display: flex; flex-direction: column; gap: 6px; margin: 0 0 1rem 0; align-items: flex-start; width: 100%; overflow: hidden; }
-.modal-name-row { font-size: 1.1rem; font-weight: 700; color: white; line-height: 1.2; letter-spacing: 0.5px; white-space: nowrap; max-width: 100%; text-overflow: ellipsis; overflow: hidden; text-align: left; }
-.modal-team { color: #94a3b8; font-size: 0.9rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; text-align: left; width: 100%; }
-.modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-top: 2rem; }
-.act-btn { padding: 1rem; border-radius: 8px; border: none; font-weight: 800; cursor: pointer; transition: 0.2s; }
-.act-btn.scratch { background: #475569; color: white; }
-.act-btn.dq { background: #ef4444; color: white; }
-.act-btn.reset { grid-column: span 2; background: #3b82f6; color: white; }
-.close-btn { background: none; border: none; color: white; font-size: 1.2rem; cursor: pointer; }
+.modal-content { 
+    background: linear-gradient(145deg, #1e293b, #0f172a); 
+    width: 500px; 
+    padding: 2.5rem; 
+    border-radius: 20px; 
+    border: 1px solid rgba(250, 204, 21, 0.2); 
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+.modal-header { 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+    margin-bottom: 2rem; 
+    padding-bottom: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.modal-header h2 {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: #facc15;
+    margin: 0;
+    letter-spacing: 0.5px;
+}
+.close-btn { 
+    background: rgba(255, 255, 255, 0.05); 
+    border: 1px solid rgba(255, 255, 255, 0.1); 
+    color: white; 
+    font-size: 1.2rem; 
+    cursor: pointer; 
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: 0.2s;
+}
+.close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.05);
+}
+
+.modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.modal-info-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.modal-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: #94a3b8;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+}
+
+.modal-names-stack { 
+    display: flex; 
+    flex-direction: column; 
+    gap: 8px;
+}
+
+.modal-name-row { 
+    font-weight: 800; 
+    color: white; 
+    line-height: 1.25; 
+    letter-spacing: 0.5px;
+    text-shadow: 0 2px 10px rgba(250, 204, 21, 0.2);
+    
+    /* PREVENT WRAP */
+    white-space: nowrap; 
+    overflow: hidden; 
+    text-overflow: ellipsis; 
+    max-width: 100%;
+}
+
+.modal-team { 
+    font-size: 1.2rem; 
+    font-weight: 600; 
+    color: #cbd5e1;
+    letter-spacing: 0.5px;
+}
+
+.modal-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: white;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+.modal-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+.modal-empty {
+    text-align: center;
+    padding: 3rem 0;
+    opacity: 0.5;
+}
+
+.modal-empty .empty-icon {
+    font-size: 2rem;
+    font-weight: 800;
+    color: #94a3b8;
+    letter-spacing: 4px;
+    margin-bottom: 1rem;
+}
+
+.modal-empty p {
+    color: #64748b;
+    font-size: 0.9rem;
+}
 
 .results-panel { padding: 2rem; }
 .results-header { text-align: center; margin-bottom: 2rem; }
