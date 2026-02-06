@@ -239,12 +239,8 @@ const dynamicGridStyle = computed(() => {
 
     const rows = Math.ceil(n / cols)
     return {
-        display: 'grid',
-        gap: '1rem',
-        gridTemplateColumns: `repeat(${cols}, 1fr)`,
-        gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
-        flex: 1,
-        minHeight: 0
+        '--grid-cols': cols,
+        '--grid-rows': rows
     }
 })
 
@@ -363,15 +359,7 @@ const isFreestyle = (p) => FREESTYLE_EVENTS.includes(p?.event)
 const getParticipantAtStation = (s) => participants.value.find(p => Number(p.station) === s)
 const getShortDiv = (div) => div ? div.replace('Female','F').replace('Male','M').replace('Junior','Jr').replace('Senior','Sr') : ''
 
-// Dynamic naming calculation
-const getDynamicFontSize = (name) => {
-    if (!name) return '1.2rem'
-    const len = name.length
-    if (len > 30) return '0.8rem'
-    if (len > 20) return '0.95rem'
-    if (len > 15) return '1.1rem'
-    return '1.3rem'
-}
+// getDynamicFontSize removed (unused)
 
 const getModalNameStyle = (name, count) => {
     let size = 1.8 // Base size for 1 person
@@ -468,19 +456,7 @@ const changeHeat = (d) => {
     const idx = distinctHeats.value.indexOf(Number(activeHeat.value))
     if (idx + d >= 0 && idx + d < distinctHeats.value.length) activeHeat.value = distinctHeats.value[idx + d]
 }
-const updateStationStatus = async (status) => {
-    if (!selectedStation.value) return
-    const p = getParticipantAtStation(selectedStation.value)
-    if (!p) return
-    try {
-        await updateDoc(doc(db, 'competition', String(selectedStation.value), 'entries', p.id), { status })
-        await setDoc(doc(db, 'live_scores', String(selectedStation.value)), {
-            station: Number(selectedStation.value),
-            score: 0, status, updated_at: serverTimestamp()
-        })
-        closeModal()
-    } catch(e) { alert(e.message) }
-}
+// updateStationStatus removed (unused)
 
 const calculateScore = (row) => {
     const D = Number(row.difficulty_score) || 0
@@ -813,7 +789,7 @@ watch(activeHeat, setupListeners)
 /* --- DEEP SPACE COMMAND THEME --- */
 .command-layout { 
     background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
-    min-height: 100vh; 
+    height: 100vh; 
     color: #f8fafc; 
     font-family: 'Outfit', sans-serif; 
     display: flex; 
@@ -900,10 +876,27 @@ watch(activeHeat, setupListeners)
 }
 .clock-icon { color: #facc15; }
 
-/* MONITOR PANEL */
-.monitor-panel { padding: 1.5rem 2rem; flex: 1; display: flex; flex-direction: column; overflow-y: auto; overflow-x: hidden; position: relative; }
-
 /* CONTROL ISLAND */
+/* MONITOR PANEL */
+.monitor-panel { padding: 1.5rem 2rem; flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+
+.dashboard-grid {
+    display: grid;
+    gap: 1rem;
+    flex: 1;
+    min-height: 0;
+    grid-template-columns: 1fr; /* Mobile Default */
+}
+@media (min-width: 640px) {
+    .dashboard-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (min-width: 1024px) {
+    .dashboard-grid { 
+        grid-template-columns: repeat(var(--grid-cols, 4), 1fr); 
+        grid-template-rows: repeat(var(--grid-rows, 3), minmax(0, 1fr));
+    }
+}
+
 .control-island {
     position: sticky;
     top: 0;
