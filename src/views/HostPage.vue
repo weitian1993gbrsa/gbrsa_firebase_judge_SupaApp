@@ -1130,7 +1130,14 @@ watch(activeHeat, setupListeners)
 .hud-val-group { display: flex; flex-direction: column; align-items: center; }
 
 /* Labels & Values */
-.hud-label { font-size: 0.6rem; font-weight: 700; color: #64748b; letter-spacing: 1.5px; margin-bottom: 2px; text-transform: uppercase; }
+.hud-label { 
+    font-size: 0.75rem; 
+    font-weight: 800; 
+    color: #cbd5e1; 
+    letter-spacing: 1.5px; 
+    margin-bottom: 4px; 
+    text-transform: uppercase; 
+}
 
 .hud-select { 
     background: transparent; border: none; outline: none; 
