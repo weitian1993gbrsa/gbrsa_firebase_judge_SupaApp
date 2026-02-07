@@ -156,12 +156,12 @@
     </div>
 
     <div v-if="activeMainView === 'results'" class="panel results-panel">
-       <div class="results-header">
+       <div class="results-header" v-if="!selectedResultsEvent">
            <h2>Broadcast Announcements</h2>
            <p>Select an event to generate the official Winners List</p>
        </div>
-       <div class="event-tile-grid">
-          <button v-for="e in resultsEvents" :key="e" @click="generateAnnouncementPreview(e)" class="event-tile">
+       <div v-if="!selectedResultsEvent" class="event-tile-grid">
+          <button v-for="e in resultsEvents" :key="e" @click="openEventResults(e)" class="event-tile">
             <div class="tile-bg-icon">
                 <font-awesome-icon :icon="getEventIcon(e)" />
             </div>
@@ -174,10 +174,51 @@
                     <span class="event-name">{{ getEventLabel(e) }}</span>
                 </div>
             </div>
-            <div v-if="isExporting && exportEvent === e" class="loading-overlay">
-                <div class="spinner"></div>
-            </div>
           </button>
+       </div>
+
+       <!-- NEW: WINNERS DETAIL VIEW -->
+       <div v-if="selectedResultsEvent && winnersData" class="winners-view">
+            <div class="winners-toolbar">
+                <button class="back-btn" @click="closeEventResults">
+                    <font-awesome-icon :icon="faChevronLeft" /> BACK
+                </button>
+                <div class="winners-title">
+                    <font-awesome-icon :icon="getEventIcon(selectedResultsEvent)" class="title-icon"/>
+                    <h2>{{ getEventLabel(selectedResultsEvent) }}</h2>
+                </div>
+                <button class="export-btn" @click="generateAnnouncementPreview(selectedResultsEvent)" :disabled="isExporting">
+                    {{ isExporting ? 'GENERATING...' : 'EXPORT PDF' }}
+                </button>
+            </div>
+
+            <div class="winners-content-scroll">
+                <div v-for="group in winnersData.groups" :key="group.name" class="winners-group">
+                    <div class="group-header">{{ group.name }} DIVISIONS</div>
+                    <div class="group-grid">
+                        <div v-for="div in group.divs" :key="div.name" class="division-card">
+                            <div class="div-header">{{ div.name }}</div>
+                            <div class="rank-list">
+                                <template v-if="div.winners.length > 0">
+                                    <div v-for="w in div.winners" :key="w.entry_code" class="rank-row" :class="'rank-'+w.place">
+                                        <div class="rank-badge">{{ w.place }}</div>
+                                        <div class="rank-info">
+                                            <div class="rank-names">
+                                                <span v-for="(n,i) in w.namesList" :key="i">{{ n }}<span v-if="i < w.namesList.length-1">, </span></span>
+                                            </div>
+                                            <div class="rank-team">{{ w.team }}</div>
+                                        </div>
+                                        <div class="rank-score">
+                                            {{ winnersData.isFreestyle ? w.finalScore.toFixed(2) : w.finalScore.toFixed(0) }}
+                                        </div>
+                                    </div>
+                                </template>
+                                <div v-else class="no-results">No Results Yet</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
        </div>
     </div>
 
@@ -293,22 +334,43 @@ onUnmounted(() => {
 })
 
 const handleKeyNav = (e) => {
-    if (activeMainView.value !== 'monitor') return 
-    if (e.key === 'ArrowRight') changeHeat(1)
-    if (e.key === 'ArrowLeft') changeHeat(-1)
+    if (activeMainView.value === 'monitor') {
+        if (e.key === 'ArrowRight') changeHeat(1)
+        if (e.key === 'ArrowLeft') changeHeat(-1)
+    } else if (activeMainView.value === 'results' && selectedResultsEvent.value) {
+        if (e.key === 'ArrowRight') changeResultsEvent(1)
+        if (e.key === 'ArrowLeft') changeResultsEvent(-1)
+    }
 }
 
 let touchStartX = 0
 const handleTouchStart = (e) => {
-    if (activeMainView.value !== 'monitor') return
+    // Works for both views now
     touchStartX = e.changedTouches[0].screenX
 }
 const handleTouchEnd = (e) => {
-    if (activeMainView.value !== 'monitor') return
     const diff = e.changedTouches[0].screenX - touchStartX
     if (Math.abs(diff) > 50) {
-        if (diff < 0) changeHeat(1) // Swipe Left (drag left) -> Next
-        else changeHeat(-1) // Swipe Right (drag right) -> Prev
+        if (activeMainView.value === 'monitor') {
+            if (diff < 0) changeHeat(1) // Swipe Left -> Next
+            else changeHeat(-1) // Swipe Right -> Prev
+        } else if (activeMainView.value === 'results' && selectedResultsEvent.value) {
+            if (diff < 0) changeResultsEvent(1) // Swipe Left -> Next Event
+            else changeResultsEvent(-1) // Swipe Right -> Prev Event
+        }
+    }
+}
+
+const changeResultsEvent = (direction) => {
+    const list = resultsEvents.value
+    if (!list || list.length === 0) return
+    const currentIndex = list.indexOf(selectedResultsEvent.value)
+    if (currentIndex === -1) return
+
+    let newIndex = currentIndex + direction
+    // Bound check or wrap around? Let's stop at edges like heats
+    if (newIndex >= 0 && newIndex < list.length) {
+        openEventResults(list[newIndex])
     }
 }
 
@@ -480,6 +542,131 @@ const calculateScore = (row) => {
     const M = Math.max(0, 1 - (m + b + v));
     const R = D * (1 + P) * Q * M
     return Math.trunc(R * 100) / 100
+}
+
+const selectedResultsEvent = ref(null)
+const winnersData = ref(null)
+
+const getWinnersForEvent = (eventName) => {
+    const isFS = FREESTYLE_EVENTS.includes(eventName)
+    const entries = allParticipantsMeta.value.filter(p => p.event === eventName)
+    
+    if (entries.length === 0) return null
+
+    // 1. Group by Division
+    const divWinners = {}
+    
+    // Sort divisions logic (copied from distinctDivisions but local to this event's divs if needed, 
+    // but better to use the global distinctDivisions to ensure order)
+    // We'll iterate distinctDivisions and check if they exist in this event
+    
+    for (const divName of distinctDivisions.value) {
+        const divData = entries.filter(p => p.division === divName)
+        if (divData.length === 0) continue
+
+        // 2. Aggregate Results
+        const processed = divData.map(p => {
+            const row = { 
+                ...p, 
+                // names: [p.name1, p.name2, p.name3, p.name4].filter(n=>n).join('\n'), // Keep array for UI
+                namesList: [p.name1, p.name2, p.name3, p.name4].filter(n => n && n.trim()),
+                finalScore: 0,
+                hasResult: false,
+                breakdown: {} // For detailed view
+            }
+            
+            if (isFS) {
+                const res = resultsFreestyle.value.filter(r => String(r.entry_code) === String(p.entry_code))
+                if (res.length > 0) {
+                    const merged = { diff: 0, pres: 0, re: 0, miss: 0, break: 0, space: 0 }
+                    const admin = res.find(r => r.judge_type === 'admin')
+                    if (admin) {
+                        merged.diff = admin.difficulty_score || 0
+                        merged.pres = admin.presentation_score || 0
+                        merged.re = admin.re_score || 0
+                        merged.miss = admin.misses || 0
+                        merged.break = admin.breaks || 0
+                        merged.space = admin.space_violation || 0
+                    } else {
+                        res.forEach(r => {
+                            if (r.judge_type === 'difficulty') merged.diff = r.score || 0
+                            if (r.judge_type === 'presentation') merged.pres = r.score || 0
+                            if (r.judge_type === 're') merged.re = 12 - (r.score || 0)
+                            if (r.judge_type === 'technical') {
+                                merged.miss = r.misses || 0
+                                merged.break = r.breaks || 0
+                                merged.space = r.space_violation || 0
+                            }
+                        })
+                    }
+                    row.finalScore = calculateScore({
+                        difficulty_score: merged.diff,
+                        presentation_score: merged.pres,
+                        re_score: merged.re,
+                        misses: merged.miss,
+                        breaks: merged.break,
+                        space_violation: merged.space
+                    })
+                    row.hasResult = true
+                    row.breakdown = merged
+                }
+            } else {
+                const res = resultsSpeed.value.find(r => String(r.entry_code) === String(p.entry_code))
+                if (res) {
+                    row.finalScore = Number(res.score) || 0
+                    if (res.false_start) row.finalScore -= 10
+                    row.hasResult = true
+                    row.breakdown = { score: res.score, deduction: res.false_start ? 10 : 0 }
+                }
+            }
+            return row
+        })
+
+        const toRank = processed.filter(r => r.hasResult && !['dq', 'scratch'].includes(String(r.status || '').toLowerCase()))
+        toRank.sort((a,b) => b.finalScore - a.finalScore)
+
+        let lastScore = null
+        let lastPlace = 0
+        toRank.forEach((row, index) => {
+            if (row.finalScore !== lastScore) lastPlace = index + 1
+            row.place = lastPlace
+            lastScore = row.finalScore
+        })
+        // Return TOP 5 for now
+        divWinners[divName] = toRank.filter(r => r.place <= 5)
+    }
+
+    // Group Divisions by Gender/Category for display
+    const groups = [
+        { name: 'FEMALE', divs: [] },
+        { name: 'MALE', divs: [] },
+        { name: 'OPEN', divs: [] } // For mixed or open
+    ]
+    
+    // We only want groups that have data
+    const activeDivisions = Object.keys(divWinners)
+    
+    activeDivisions.forEach(d => {
+        const u = d.toUpperCase()
+        if (u.includes('FEMALE') || u.includes('GIRL')) groups[0].divs.push({ name: d, winners: divWinners[d] })
+        else if (u.includes('MALE') || u.includes('BOY')) groups[1].divs.push({ name: d, winners: divWinners[d] })
+        else groups[2].divs.push({ name: d, winners: divWinners[d] })
+    })
+
+    return { 
+        eventName, 
+        isFreestyle: isFS,
+        groups: groups.filter(g => g.divs.length > 0)
+    }
+}
+
+const openEventResults = (eventName) => {
+    selectedResultsEvent.value = eventName
+    winnersData.value = getWinnersForEvent(eventName)
+}
+const closeEventResults = () => {
+    selectedResultsEvent.value = null
+    winnersData.value = null
 }
 
 const generateAnnouncementPreview = async (eventName) => {
@@ -1037,7 +1224,8 @@ watch(activeHeat, setupListeners)
 .matrix-dot.active { background: #10b981; color: #020617; box-shadow: 0 0 10px rgba(16, 185, 129, 0.4); }
 
 /* RESULTS PANEL (Tiles) */
-.results-panel { padding: 3rem 4rem; display: flex; flex-direction: column; align-items: center; }
+/* RESULTS PANEL (Tiles) */
+.results-panel { padding: 2rem; display: flex; flex-direction: column; align-items: center; }
 .results-header { text-align: center; margin-bottom: 3rem; }
 .results-header h2 { font-size: 2.5rem; font-weight: 800; background: linear-gradient(to right, #fff, #94a3b8); background-clip: text; -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin: 0 0 0.5rem 0; }
 .results-header p { color: #64748b; font-size: 1.1rem; }
@@ -1245,5 +1433,162 @@ watch(activeHeat, setupListeners)
 @media (max-width: 1024px) {
     .hud-title { display: none; }
     .results-panel { padding: 2rem; }
+}
+
+/* WINNERS VIEW */
+.winners-view {
+    width: 100%;
+    max-width: 1800px; /* Increased from 1400px */
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 120px); /* Subtract header/footer space */
+    overflow: hidden;
+    gap: 1.5rem;
+}
+
+.winners-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: rgba(15, 23, 42, 0.6);
+    backdrop-filter: blur(12px);
+    padding: 1rem 2rem;
+    border-radius: 16px;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+.winners-title {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+.title-icon { font-size: 1.5rem; color: #facc15; }
+.winners-title h2 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin: 0;
+    color: white;
+    letter-spacing: 1px;
+}
+
+.back-btn, .export-btn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: #94a3b8;
+    padding: 0.8rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+}
+.back-btn:hover { background: rgba(255,255,255,0.1); color: white; transform: translateX(-2px); }
+.export-btn:hover { background: #facc15; color: #0f172a; border-color: #facc15; transform: translateY(-2px); }
+.export-btn:disabled { opacity: 0.5; cursor: wait; }
+
+.winners-content-scroll {
+    flex: 1;
+    min-height: 0; /* Crucial for nested flex scrolling */
+    overflow-y: auto;
+    padding-right: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3rem;
+    padding-bottom: 2rem;
+}
+
+/* Custom Scrollbar */
+.winners-content-scroll::-webkit-scrollbar { width: 8px; }
+.winners-content-scroll::-webkit-scrollbar-track { background: rgba(255,255,255,0.02); border-radius: 4px; }
+.winners-content-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+.winners-content-scroll::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
+.winners-group { display: flex; flex-direction: column; gap: 1.5rem; }
+
+.group-header {
+    font-size: 1.2rem;
+    font-weight: 800;
+    color: #64748b;
+    letter-spacing: 2px;
+    border-bottom: 2px solid rgba(255,255,255,0.05);
+    padding-bottom: 0.5rem;
+}
+
+.group-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 1.5rem;
+}
+
+.division-card {
+    background: rgba(30, 41, 59, 0.4);
+    border: 1px solid rgba(255,255,255,0.03);
+    border-radius: 16px;
+    overflow: hidden;
+}
+
+.div-header {
+    background: rgba(0,0,0,0.2);
+    padding: 1rem;
+    font-weight: 700;
+    color: #facc15;
+    text-align: center;
+    letter-spacing: 1px;
+    font-size: 0.9rem;
+}
+
+.rank-list { padding: 1rem; display: flex; flex-direction: column; gap: 0.5rem; }
+
+.rank-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem;
+    border-radius: 8px;
+    background: rgba(255,255,255,0.02);
+    transition: 0.2s;
+}
+.rank-row:hover { background: rgba(255,255,255,0.05); }
+
+/* RANK BADGES */
+.rank-badge {
+    width: 32px; height: 32px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 800;
+    font-size: 1rem;
+    color: white;
+    background: #334155;
+    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+}
+
+.rank-1 .rank-badge { background: linear-gradient(135deg, #facc15 0%, #ca8a04 100%); color: #422006; box-shadow: 0 0 15px rgba(250, 204, 21, 0.3); }
+.rank-2 .rank-badge { background: linear-gradient(135deg, #e2e8f0 0%, #94a3b8 100%); color: #0f172a; }
+.rank-3 .rank-badge { background: linear-gradient(135deg, #fb923c 0%, #c2410c 100%); color: #431407; }
+
+.rank-info { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.rank-names { 
+    font-weight: 700; 
+    color: white; 
+    white-space: normal; /* Allow wrapping */
+    line-height: 1.2;
+}
+.rank-team { font-size: 0.8rem; color: #94a3b8; }
+
+.rank-score {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 800;
+    font-size: 1.2rem;
+    color: #facc15;
+}
+
+.no-results {
+    text-align: center;
+    padding: 2rem;
+    color: #64748b;
+    font-style: italic;
 }
 </style>
