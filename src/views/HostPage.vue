@@ -4,7 +4,6 @@
       <div class="hud-left">
         <img class="hud-logo" :src="COMPETITION_LOGO" alt="Logo">
         <div class="hud-title">
-           <span class="hud-sub">COMMAND CENTER</span>
            <h1>{{ config.title }}</h1>
         </div>
       </div>
@@ -34,30 +33,34 @@
 
     <div v-if="activeMainView === 'monitor'" class="panel monitor-panel">
       
-      <div class="control-island">
-        <button @click="changeHeat(-1)" class="island-btn">
-            <font-awesome-icon :icon="faChevronLeft" />
-        </button>
-        
-        <div class="island-display">
-            <div class="island-group">
-                <span class="island-label">HEAT</span>
-                <select v-model="activeHeat" class="island-select">
+      <div class="control-island hud-bar">
+        <!-- HEAT BLOCK -->
+        <div class="hud-block heat-block">
+            <button @click="changeHeat(-1)" class="hud-btn mini">
+                <font-awesome-icon :icon="faChevronLeft" />
+            </button>
+            <div class="hud-val-group">
+                <span class="hud-label">HEAT</span>
+                <select v-model="activeHeat" class="hud-select">
                     <option v-for="h in distinctHeats" :key="h" :value="h">{{ h }}</option>
                 </select>
             </div>
-            
-            <div class="island-divider"></div>
-
-            <div class="island-group" v-if="currentHeatTime">
-                <span class="island-label">START</span>
-                <div class="island-value">{{ currentHeatTime }}</div>
-            </div>
+            <button @click="changeHeat(1)" class="hud-btn mini">
+                <font-awesome-icon :icon="faChevronRight" />
+            </button>
         </div>
 
-        <button @click="changeHeat(1)" class="island-btn">
-            <font-awesome-icon :icon="faChevronRight" />
-        </button>
+        <!-- EVENT BLOCK -->
+        <div class="hud-block event-block" v-if="currentEventName">
+             <span class="hud-label">EVENT</span>
+             <div class="hud-value text-accent">{{ currentEventName }}</div>
+        </div>
+
+        <!-- TIME BLOCK -->
+        <div class="hud-block time-block" v-if="currentHeatTime">
+             <span class="hud-label">START</span>
+             <div class="hud-value text-cyan">{{ currentHeatTime }}</div>
+        </div>
       </div>
 
       <div class="dashboard-grid" :style="dynamicGridStyle">
@@ -245,6 +248,12 @@ const dynamicGridStyle = computed(() => {
 })
 
 // --- TIME EXTRACTION ---
+const currentEventName = computed(() => {
+    if (!participants.value || participants.value.length === 0) return null
+    const p = participants.value[0]
+    return p.event || p.Event
+})
+
 const currentHeatTime = computed(() => {
     if (!participants.value || participants.value.length === 0) return null
     const p = participants.value[0]
@@ -407,8 +416,8 @@ const getStationStatusText = (s) => {
     const ls = liveScoresMap.value[String(s)]
     if (ls && ls.status) {
         const lst = String(ls.status).toLowerCase()
-        if (lst === 'dq') return 'DISQUALIFIED'
-        if (lst === 'scratch') return 'SCRATCH'
+        // Only keep ephemeral statuses here if needed, or score updates.
+        // DQ/SCRATCH should come from p.status (Entries) to ensure Heat scope.
         if (lst === 'rejump') return 'RE-JUMP'
     }
 
@@ -897,38 +906,59 @@ watch(activeHeat, setupListeners)
     }
 }
 
-.control-island {
-    position: sticky;
-    top: 0;
-    z-index: 10;
+/* HUD BAR (New Control Island) */
+.hud-bar {
+    position: sticky; top: 0; z-index: 10;
     margin: 0 auto 2rem auto;
-    background: rgba(15, 23, 42, 0.8);
-    backdrop-filter: blur(20px);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 24px;
-    padding: 0.5rem 1rem;
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
-    box-shadow: 0 10px 30px -10px rgba(0,0,0,0.5);
+    display: flex; align-items: stretch; justify-content: center;
+    gap: 1rem;
+    padding: 0 1rem;
+    pointer-events: none; /* Let clicks pass through gaps */
 }
-.island-btn {
-    width: 40px; height: 40px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.05);
-    border: 1px solid rgba(255,255,255,0.05);
-    color: white;
+.hud-bar > * { pointer-events: auto; } /* Re-enable clicks on blocks */
+
+.hud-block {
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 0.5rem 1.2rem;
     display: flex; align-items: center; justify-content: center;
-    cursor: pointer;
-    transition: 0.2s;
+    flex-direction: column;
+    min-width: 100px;
+    box-shadow: 0 4px 15px -2px rgba(0,0,0,0.3);
+    transition: all 0.2s ease;
 }
-.island-btn:hover { background: white; color: black; transform: scale(1.1); }
-.island-display { display: flex; align-items: center; gap: 1.5rem; }
-.island-group { display: flex; flex-direction: column; align-items: center; }
-.island-label { font-size: 0.55rem; color: #94a3b8; font-weight: 700; letter-spacing: 1px; margin-bottom: 2px; }
-.island-select { background: transparent; border: none; color: #facc15; font-size: 1.4rem; font-weight: 800; cursor: pointer; text-align: center; font-family: 'JetBrains Mono', monospace; outline: none; }
-.island-divider { width: 1px; height: 30px; background: rgba(255,255,255,0.1); }
-.island-value { font-size: 1.4rem; font-weight: 800; color: #38bdf8; font-family: 'JetBrains Mono', monospace; text-shadow: 0 0 15px rgba(56, 189, 248, 0.4); }
+.hud-block:hover { border-color: rgba(255,255,255,0.2); transform: translateY(-2px); }
+
+/* Heat Block Specifics */
+.heat-block { flex-direction: row; gap: 1rem; padding: 0.4rem 1rem; border-color: rgba(250, 204, 21, 0.15); }
+.hud-btn {
+    width: 32px; height: 32px; border-radius: 8px; border: none;
+    background: rgba(255,255,255,0.05); color: #94a3b8;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+}
+.hud-btn:hover { background: #facc15; color: #000; }
+.hud-val-group { display: flex; flex-direction: column; align-items: center; }
+
+/* Labels & Values */
+.hud-label { font-size: 0.6rem; font-weight: 700; color: #64748b; letter-spacing: 1.5px; margin-bottom: 2px; text-transform: uppercase; }
+
+.hud-select { 
+    background: transparent; border: none; outline: none; 
+    font-family: 'JetBrains Mono', monospace; font-size: 1.5rem; font-weight: 800; color: #fff; 
+    cursor: pointer; text-align: center; 
+}
+.hud-value {
+    font-family: 'JetBrains Mono', monospace; font-size: 1.4rem; font-weight: 800; color: white;
+}
+.text-accent { color: #facc15 !important; }
+.text-cyan { color: #22d3ee !important; }
+
+/* Event & Time Specifics */
+.event-block { min-width: 140px; border-left: 3px solid rgba(250, 204, 21, 0.5); }
+.time-block { min-width: 110px; border-left: 3px solid rgba(34, 211, 238, 0.5); }
 
 /* GLASS MODULES (Grid) */
 .glass-module {
