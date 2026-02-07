@@ -991,7 +991,11 @@ watch(activeHeat, setupListeners)
 
 /* STATUS ACCENTS */
 .glass-module.is-active { border: 1px solid #facc15; box-shadow: 0 0 20px rgba(250, 204, 21, 0.1); }
-.glass-module.is-completed { border-left: 4px solid #10b981; }
+.glass-module.is-completed { 
+    border: 1px solid rgba(16, 185, 129, 0.5); 
+    background: rgba(16, 185, 129, 0.15);
+    box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
+}
 .glass-module.is-danger { border: 1px solid rgba(239, 68, 68, 0.5); background: rgba(239, 68, 68, 0.05); }
 
 /* MODULE INTERIOR */
