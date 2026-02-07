@@ -1132,7 +1132,7 @@ watch(activeHeat, setupListeners)
 /* Labels & Values */
 .hud-label { 
     font-size: 0.75rem; 
-    font-weight: 800; 
+    font-weight: 900; 
     color: #cbd5e1; 
     letter-spacing: 1.5px; 
     margin-bottom: 4px; 
@@ -1141,11 +1141,11 @@ watch(activeHeat, setupListeners)
 
 .hud-select { 
     background: transparent; border: none; outline: none; 
-    font-family: 'JetBrains Mono', monospace; font-size: 1.5rem; font-weight: 800; color: #fff; 
+    font-family: 'JetBrains Mono', monospace; font-size: 1.5rem; font-weight: 900; color: #fff; 
     cursor: pointer; text-align: center; 
 }
 .hud-value {
-    font-family: 'JetBrains Mono', monospace; font-size: 1.4rem; font-weight: 800; color: white;
+    font-family: 'JetBrains Mono', monospace; font-size: 1.4rem; font-weight: 900; color: white;
 }
 .text-accent { color: #facc15 !important; }
 .text-cyan { color: #22d3ee !important; }
