@@ -1217,7 +1217,14 @@ watch(activeHeat, setupListeners)
 
 .p-team-display { font-size: 0.9rem; color: #94a3b8; font-weight: 600; }
 
-.judge-matrix { margin-top: auto; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); }
+.judge-matrix { 
+    margin-top: auto; 
+    padding-top: 10px; 
+    border-top: 1px solid rgba(255,255,255,0.05);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end; /* Align right */
+}
 .matrix-label { font-size: 0.55rem; color: #64748b; font-weight: 700; margin-bottom: 6px; letter-spacing: 1px; }
 .matrix-dots { display: flex; gap: 6px; }
 .matrix-dot { 
