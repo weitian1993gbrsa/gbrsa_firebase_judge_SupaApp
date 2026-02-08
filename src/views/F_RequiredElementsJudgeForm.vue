@@ -81,10 +81,10 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db } from '../firebase'
-import { doc, getDoc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc, serverTimestamp, updateDoc, onSnapshot } from 'firebase/firestore'
 
 const route = useRoute()
 const router = useRouter()
@@ -117,6 +117,9 @@ const values = reactive({
 
 const history = ref([])
 
+// DQ Listener Cleanup
+let entryUnsub = null
+
 const missing = computed(() => {
     const total = Math.floor(values.power) + Math.floor(values.multiples) + Math.floor(values.manipulation)
     return 12 - total
@@ -143,6 +146,21 @@ onMounted(async () => {
             }
         }
     }
+    
+    // Listen for DQ status from difficulty judge
+    entryUnsub = onSnapshot(doc(db, "competition", sId, "entries", entryCode), (snap) => {
+        if (snap.exists()) {
+            const data = snap.data()
+            if (data.status === 'dq' && !isLocked.value && !isSubmitting.value) {
+                console.log('[Required Elements] DQ detected, auto-submitting...')
+                autoSubmitDq()
+            }
+        }
+    })
+})
+
+onUnmounted(() => {
+    if (entryUnsub) entryUnsub()
 })
 
 const restoreScore = async () => {
@@ -209,6 +227,21 @@ const resetScore = () => {
 }
 
 const goBack = () => router.back()
+
+// ============================================
+// AUTO-SUBMIT DQ FUNCTION
+// ============================================
+const autoSubmitDq = async () => {
+    if (isLocked.value || isSubmitting.value) return
+    // Set all element values to 0 for DQ
+    values.power = 0
+    values.multiples = 0
+    values.manipulation = 0
+    // Also reset all categories to 0
+    for (const cat of categories) {        values[cat.key] = 0
+    }
+    await submitScore()
+}
 
 const submitScore = async () => {
     if (isSubmitting.value || isLocked.value) return

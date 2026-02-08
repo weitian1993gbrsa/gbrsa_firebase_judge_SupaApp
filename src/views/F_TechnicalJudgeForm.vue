@@ -64,10 +64,10 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db } from '../firebase'
-import { doc, getDoc, setDoc, serverTimestamp, updateDoc } from 'firebase/firestore'
+import { doc, getDoc, setDoc, serverTimestamp, updateDoc, onSnapshot } from 'firebase/firestore'
 
 const route = useRoute()
 const router = useRouter()
@@ -93,6 +93,9 @@ const counts = ref({
 })
 const history = ref([])
 
+// DQ Listener Cleanup
+let entryUnsub = null
+
 onMounted(async () => {
     if(!entryCode) return
 
@@ -113,6 +116,21 @@ onMounted(async () => {
             await restoreScore()
         }
     }
+    
+    // Listen for DQ status from difficulty judge
+    entryUnsub = onSnapshot(docRef, (snap) => {
+        if (snap.exists()) {
+            const data = snap.data()
+            if (data.status === 'dq' && !isLocked.value && !isSubmitting.value) {
+                console.log('[Technical] DQ detected, auto-submitting...')
+                autoSubmitDq()
+            }
+        }
+    })
+})
+
+onUnmounted(() => {
+    if (entryUnsub) entryUnsub()
 })
 
 const restoreScore = async () => {
@@ -173,6 +191,15 @@ const resetScore = () => {
 }
 
 const goBack = () => router.back()
+
+// ============================================
+// AUTO-SUBMIT DQ FUNCTION
+// ============================================
+const autoSubmitDq = async () => {
+    if (isLocked.value || isSubmitting.value) return
+    counts.value = { misses: 0, breaks: 0, space: 0 }
+    await submitScore()
+}
 
 const submitScore = async () => {
     if (isSubmitting.value || isLocked.value) return

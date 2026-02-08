@@ -116,10 +116,10 @@
 // ============================================
 // IMPORTS
 // ============================================
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db } from '../firebase'
-import { doc, getDoc, collection, addDoc, setDoc, serverTimestamp, updateDoc, query, where, getDocs, orderBy, limit } from 'firebase/firestore'
+import { doc, getDoc, collection, addDoc, setDoc, serverTimestamp, updateDoc, query, where, getDocs, orderBy, limit, onSnapshot } from 'firebase/firestore'
 
 // ============================================
 // INITIALIZATION & ROUTING
@@ -177,6 +177,9 @@ const categories = [
 const summaryVals = ref({ cre: 12, mus: 12, ent: 12, form: 12, var: 12 })
 const WEIGHTS = { cre: 0.15, mus: 0.20, ent: 0.25, form: 0.25, var: 0.15 }
 
+// DQ Listener Cleanup
+let entryUnsub = null
+
 // ============================================
 // LIFECYCLE: LOAD DATA
 // ============================================
@@ -199,6 +202,21 @@ onMounted(async () => {
             await restoreScore()
         }
     }
+    
+    // Listen for DQ status from difficulty judge
+    entryUnsub = onSnapshot(docRef, (snap) => {
+        if (snap.exists()) {
+            const data = snap.data()
+            if (data.status === 'dq' && !isLocked.value && !isSubmitting.value) {
+                console.log('[Presentation] DQ detected, auto-submitting...')
+                autoSubmitDq()
+            }
+        }
+    })
+})
+
+onUnmounted(() => {
+    if (entryUnsub) entryUnsub()
 })
 
 const restoreScore = async () => {
@@ -309,6 +327,16 @@ const goBack = () => {
     } else {
         router.back()
     }
+}
+
+// ============================================
+// AUTO-SUBMIT DQ FUNCTION
+// ============================================
+const autoSubmitDq = async () => {
+    if (isLocked.value || isSubmitting.value) return
+    summaryVals.value = { cre: 0, mus: 0, ent: 0, form: 0, var: 0 }
+    misses.value = 0
+    await submitScore()
 }
 
 // ============================================
