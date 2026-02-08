@@ -249,7 +249,8 @@ const tweenScore = (station, targetVal) => {
     if (startVal === targetVal) return
     if (activeTweens[station]) cancelAnimationFrame(activeTweens[station])
 
-    const duration = 300 
+    // Optimized: Reduced duration from 300ms to 150ms for faster updates
+    const duration = 150 
     const startTime = performance.now()
 
     const animate = (now) => {

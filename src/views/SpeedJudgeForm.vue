@@ -579,13 +579,9 @@ const updateLiveScore = async (newScore) => {
 
     try {
         const sId = station || '0'
-        await setDoc(doc(db, "live_scores", String(sId)), {
-            station: Number(sId),
-            score: Number(newScore),
-            entry_code: entryCode || '',
-            heat: heat.value || '',
-            status: 'judging',
-            updated_at: serverTimestamp()
+        // Optimized: Only update score field, no serverTimestamp for better performance
+        await updateDoc(doc(db, "live_scores", String(sId)), {
+            score: Number(newScore)
         })
     } catch (e) {
         console.error("Live update failed", e)
