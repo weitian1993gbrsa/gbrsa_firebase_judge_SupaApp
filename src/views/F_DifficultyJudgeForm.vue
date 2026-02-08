@@ -48,7 +48,7 @@
 
       <button 
         class="skill-btn level7" 
-        :class="{ 'dq-pressing': isLongPressing }"
+
         @click="addCount(7, $event)" 
         @touchstart.passive="startDqTimer"
         @touchend="cancelDqTimer"
@@ -60,7 +60,7 @@
       >
         <div class="level-label">Level 7</div>
         <div class="count-num">{{ counts[7] }}</div>
-        <div class="dq-progress" v-if="isLongPressing"></div>
+
       </button>
 
       <button class="skill-btn" @pointerdown.prevent="addCount(5, $event)" :disabled="isLocked">
