@@ -28,13 +28,11 @@
         </header>
 
         <main class="grid-container" :class="gridClass">
-            <div 
-                v-for="s in visibleStations" 
-                :key="s" 
-                class="score-card"
-                @click="openModal(s)"
-                style="cursor: pointer"
-            >
+        <div 
+            v-for="s in visibleStations" 
+            :key="s" 
+            class="score-card"
+        >
             <div class="card-header">
                 <span class="st-num">{{ s }}</span>
             </div>
@@ -53,22 +51,9 @@
                     {{ getEntryCode(s) }}
                 </div>
             </div>
-
-            <div v-if="getStatus(s)" class="card-stamp" :class="getStatusClass(s)">
-                {{ getStatus(s) }}
-            </div>
         </div>
 
     </main>
-    </div> <div v-if="selectedStation" class="modal-backdrop" @click.self="closeModal">
-        <div class="modal-card">
-            <h3>STATION {{ selectedStation }}</h3>
-            <div class="status-actions">
-                <button class="btn-action btn-scratch" @click="updateStatus('scratch')">SCRATCH</button>
-                <button class="btn-action btn-dq" @click="updateStatus('dq')">DQ</button>
-                <button class="btn-action btn-reset" @click="updateStatus('reset')">RESET</button>
-            </div>
-        </div>
     </div>
     
     <div v-if="showSettings" class="settings-overlay">
@@ -347,50 +332,7 @@ const getScore = (s) => Math.min(999, Math.round(displayScores[s] || 0))
 const getHeat = (s) => liveData[s]?.heat || ''
 const getEntryCode = (s) => liveData[s]?.entry_code || ''
 
-const getStatus = (s) => {
-    const st = liveData[s]?.status || ''
-    if (st === 'scratch' || st === 'dq' || st === 'rejump') return st.toUpperCase()
-    return null
-}
 
-const getStatusClass = (s) => {
-    const st = liveData[s]?.status || ''
-    return `is-${st}`
-}
-
-const selectedStation = ref(null)
-
-const openModal = (s) => {
-    selectedStation.value = s
-}
-const closeModal = () => {
-    selectedStation.value = null
-}
-
-const updateStatus = async (status) => {
-    const s = selectedStation.value
-    if (!s) return
-    try {
-        const entryCode = liveData[s]?.entry_code
-        const newStatus = status === 'reset' ? 'waiting' : status
-        await setDoc(doc(db, 'live_scores', String(s)), {
-            station: Number(s),
-            status: newStatus,
-            updated_at: serverTimestamp(),
-            ...(status === 'reset' ? { score: 0, heat: '-', entry_code: '' } : {}) 
-        }, { merge: true })
-
-        if (entryCode) {
-            const dbStatus = status === 'reset' ? 'pending' : status
-            const pRef = doc(db, "competition", String(s), "entries", entryCode)
-            await updateDoc(pRef, { status: dbStatus })
-        }
-    } catch (e) {
-        console.error("Error updating status:", e)
-        alert("Failed to update status")
-    }
-    closeModal()
-}
 
 // Auto-reset all stations when component mounts (clears stuck scores)
 const resetAllStationsOnMount = async () => {
@@ -577,6 +519,11 @@ h1 { font-weight: 900; letter-spacing: 0.1em; color: white; font-size: 3rem; mar
 .settings-overlay {
     position: fixed; inset: 0; z-index: 10000;
     background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center;
+}
+.settings-card {
+    background: #1e293b; color: white; width: 90%; max-width: 400px;
+    border-radius: 16px; padding: 2rem; box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    border: 1px solid #334155; text-align: center;
 }
 .settings-card h3 { margin-top: 0; color: white; }
 .setting-group { margin-bottom: 1.5rem; text-align: left; }
