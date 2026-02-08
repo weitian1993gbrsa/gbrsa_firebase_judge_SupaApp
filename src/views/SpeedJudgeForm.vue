@@ -96,7 +96,7 @@
        <div v-if="showRemarkModal" class="modal-backdrop" @click.self="closeRemark">
           <div class="modal-card">
               <h3>Add Remark</h3>
-              <textarea v-model="tempRemark" placeholder="Enter details..." rows="3"></textarea>
+              <textarea v-model="tempRemark" placeholder="Enter details..." rows="3" style="text-transform: uppercase;"></textarea>
               <div class="modal-actions">
                   <button class="m-btn cancel" @click="closeRemark">Cancel</button>
                   <button class="m-btn confirm" @click="saveRemark">Save</button>
@@ -493,6 +493,36 @@ const closeRemark = () => showRemarkModal.value = false
 const saveRemark = () => {
     remark.value = tempRemark.value
     
+    // AUTO-STATUS DETECTION: Check for DQ/DC/SCRATCH/REJUMP keywords
+    const remarkLower = tempRemark.value.toLowerCase()
+    const isDQ = /\b(dq|dc)\b/.test(remarkLower)
+    const isScratch = /\bscratch\b/.test(remarkLower)
+    const isRejump = /\brejump\b/.test(remarkLower)
+    
+    if (isDQ || isScratch || isRejump) {
+        // Set score to 0
+        currentScore.value = 0
+        
+        // Lock tap zone
+        isTapLocked.value = true
+        
+        // Keep the remark (don't clear it for DQ/Scratch/Rejump)
+        remark.value = tempRemark.value
+        
+        // Haptic feedback
+        if(navigator.vibrate) navigator.vibrate([100, 50, 100])
+        
+        showRemarkModal.value = false
+        
+        // Auto-submit with appropriate status
+        setTimeout(() => {
+            const status = isDQ ? 'dq' : (isScratch ? 'scratch' : 'rejump')
+            submitScoreWithStatus(status)
+        }, 300)
+        
+        return
+    }
+    
     // AUTO-AVERAGING: Detect multiple numbers in remark (e.g., "21 20 23")
     // Extract all numbers from the remark
     const numbers = tempRemark.value.match(/\d+(\.\d+)?/g)
@@ -537,6 +567,65 @@ const saveKeypad = () => {
     currentScore.value = Number(tempNumpadScore.value)
     isTapLocked.value = true // LOCK
     showKeypadModal.value = false
+}
+
+// Helper function to submit score with specific status
+const submitScoreWithStatus = async (status) => {
+    if (isSubmitting.value || isLocked.value) return
+    isSubmitting.value = true
+    if(navigator.vibrate) navigator.vibrate([100])
+
+    try {
+        const payload = {
+            entry_code: entryCode,
+            score: 0, // DQ/Scratch always have 0 score
+            false_start: falseStart.value,
+            remark: remark.value,
+            station: station,
+            judge_key: sessionStorage.getItem('gbrsa_access_key') || 'unknown',
+            created_at: serverTimestamp() 
+        }
+
+        if (route.query.test === 'true') {
+             isSuccess.value = true
+             setTimeout(() => {
+                 isSubmitting.value = false
+                 if (route.query.entry === 'PRACTICE') {
+                     router.push('/practice')
+                 } else {
+                     router.push('/tester')
+                 }
+             }, 1200)
+             return
+        }
+
+        const resultRef = doc(db, "results_speed", entryCode)
+        await setDoc(resultRef, payload, { merge: true })
+
+        const sId = station || '1'
+        const pRef = doc(db, "competition", sId, "entries", entryCode)
+        await updateDoc(pRef, { status: status }) // Set to 'dq' or 'scratch'
+
+        // BROADCAST with status
+        await setDoc(doc(db, "live_scores", String(sId)), {
+             station: Number(sId),
+             score: 0,
+             status: status,
+             heat: '-',
+             entry_code: '',
+             updated_at: serverTimestamp()
+        })
+
+        isSuccess.value = true
+        setTimeout(() => {
+            isSubmitting.value = false
+            goBack()
+        }, 1200)
+
+    } catch (e) {
+        alert("Error submitting: " + e.message)
+        isSubmitting.value = false
+    }
 }
 
 const submitScore = async () => {
