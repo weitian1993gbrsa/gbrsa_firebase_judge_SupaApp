@@ -340,7 +340,7 @@ const containerStyle = computed(() => ({
     width: '100%'
 }))
 
-const getScore = (s) => Math.round(displayScores[s] || 0)
+const getScore = (s) => Math.min(999, Math.round(displayScores[s] || 0))
 const getHeat = (s) => liveData[s]?.heat || ''
 const getEntryCode = (s) => liveData[s]?.entry_code || ''
 
