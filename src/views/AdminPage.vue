@@ -791,7 +791,9 @@ const getMinEntry = (val, field) => {
 }
 
 const distinctEvents = computed(() => {
-    return activeView.value === 'speed' ? config.value.speedEvents : config.value.freestyleEvents
+    const events = activeView.value === 'speed' ? config.value.speedEvents : config.value.freestyleEvents
+    console.log('[AdminPage] distinctEvents:', events)
+    return events
 })
 
 const distinctHeats = computed(() => [...new Set(fullData.value.map(p => p.heat))].filter(h => h && h !== '0' && h !== 0).sort((a,b)=>Number(a)-Number(b)))
@@ -855,7 +857,8 @@ const sortedData = computed(() => {
     // 1. FILTER
     // Filter by active view (speed/freestyle events)
     data = data.filter(r => {
-        const isFreestyleEvent = ['SRIF','SRPF','SRTF','DDIF','DDPF','DDTF'].includes(r.event)
+        // Use config instead of hardcoded list to support all configured events
+        const isFreestyleEvent = config.value.freestyleEvents.includes(r.event)
         // Also exclude SYSTEM rows
         if (r.entry_code === '0' || r.entry_code === 0 || r.name === 'SYSTEM') return false;
         
