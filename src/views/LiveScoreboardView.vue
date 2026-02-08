@@ -219,6 +219,9 @@ onMounted(async () => {
         initProjectorFeatures()
     }
     
+    // AUTO-RESET: Clear all stuck scores on mount
+    await resetAllStationsOnMount()
+    
     window.addEventListener('keydown', handleKeydown)
 
     unsub = onSnapshot(collection(db, 'live_scores'), (snap) => {
@@ -387,6 +390,32 @@ const updateStatus = async (status) => {
         alert("Failed to update status")
     }
     closeModal()
+}
+
+// Auto-reset all stations when component mounts (clears stuck scores)
+const resetAllStationsOnMount = async () => {
+    try {
+        const totalStations = urlStationCount.value
+        const resetPromises = []
+        
+        for (let i = 1; i <= totalStations; i++) {
+            resetPromises.push(
+                setDoc(doc(db, 'live_scores', String(i)), {
+                    station: Number(i),
+                    score: 0,
+                    status: 'waiting',
+                    heat: '-',
+                    entry_code: '',
+                    updated_at: serverTimestamp()
+                })
+            )
+        }
+        
+        await Promise.all(resetPromises)
+        console.log(`Auto-reset: ${totalStations} stations cleared`)
+    } catch (e) {
+        console.error("Error auto-resetting stations:", e)
+    }
 }
 
 const handleAuth = async () => {
