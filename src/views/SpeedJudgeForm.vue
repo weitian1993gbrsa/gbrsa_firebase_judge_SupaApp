@@ -492,6 +492,29 @@ const openRemark = () => {
 const closeRemark = () => showRemarkModal.value = false
 const saveRemark = () => {
     remark.value = tempRemark.value
+    
+    // AUTO-AVERAGING: Detect multiple numbers in remark (e.g., "21 20 23")
+    // Extract all numbers from the remark
+    const numbers = tempRemark.value.match(/\d+(\.\d+)?/g)
+    
+    if (numbers && numbers.length >= 2) {
+        // Convert to numbers and calculate average
+        const scores = numbers.map(n => parseFloat(n))
+        const average = scores.reduce((sum, score) => sum + score, 0) / scores.length
+        
+        // Set the score to the calculated average (rounded to nearest integer)
+        currentScore.value = Math.round(average)
+        
+        // Lock tap zone since score is manually set
+        isTapLocked.value = true
+        
+        // Clear remark after averaging
+        remark.value = ""
+        
+        // Haptic feedback to confirm
+        if(navigator.vibrate) navigator.vibrate([50, 50, 50])
+    }
+    
     showRemarkModal.value = false
 }
 
