@@ -1,6 +1,9 @@
 <template>
   <div class="wrapper anim-up" :class="{ 'form-locked': isLocked }">
     
+    <!-- ============================================== -->
+    <!-- PAGE 1: TALLY GRID (Quick +/- Counting)       -->
+    <!-- ============================================== -->
     <section v-show="page === 1" class="page" id="page1" style="display: flex;">
         <header class="judge-header">
             <button class="btn-back" @click="goBack">
@@ -37,6 +40,9 @@
         </div>
     </section>
 
+    <!-- ============================================== -->
+    <!-- PAGE 2: SUMMARY SLIDERS (Fine-tune Scores)    -->
+    <!-- ============================================== -->
     <section v-show="page === 2" class="page" id="page2" style="display: flex;">
         <header class="judge-header">
             <button class="btn-back" @click="page = 1">
@@ -79,6 +85,9 @@
         </div>
     </section>
     
+    <!-- ============================================== -->
+    <!-- SHARED OVERLAYS                               -->
+    <!-- ============================================== -->
     <Teleport to="body">
        <div v-if="isLocked" class="locked-stamp">COMPLETED</div>
     </Teleport>
@@ -104,11 +113,17 @@
 </template>
 
 <script setup>
+// ============================================
+// IMPORTS
+// ============================================
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { db } from '../firebase'
 import { doc, getDoc, collection, addDoc, setDoc, serverTimestamp, updateDoc, query, where, getDocs, orderBy, limit } from 'firebase/firestore'
 
+// ============================================
+// INITIALIZATION & ROUTING
+// ============================================
 const route = useRoute()
 const router = useRouter()
 const entryCode = route.query.entry
@@ -121,14 +136,19 @@ if (!station && route.query.test !== 'true') {
 
 const sId = station;
 
+// ============================================
+// SHARED STATE
+// ============================================
 const heat = ref("-")
 const isSubmitting = ref(false)
 const isSuccess = ref(false)
 const isLocked = ref(false)
-
 const page = ref(1)
+const misses = ref(0)
 
-// PAGE 1 STATE
+// ============================================
+// PAGE 1 STATE: TALLY GRID (Quick +/- Counting)
+// ============================================
 const counts = ref({
     crePlus: 0, creMinus: 0,
     musPlus: 0, musMinus: 0,
@@ -136,10 +156,11 @@ const counts = ref({
     formPlus: 0, formMinus: 0,
     varPlus: 0, varMinus: 0
 })
-const misses = ref(0)
 const history = ref([])
 
-// PAGE 2 STATE
+// ============================================
+// PAGE 2 STATE: SUMMARY SLIDERS (Fine-tune Scores)
+// ============================================
 const categories = [
     { key: "cre", label: "Creativity" },
     { key: "mus", label: "Musicality" },
@@ -155,6 +176,10 @@ const categories = [
 
 const summaryVals = ref({ cre: 12, mus: 12, ent: 12, form: 12, var: 12 })
 const WEIGHTS = { cre: 0.15, mus: 0.20, ent: 0.25, form: 0.25, var: 0.15 }
+
+// ============================================
+// LIFECYCLE: LOAD DATA
+// ============================================
 
 onMounted(async () => {
     if(!entryCode) return
@@ -203,6 +228,9 @@ const restoreScore = async () => {
     }
 }
 
+// ============================================
+// PAGE 1 FUNCTIONS: TALLY GRID
+// ============================================
 const adjust = (cat, dir) => {
     if (isLocked.value) return
     const key = cat + (dir > 0 ? 'Plus' : 'Minus')
@@ -237,18 +265,9 @@ const resetScore = () => {
     page.value = 1
 }
 
-const goToPage2 = () => {
-    if (!isLocked.value) {
-        const calc = (plus, minus) => Math.max(0, Math.min(24, 12 + plus - minus))
-        summaryVals.value.cre = calc(counts.value.crePlus, counts.value.creMinus)
-        summaryVals.value.mus = calc(counts.value.musPlus, counts.value.musMinus)
-        summaryVals.value.ent = calc(counts.value.entPlus, counts.value.entMinus)
-        summaryVals.value.form = calc(counts.value.formPlus, counts.value.formMinus)
-        summaryVals.value.var = calc(counts.value.varPlus, counts.value.varMinus)
-    }
-    page.value = 2
-}
-
+// ============================================
+// PAGE 2 FUNCTIONS: SUMMARY SLIDERS
+// ============================================
 const adjustSlider = (key, delta) => {
     if (isLocked.value) return
     summaryVals.value[key] = Math.max(0, Math.min(24, summaryVals.value[key] + delta))
@@ -269,6 +288,21 @@ const calculateFinalScore = () => {
 
 const currentDisplayScore = computed(() => calculateFinalScore().toFixed(2))
 
+// ============================================
+// NAVIGATION FUNCTIONS
+// ============================================
+const goToPage2 = () => {
+    if (!isLocked.value) {
+        const calc = (plus, minus) => Math.max(0, Math.min(24, 12 + plus - minus))
+        summaryVals.value.cre = calc(counts.value.crePlus, counts.value.creMinus)
+        summaryVals.value.mus = calc(counts.value.musPlus, counts.value.musMinus)
+        summaryVals.value.ent = calc(counts.value.entPlus, counts.value.entMinus)
+        summaryVals.value.form = calc(counts.value.formPlus, counts.value.formMinus)
+        summaryVals.value.var = calc(counts.value.varPlus, counts.value.varMinus)
+    }
+    page.value = 2
+}
+
 const goBack = () => {
     if (page.value === 2) {
         page.value = 1
@@ -277,6 +311,9 @@ const goBack = () => {
     }
 }
 
+// ============================================
+// SUBMISSION FUNCTION
+// ============================================
 const submitScore = async () => {
     if (isSubmitting.value || isLocked.value) return
     isSubmitting.value = true
@@ -331,7 +368,9 @@ const submitScore = async () => {
 </script>
 
 <style scoped>
-/* LEGACY CSS MATCH */
+/* ============================================ */
+/* BASE STYLES & CSS VARIABLES                 */
+/* ============================================ */
 :root {
   --bg: #f8fafc;
   --text: #0f172a;
@@ -390,7 +429,9 @@ const submitScore = async () => {
     filter: grayscale(0.5);
 }
 
-/* HEADER */
+/* ============================================ */
+/* SHARED: HEADER & BASIC PAGE STRUCTURE       */
+/* ============================================ */
 .judge-header {
   flex-shrink: 0;
   display: flex;
@@ -468,7 +509,6 @@ const submitScore = async () => {
 .btn-primary:active { transform: scale(0.96); }
 .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
 
-/* PAGE 1 CONTENT */
 .page {
   flex: 1;
   display: flex;
@@ -476,6 +516,9 @@ const submitScore = async () => {
   min-height: 0;
 }
 
+/* ============================================ */
+/* PAGE 1: TALLY GRID STYLES                   */
+/* ============================================ */
 .control-row {
   display: grid;
   grid-template-columns: 100px 1fr 100px;
@@ -528,8 +571,6 @@ const submitScore = async () => {
 .btn-undo:active, .btn-reset:active { transform: scale(0.95); filter: brightness(1.3) saturate(1.1); transition: none; }
 .hidden { visibility: hidden !important; pointer-events: none !important; }
 
-
-/* PAGE 1 GRID (UNTOUCHED) */
 .pres-grid {
   flex: 1;
   display: grid;
@@ -582,7 +623,9 @@ const submitScore = async () => {
 .pres-btn.plus { background: linear-gradient(135deg, #34d399 0%, #059669 100%); }
 .miss-btn { background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%); font-size: 18px; grid-row: span 3; }
 
-/* PAGE 2 SUMMARY (FIXED) */
+/* ============================================ */
+/* PAGE 2: SUMMARY SLIDERS STYLES              */
+/* ============================================ */
 .score-values {
   display: flex;
   justify-content: center;
@@ -595,7 +638,6 @@ const submitScore = async () => {
   flex-shrink: 0;
 }
 
-/* CONTAINER FIX: Flex column to fill height */
 #summaryScroll {
   flex: 1;
   overflow-y: auto;
@@ -605,33 +647,26 @@ const submitScore = async () => {
   flex-direction: column;
 }
 
-/* GAP FIX: Add gap back so it matches Page 1 */
 #summaryContainer {
     flex: 1;
     display: flex;
     flex-direction: column;
-    /* CHANGED: Use gap for spacing instead of just justify-content */
     gap: 12px; 
     min-height: 100%;
     padding-bottom: 10px;
 }
 
-/* ROW FIX: Fixed Width Columns & Stretching Height */
 .row {
   display: grid;
-  /* CHANGED: Force fixed column ratios (ignore text length) */
   grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr);
   gap: 12px;
   align-items: center; 
   margin: 0 auto;
   width: 100%;
-  
-  /* HEIGHT LOGIC: Stretch to fill container */
   flex: 1; 
   min-height: 80px; 
 }
 
-/* BUTTON FIX: Fill the row height */
 .box-minus, .box-plus {
   color: white;
   height: 100%; 
@@ -653,13 +688,11 @@ const submitScore = async () => {
 .box-minus { background: linear-gradient(135deg, #f87171 0%, #dc2626 100%); }
 .box-plus { background: linear-gradient(135deg, #34d399 0%, #059669 100%); }
 
-/* LABEL TEXT FIX: Handle overflow */
 .label-text { 
     font-size: 10px; 
     text-transform: uppercase; 
     margin-bottom: 4px; 
     text-align: center;
-    /* Wrap long words if needed */
     white-space: normal;
     word-break: break-word;
     padding: 0 4px;
@@ -678,7 +711,9 @@ const submitScore = async () => {
 
 .summary-slider { width: 100%; accent-color: #4633f5; border-radius: 10px; height: 8px; }
 
-/* OVERLAY */
+/* ============================================ */
+/* SHARED: OVERLAYS & MODALS                   */
+/* ============================================ */
 .overlay {
   position: fixed;
   inset: 0;
@@ -719,7 +754,6 @@ const submitScore = async () => {
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes popIn { 0% { transform: scale(0) rotate(-45deg); opacity: 0; } 100% { transform: scale(1) rotate(0); opacity: 1; } }
 
-/* LOCKED STAMP */
 .locked-stamp {
   position: fixed;
   top: 50%;
@@ -739,12 +773,10 @@ const submitScore = async () => {
   background: rgba(15, 23, 42, 0.85);
   backdrop-filter: blur(8px);
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2), 0 10px 10px -5px rgba(0, 0, 0, 0.1);
-  /* ANIMATION REMOVED */
 }
 
 @keyframes stampIn {
     from { opacity: 0; transform: translate(-50%, -50%) rotate(-12deg) scale(2); }
     to { opacity: 1; transform: translate(-50%, -50%) rotate(-12deg) scale(1); }
 }
-/* ANIMATION REMOVED */
 </style>
