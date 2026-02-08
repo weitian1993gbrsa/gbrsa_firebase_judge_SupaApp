@@ -179,7 +179,9 @@ const triggerDq = () => {
     isLongPressing.value = false
     isDq.value = true
     dqTriggered.value = true
-    if(navigator.vibrate) navigator.vibrate([200, 100, 200]) 
+    if(navigator.vibrate) navigator.vibrate([200, 100, 200])
+    // Auto-submit when DQ is triggered
+    submitScore()
 }
 
 onMounted(async () => {
@@ -309,7 +311,13 @@ const submitScore = async () => {
         
         const sId = station || '1'
         const pRef = doc(db, "competition", sId, "entries", entryCode)
-        await updateDoc(pRef, { status_difficulty: true })
+        
+        // Update entry status: set to 'dq' if disqualified, otherwise just mark difficulty as complete
+        if (isDq.value) {
+            await updateDoc(pRef, { status: 'dq', status_difficulty: true })
+        } else {
+            await updateDoc(pRef, { status_difficulty: true })
+        }
 
         isSuccess.value = true
         setTimeout(() => {
