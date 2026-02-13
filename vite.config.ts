@@ -23,7 +23,7 @@ export default defineConfig({
         theme_color: '#FFFFFF',
         background_color: '#FFFFFF',
         display: 'standalone',
-        orientation: 'any',
+        orientation: 'portrait',
         icons: [
           {
             src: 'manifest-icon-192.maskable.png',
