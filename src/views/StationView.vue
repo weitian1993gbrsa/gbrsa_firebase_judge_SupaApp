@@ -1,40 +1,42 @@
 <template>
   <div class="station-interface-header">
-    <header class="topbar">
-      <div class="header-left">
-        <img src="/logo.svg" alt="Logo" style="height: 32px; width: auto; object-fit: contain;">
-        <div class="titles">
-          <h1>
-            <span style="display:flex; align-items:center; gap:6px;">
-              {{ eventMode === 'speed' ? 'Speed' : 'Freestyle' }} Station {{ stationId }}
-            </span>
-          </h1>
-          <div v-if="judgeType" style="font-size: 0.75rem; font-weight: 800; color: #64748b; letter-spacing: 0.1em; text-transform: uppercase;">
-             {{ judgeType }}
+    <div class="header-content">
+      <header class="topbar">
+        <div class="header-left">
+          <img src="/logo.svg" alt="Logo" style="height: 32px; width: auto; object-fit: contain;">
+          <div class="titles">
+            <h1>
+              <span style="display:flex; align-items:center; gap:6px;">
+                {{ eventMode === 'speed' ? 'Speed' : 'Freestyle' }} Station {{ stationId }}
+              </span>
+            </h1>
+            <div v-if="judgeType" style="font-size: 0.75rem; font-weight: 800; color: #64748b; letter-spacing: 0.1em; text-transform: uppercase;">
+               {{ judgeType }}
+            </div>
           </div>
         </div>
-      </div>
 
-      <div class="live-indicator">
-        <span class="status-dot"></span>
-        <span>LIVE</span>
+        <div class="live-indicator">
+          <span class="status-dot"></span>
+          <span>LIVE</span>
+        </div>
+      </header>
+      <div class="station-actions">
+        <button @click="goHome" class="btn" id="btnHome">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+          </svg>
+          Home
+        </button>
+        <button @click="fetchData" class="btn" id="btnRefresh">
+          <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          Refresh
+        </button>
       </div>
-    </header>
-    <div class="station-actions">
-      <button @click="goHome" class="btn" id="btnHome">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round"
-            d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
-        </svg>
-        Home
-      </button>
-      <button @click="fetchData" class="btn" id="btnRefresh">
-        <svg fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round"
-            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-        </svg>
-        Refresh
-      </button>
     </div>
   </div>
 
@@ -349,9 +351,15 @@ const fetchData = () => subscribe()
       padding: 1rem;
       padding-bottom: calc(20px + env(safe-area-inset-bottom));
       width: 100%;
-      max-width: 900px;
+      max-width: 640px;
       margin: 0 auto;
       background: transparent; /* inherited from body */
+    }
+
+    .header-content {
+      width: 100%;
+      max-width: 640px;
+      margin: 0 auto;
     }
     
     .container::-webkit-scrollbar { display: none; }
